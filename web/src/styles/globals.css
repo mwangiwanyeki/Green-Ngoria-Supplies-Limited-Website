@@ -1,0 +1,304 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   GREEN NGORIA SUPPLIES LIMITED — DESIGN SYSTEM
+   Industrial Premium / Engineering Editorial
+
+   Font faces are supplied by next/font in `src/app/layout.tsx`
+   as --font-display, --font-body and --font-mono.
+   ============================================================ */
+
+@layer base {
+  :root {
+    /* ── Light theme — paper-white with a green-tinted neutral ramp ── */
+    --background: 140 12% 98%;
+    --foreground: 155 22% 8%;
+
+    --surface: 0 0% 100%;
+    --surface-elevated: 0 0% 100%;
+    --surface-sunken: 145 14% 95%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 155 22% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 155 22% 8%;
+
+    --primary: 140 65% 24%; /* Brand green */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 145 14% 94%;
+    --secondary-foreground: 155 20% 18%;
+
+    --muted: 145 14% 94%;
+    /* 7.4:1 on white, 6.6:1 on --surface-sunken. Tinted from the brand hue. */
+    --muted-foreground: 152 13% 34%;
+    /* 5.9:1 on white, 5.1:1 on --surface-sunken — the floor for captions. */
+    --subtle-foreground: 152 11% 40%;
+
+    --accent: 140 45% 94%;
+    --accent-foreground: 140 65% 20%;
+
+    --destructive: 0 72% 44%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 140 65% 26%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 88% 38%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 148 12% 88%;
+    --hairline: 148 12% 91%;
+    --input: 148 12% 84%;
+    --ring: 140 65% 30%;
+
+    --shadow-color: 155 30% 12%;
+
+    --radius: 0.625rem;
+
+    /* Fixed dark industrial surface used by heroes and the footer in
+       both themes. Kept as tokens so overlays can be tuned in one place. */
+    --ink: 158 16% 7%;
+    --ink-raised: 158 14% 11%;
+    --on-ink: 150 12% 96%;
+    --on-ink-muted: 150 8% 74%;
+    --on-ink-subtle: 150 7% 62%;
+  }
+
+  .dark {
+    /* ── Dark theme — industrial, not black-neon ── */
+    --background: 158 16% 7%;
+    --foreground: 150 12% 94%;
+
+    --surface: 158 14% 10%;
+    --surface-elevated: 156 12% 13%;
+    --surface-sunken: 158 18% 5%;
+
+    --card: 158 14% 10%;
+    --card-foreground: 150 12% 94%;
+
+    --popover: 156 13% 12%;
+    --popover-foreground: 150 12% 94%;
+
+    --primary: 140 52% 52%;
+    --primary-foreground: 158 20% 6%;
+
+    --secondary: 156 10% 16%;
+    --secondary-foreground: 150 10% 84%;
+
+    --muted: 156 10% 16%;
+    /* 8.5:1 on --background. */
+    --muted-foreground: 150 9% 72%;
+    /* 6.4:1 on --background, 6.9:1 on --surface-sunken. */
+    --subtle-foreground: 150 8% 63%;
+
+    --accent: 145 32% 15%;
+    --accent-foreground: 140 55% 66%;
+
+    --destructive: 0 68% 56%;
+    --destructive-foreground: 158 20% 6%;
+
+    --success: 140 52% 52%;
+    --success-foreground: 158 20% 6%;
+
+    --warning: 38 82% 60%;
+    --warning-foreground: 158 20% 6%;
+
+    --border: 156 9% 19%;
+    --hairline: 156 9% 16%;
+    --input: 156 9% 24%;
+    --ring: 140 52% 56%;
+
+    --shadow-color: 158 40% 2%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Sticky header clearance for in-page anchors. */
+    scroll-padding-top: 6rem;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1,
+      'kern' 1,
+      'ss01' 1;
+  }
+
+  /* Headings share the display face and a tight optical tracking floor. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+    text-wrap: balance;
+  }
+
+  /* Focus ring — brand-tinted, offset from the surface it sits on. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Dark industrial surfaces carry their own offset colour. */
+  .on-ink :focus-visible {
+    --tw-ring-offset-color: hsl(var(--ink));
+    --tw-ring-color: hsl(140 55% 58%);
+  }
+
+  /* Scrollbar — thin, brand-tinted, themed in both modes. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.55);
+  }
+
+  ::selection {
+    background-color: hsl(140 55% 42% / 0.24);
+    color: hsl(var(--foreground));
+  }
+  .on-ink ::selection {
+    background-color: hsl(140 55% 52% / 0.3);
+    color: hsl(var(--on-ink));
+  }
+
+  /* Underlines sit clear of descenders wherever prose links appear. */
+  a {
+    text-underline-offset: 0.22em;
+    text-decoration-thickness: from-font;
+  }
+
+  /* Technical figures always use lining tabular numerals. */
+  .tabular-figures,
+  dd,
+  time,
+  .font-mono {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+}
+
+@layer components {
+  /* Technical label — uppercase spaced engineering label. Reserved for
+     table headers, dt terms and diagram callouts, never as a heading kicker. */
+  .tech-label {
+    @apply text-tech-label uppercase text-muted-foreground;
+  }
+
+  /* Fixed dark industrial surface (hero, footer, CTA) in both themes. */
+  .surface-ink {
+    background-color: hsl(var(--ink));
+    color: hsl(var(--on-ink));
+  }
+
+  /* Engineering linework — a hairline grid that reads in both themes. */
+  .linework {
+    background-image:
+      linear-gradient(
+        to right,
+        hsl(var(--foreground) / 0.055) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        hsl(var(--foreground) / 0.055) 1px,
+        transparent 1px
+      );
+    background-size: 72px 72px;
+  }
+  .surface-ink .linework,
+  .linework-ink {
+    background-image:
+      linear-gradient(to right, hsl(0 0% 100% / 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(0 0% 100% / 0.05) 1px, transparent 1px);
+    background-size: 72px 72px;
+  }
+
+  /* A single hairline rule that fades at both ends. */
+  .rule-fade {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      hsl(var(--border)),
+      transparent
+    );
+  }
+
+  /* Body measure: 65–75 characters. */
+  .measure {
+    max-width: 68ch;
+  }
+  .measure-tight {
+    max-width: 56ch;
+  }
+
+  /* Data figure */
+  .data-figure {
+    @apply font-display text-data-lg tabular-figures;
+  }
+
+  .status-dot {
+    @apply inline-block h-2 w-2 rounded-full;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), system-ui, sans-serif;
+  }
+  .font-body {
+    font-family: var(--font-body), system-ui, sans-serif;
+  }
+  .font-mono {
+    font-family: var(--font-mono), ui-monospace, monospace;
+  }
+
+  /* Fine industrial grain, used only on large dark surfaces. */
+  .texture-grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.035;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

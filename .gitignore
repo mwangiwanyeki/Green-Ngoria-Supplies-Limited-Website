@@ -1,0 +1,45 @@
+# Environment — NEVER commit
+.env
+.env.*
+!.env.example
+!web/.env.example
+
+# Build outputs
+dist/
+web/.next/
+web/out/
+
+# Dependencies
+node_modules/
+web/node_modules/
+
+# Storage
+storage/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Coverage
+coverage/
+
+# Prisma migrations are source code and must be reviewed/deployed with the app.
+!prisma/migrations/
+!prisma/migrations/**
+
+# Package manager store
+.pnpm-store/
+
+# Local tooling / session artifacts (not part of the deployable app)
+.claude/
+.codex/
+.agents/skills/

@@ -1,0 +1,100 @@
+version: '3.9'
+
+# ============================================================
+# GREEN NGORIA SUPPLIES LIMITED — Docker Compose
+# Development and staging environment
+# ============================================================
+# NOTE: Production uses Supabase PostgreSQL and Redis Cloud.
+#       This compose file is for local development only.
+# ============================================================
+
+services:
+  # ── PostgreSQL (local dev — mirrors Supabase schema) ──────
+  db:
+    image: postgres:16-alpine
+    container_name: gng_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: greenngoria
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ─────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: gng_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── NestJS API ────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gng_api
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/greenngoria?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@db:5432/greenngoria?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production
+      SESSION_SECRET: dev-session-secret-change-in-production
+      FEATURE_EMAIL_VERIFICATION_REQUIRED: 'false'
+      FEATURE_MFA_ENABLED: 'false'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health/live']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Next.js frontend (dev mode) ───────────────────────────
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.web
+    container_name: gng_web
+    restart: unless-stopped
+    ports:
+      - '4000:4000'
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: http://localhost:4000
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: gng_network

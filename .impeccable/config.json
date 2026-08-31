@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "codex-grid-background",
+        "value": "*",
+        "files": [
+          "src/styles/globals.css"
+        ],
+        "createdAt": "2026-08-31T14:40:41.413Z",
+        "reason": "DESIGN.md sanctions technical linework as brand identity"
+      },
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "files": [
+          "src/lib/mail/mail.service.ts"
+        ],
+        "createdAt": "2026-08-31T15:15:29.937Z",
+        "reason": "HTML email templates require web-safe system fonts (Arial); email clients do not support custom/web fonts. Not UI typography."
+      }
+    ]
+  }
+}
