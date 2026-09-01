@@ -97,6 +97,7 @@ export function useUpdateSpare(id: string) {
       patch(`/equipment/spares/${id}`, data).then((r) => r.data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: QK.spares.detail(id) });
+      // Prefix invalidation catches all param variants
       void qc.invalidateQueries({ queryKey: ['equipment', 'spares'] });
     },
   });
@@ -115,7 +116,10 @@ export function useAdjustStock(id: string) {
       post(`/equipment/spares/${id}/stock-adjust`, { adjustment, reason }).then(
         (r) => r.data,
       ),
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK.spares.detail(id) }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QK.spares.detail(id) });
+      void qc.invalidateQueries({ queryKey: ['equipment', 'spares'] });
+    },
   });
 }
 

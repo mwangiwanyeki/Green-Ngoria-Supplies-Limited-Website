@@ -1,6 +1,6 @@
 import { Global, Module, DynamicModule } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '../../config/config.module';
 import { QUEUE_NAMES } from './queue.constants';
 
 const queues = Object.values(QUEUE_NAMES).map((name) =>

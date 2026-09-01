@@ -289,6 +289,29 @@ export function AdminRfqsList() {
     setDialogOpen(true);
   };
 
+  const handleExport = () => {
+    if (!items.length) { toast.error('No data to export'); return; }
+    const headers = ['RFQ #', 'Title', 'Client', 'Status', 'Line Items', 'Required By', 'Created'];
+    const csv = [
+      headers.join(','),
+      ...items.map((r) => [
+        r.rfqNumber ?? '',
+        r.title ?? '',
+        r.client?.companyName ?? r.clientName ?? '',
+        r.status ?? '',
+        r._count?.items ?? r.itemsCount ?? 0,
+        (r.requiredByDate ?? r.responseDeadline) ? new Date(r.requiredByDate ?? r.responseDeadline ?? '').toLocaleDateString('en-KE') : 'ASAP',
+        new Date(r.createdAt).toLocaleDateString('en-KE'),
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `rfqs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast.success('Export ready');
+  };
+
   const onSubmit = async (values: RfqFormValues) => {
     const payload = compact({
       title: values.title.trim(),
@@ -366,6 +389,7 @@ export function AdminRfqsList() {
               size="sm"
               variant="outline"
               leftIcon={<Download className="h-4 w-4" />}
+              onClick={handleExport}
             >
               Export
             </Button>

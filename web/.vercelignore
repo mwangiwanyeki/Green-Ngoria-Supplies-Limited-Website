@@ -1,0 +1,24 @@
+# Secrets — never upload. The repo-root .gitignore covers these for git, but
+# Vercel deploys with `web/` as the project root and does not read a parent
+# .gitignore, so they must be listed explicitly here.
+.env
+.env.*
+!.env.example
+
+# Dependencies & build output (Vercel installs and builds from source)
+node_modules
+.next
+out
+*.tsbuildinfo
+
+# Local tooling / session artifacts — not part of the deployable app
+.impeccable
+.vscode
+.claude
+.codex
+.agents
+AGENTS.md
+CLAUDE.md
+Dockerfile.web
+coverage
+*.log

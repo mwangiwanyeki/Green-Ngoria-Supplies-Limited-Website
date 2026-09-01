@@ -43,6 +43,7 @@ export function useUpdateMiningSite(id: string) {
       patch(`/mining-sites/${id}`, data).then((r) => r.data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: QK.miningSites.detail(id) });
+      // Invalidate all mining-sites list queries regardless of params
       void qc.invalidateQueries({ queryKey: ['mining-sites'] });
     },
   });

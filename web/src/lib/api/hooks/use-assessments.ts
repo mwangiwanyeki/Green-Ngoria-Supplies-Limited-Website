@@ -59,16 +59,27 @@ export function useSubmitAssessment(orgId: string, id: string) {
   });
 }
 
-export function useTransitionAssessment(orgId: string, id: string) {
+export function useTransitionAssessment(orgId: string, defaultId?: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { status: string; assignedEngineerId?: string }) =>
-      post(
-        `/organizations/${orgId}/plant-assessments/${id}/transition`,
-        data,
-      ).then((r) => r.data),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QK.assessments.detail(orgId, id) });
+    mutationFn: (data: {
+      id?: string;
+      status: string;
+      assignedEngineerId?: string;
+    }) => {
+      const targetId = data.id || defaultId;
+      return post(
+        `/organizations/${orgId}/plant-assessments/${targetId}/transition`,
+        { status: data.status, assignedEngineerId: data.assignedEngineerId },
+      ).then((r) => r.data);
+    },
+    onSuccess: (_, vars) => {
+      const targetId = vars.id || defaultId;
+      if (targetId) {
+        void qc.invalidateQueries({
+          queryKey: QK.assessments.detail(orgId, targetId),
+        });
+      }
       void qc.invalidateQueries({ queryKey: QK.assessments.all(orgId) });
     },
   });

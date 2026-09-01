@@ -13,6 +13,7 @@ import {
   Download,
   MoreHorizontal,
   Eye,
+  CheckCircle2,
   MapPin,
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -39,6 +40,7 @@ import { useLeads } from '@/lib/api/hooks/use-leads';
 import {
   useConsultationsForLeads,
   useCreateConsultation,
+  useMarkConsultationComplete,
   type ConsultationRow,
 } from '@/lib/api/hooks/use-consultations';
 import { getApiErrorMessage } from '@/lib/api/api-error';
@@ -89,7 +91,18 @@ const EMPTY_CONSULTATION: ConsultationFormValues = {
   nextSteps: '',
 };
 
-function RowActions({ item }: { item: ConsultationRow }) {
+function RowActions({
+  item,
+  orgId: propOrgId,
+}: {
+  item: ConsultationRow;
+  orgId?: string;
+}) {
+  const { data: me } = useMe();
+  const orgId = propOrgId ?? me?.organizationId ?? '';
+  const markComplete = useMarkConsultationComplete(orgId);
+  const isPending = markComplete.isPending;
+
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
@@ -104,7 +117,7 @@ function RowActions({ item }: { item: ConsultationRow }) {
         <DropdownMenu.Content
           align="end"
           sideOffset={4}
-          className="z-50 min-w-[170px] rounded-xl border border-border bg-card p-1 shadow-xl"
+          className="z-50 min-w-[180px] rounded-xl border border-border bg-card p-1 shadow-xl"
         >
           <DropdownMenu.Item asChild>
             <Link
@@ -114,89 +127,110 @@ function RowActions({ item }: { item: ConsultationRow }) {
               <Eye className="h-3.5 w-3.5" /> Open parent lead
             </Link>
           </DropdownMenu.Item>
+          {!item.completedAt && (
+            <DropdownMenu.Item
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-success outline-none cursor-pointer hover:bg-success/10"
+              disabled={isPending}
+              onSelect={() => {
+                void markComplete.mutateAsync(
+                  { leadId: item.leadId, consultationId: item.id },
+                  {
+                    onSuccess: () => toast.success('Consultation marked complete'),
+                    onError: (err) =>
+                      toast.error(getApiErrorMessage(err, 'Could not update consultation')),
+                  },
+                );
+              }}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              {isPending ? 'Saving…' : 'Mark complete'}
+            </DropdownMenu.Item>
+          )}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
   );
 }
 
-const columns: ColumnDef<ConsultationRow>[] = [
-  {
-    accessorKey: 'leadReference',
-    header: 'Lead Ref',
-    cell: ({ row }) => (
-      <span className="font-mono text-xs text-muted-foreground">
-        {row.original.leadReference}
-      </span>
-    ),
-  },
-  {
-    accessorKey: 'leadCompanyName',
-    header: 'Client / Prospect',
-    cell: ({ row }) => (
-      <div className="flex flex-col">
-        <span className="font-medium">{row.original.leadCompanyName}</span>
-        <span className="text-xs text-muted-foreground">
-          {row.original.leadContactName}
+function buildColumns(orgId: string): ColumnDef<ConsultationRow>[] {
+  return [
+    {
+      accessorKey: 'leadReference',
+      header: 'Lead Ref',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.original.leadReference}
         </span>
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'type',
-    header: 'Session Type',
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-xs">
-        {row.original.type.replace(/_/g, ' ')}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: 'scheduledAt',
-    header: 'Scheduled',
-    cell: ({ row }) => (
-      <span className="text-xs font-medium">
-        {formatDate(row.original.scheduledAt)}
-      </span>
-    ),
-  },
-  {
-    accessorKey: 'location',
-    header: 'Location',
-    cell: ({ row }) =>
-      row.original.location ? (
-        <span className="flex items-center gap-1 text-xs">
-          <MapPin className="h-3 w-3 text-muted-foreground" />
-          {row.original.location}
-        </span>
-      ) : (
-        'Virtual / Remote'
       ),
-  },
-  {
-    id: 'completion',
-    header: 'Status',
-    cell: ({ row }) => (
-      <Badge variant={row.original.completedAt ? 'success' : 'warning'}>
-        {row.original.completedAt ? 'Completed' : 'Scheduled'}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: 'outcome',
-    header: 'Outcome',
-    cell: ({ row }) => (
-      <span className="text-xs text-muted-foreground truncate max-w-[180px] block">
-        {row.original.outcome ?? '—'}
-      </span>
-    ),
-  },
-  {
-    id: 'actions',
-    header: '',
-    cell: ({ row }) => <RowActions item={row.original} />,
-  },
-];
+    },
+    {
+      accessorKey: 'leadCompanyName',
+      header: 'Client / Prospect',
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-medium">{row.original.leadCompanyName}</span>
+          <span className="text-xs text-muted-foreground">
+            {row.original.leadContactName}
+          </span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'type',
+      header: 'Session Type',
+      cell: ({ row }) => (
+        <Badge variant="outline" className="text-xs">
+          {row.original.type.replace(/_/g, ' ')}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: 'scheduledAt',
+      header: 'Scheduled',
+      cell: ({ row }) => (
+        <span className="text-xs font-medium">
+          {formatDate(row.original.scheduledAt)}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'location',
+      header: 'Location',
+      cell: ({ row }) =>
+        row.original.location ? (
+          <span className="flex items-center gap-1 text-xs">
+            <MapPin className="h-3 w-3 text-muted-foreground" />
+            {row.original.location}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">Virtual / Remote</span>
+        ),
+    },
+    {
+      id: 'completion',
+      header: 'Status',
+      cell: ({ row }) => (
+        <Badge variant={row.original.completedAt ? 'success' : 'warning'}>
+          {row.original.completedAt ? 'Completed' : 'Scheduled'}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: 'outcome',
+      header: 'Outcome',
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground truncate max-w-[180px] block">
+          {row.original.outcome ?? '—'}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => <RowActions item={row.original} orgId={orgId} />,
+    },
+  ];
+}
 
 export function AdminConsultationsList() {
   const { data: me } = useMe();
@@ -228,6 +262,8 @@ export function AdminConsultationsList() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const createConsultation = useCreateConsultation(orgId);
+
+  const columns = useMemo(() => buildColumns(orgId), [orgId]);
 
   const {
     register,
@@ -388,8 +424,6 @@ export function AdminConsultationsList() {
           searchPlaceholder="Search by client or site name…"
         />
       )}
-
-      {/* Schedule Dialog */}
       <Dialog
         open={dialogOpen}
         onOpenChange={(open) => {

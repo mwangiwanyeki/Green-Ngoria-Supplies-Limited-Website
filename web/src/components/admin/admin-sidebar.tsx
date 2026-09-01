@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -42,6 +42,7 @@ import {
   FlaskConical,
   Mountain,
   ShieldAlert,
+  ShieldCheck,
   IdCard,
   UserCheck,
   Bell,
@@ -49,12 +50,24 @@ import {
   Menu,
   X,
   ChevronRight,
+  Hammer,
+  Wrench,
+  Globe,
+  Image,
+  Activity,
+  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
-import { useLogout } from '@/lib/api/hooks/use-auth';
+import { useLogout, useMe } from '@/lib/api/hooks/use-auth';
 import { toast } from 'sonner';
-import { adminNav, isNavGroup, type AdminNavItem } from '@/config/navigation';
+import {
+  adminNav,
+  isNavGroup,
+  type AdminNavItem,
+  filterNavForRoles,
+  getPrimaryRoleCategory,
+} from '@/config/navigation';
 import { Logo } from '@/components/brand/logo';
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -95,9 +108,16 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   FlaskConical,
   Mountain,
   ShieldAlert,
+  ShieldCheck,
   IdCard,
   UserCheck,
   Bell,
+  Hammer,
+  Wrench,
+  Globe,
+  Image,
+  Activity,
+  Sparkles,
 };
 
 function iconFor(name?: string) {
@@ -132,6 +152,24 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const logout = useLogout();
   const router = useRouter();
+  const { data: user } = useMe();
+  const userRoles = user?.roles ?? [];
+
+  // Filter navigation specific to user's assigned roles
+  const filteredNav = useMemo(() => {
+    return filterNavForRoles(adminNav, userRoles);
+  }, [userRoles]);
+
+  const roleCategory = useMemo(() => {
+    return getPrimaryRoleCategory(userRoles);
+  }, [userRoles]);
+
+  const roleBadgeText = {
+    sales: 'Sales Workspace',
+    pm: 'Project Delivery',
+    engineering: 'Engineering & Metallurgy',
+    executive: 'Enterprise Admin',
+  }[roleCategory];
 
   const [open, setOpen] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -153,15 +191,28 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
-      {/* Brand */}
-      <Link
-        href="/admin"
-        className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.06] shrink-0"
-        aria-label="Green Ngoria — admin home"
-        onClick={onNavigate}
-      >
-        <Logo height={38} />
-      </Link>
+      {/* Brand & Persona Badge */}
+      <div className="px-5 py-4 border-b border-white/[0.06] shrink-0 space-y-2">
+        <Link
+          href="/admin"
+          className="flex items-center gap-3"
+          aria-label="Green Ngoria — admin home"
+          onClick={onNavigate}
+        >
+          <Logo height={36} />
+        </Link>
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-600 dark:text-teal-400 border border-teal-500/20">
+            <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse" />
+            {roleBadgeText}
+          </span>
+          {user?.firstName && (
+            <span className="text-[11px] text-muted-foreground truncate max-w-[100px]">
+              {user.firstName}
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* Nav */}
       <nav
@@ -169,7 +220,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         role="navigation"
         aria-label="Admin navigation"
       >
-        {adminNav.map((item) => {
+        {filteredNav.map((item) => {
           if (!isNavGroup(item)) {
             const Icon = iconFor(item.icon);
             const active = isActive(pathname, item.href);

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ArrowRight, CircleDot, Database, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { AdminSectionGuard } from '@/components/admin/admin-section-guard';
 import { AdminEquipmentList } from '@/features/admin/admin-equipment-list';
 import { AdminFinanceList } from '@/features/admin/admin-finance-list';
 import { AdminHseList } from '@/features/admin/admin-hse-list';
@@ -704,77 +705,85 @@ export default async function AdminModulePage({
   const WiredModule =
     wiredModules[fullPath] ??
     (section.length === 1 ? wiredModules[key] : undefined);
-  if (WiredModule) return <WiredModule />;
+  if (WiredModule) {
+    return (
+      <AdminSectionGuard>
+        <WiredModule />
+      </AdminSectionGuard>
+    );
+  }
 
   // Fall back to the static record scaffold for engineering placeholders.
   const module = modules[key];
   if (!module || section.length > 2) notFound();
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8">
-      <PageHeader title={module.title} description={module.description} />
-      {section[1] && (
-        <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 font-mono text-xs text-muted-foreground">
-          Record reference: {section[1]}
+    <AdminSectionGuard>
+      <div className="mx-auto max-w-7xl space-y-8">
+        <PageHeader title={module.title} description={module.description} />
+        {section[1] && (
+          <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 font-mono text-xs text-muted-foreground">
+            Record reference: {section[1]}
+          </div>
+        )}
+        <div className="grid gap-5 md:grid-cols-2">
+          <section className="rounded-xl border border-border bg-card p-6">
+            <div className="flex items-center gap-3">
+              <Database className="h-5 w-5 text-brand-500" />
+              <h2 className="font-semibold">Connected records</h2>
+            </div>
+            <ul className="mt-5 space-y-3">
+              {module.records.map((record) => (
+                <li
+                  key={record}
+                  className="flex gap-3 text-sm text-muted-foreground"
+                >
+                  <CircleDot className="mt-1 h-3 w-3 shrink-0 text-brand-500" />
+                  {record}
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className="rounded-xl border border-border bg-card p-6">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="h-5 w-5 text-brand-500" />
+              <h2 className="font-semibold">Controlled workflow</h2>
+            </div>
+            <ol className="mt-5 space-y-3">
+              {module.workflow.map((step, index) => (
+                <li key={step} className="flex items-center gap-3 text-sm">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                    {index + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </section>
         </div>
-      )}
-      <div className="grid gap-5 md:grid-cols-2">
-        <section className="rounded-xl border border-border bg-card p-6">
-          <div className="flex items-center gap-3">
-            <Database className="h-5 w-5 text-brand-500" />
-            <h2 className="font-semibold">Connected records</h2>
-          </div>
-          <ul className="mt-5 space-y-3">
-            {module.records.map((record) => (
-              <li
-                key={record}
-                className="flex gap-3 text-sm text-muted-foreground"
+        <section className="rounded-xl border border-dashed border-border bg-muted/30 p-10 text-center">
+          <h2 className="font-semibold">
+            No records match the current organization context
+          </h2>
+          <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+            Records appear here after they are created through the connected
+            workflow. Access remains limited by role and organization membership.
+          </p>
+          <div className="mt-6 flex justify-center gap-3">
+            <Link href="/admin">
+              <Button variant="outline">Dashboard</Button>
+            </Link>
+            <Link href="/admin/audit">
+              <Button
+                variant="brand"
+                rightIcon={<ArrowRight className="h-4 w-4" />}
               >
-                <CircleDot className="mt-1 h-3 w-3 shrink-0 text-brand-500" />
-                {record}
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section className="rounded-xl border border-border bg-card p-6">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-brand-500" />
-            <h2 className="font-semibold">Controlled workflow</h2>
+                Review audit trail
+              </Button>
+            </Link>
           </div>
-          <ol className="mt-5 space-y-3">
-            {module.workflow.map((step, index) => (
-              <li key={step} className="flex items-center gap-3 text-sm">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                  {index + 1}
-                </span>
-                {step}
-              </li>
-            ))}
-          </ol>
         </section>
       </div>
-      <section className="rounded-xl border border-dashed border-border bg-muted/30 p-10 text-center">
-        <h2 className="font-semibold">
-          No records match the current organization context
-        </h2>
-        <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-          Records appear here after they are created through the connected
-          workflow. Access remains limited by role and organization membership.
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Link href="/admin">
-            <Button variant="outline">Dashboard</Button>
-          </Link>
-          <Link href="/admin/audit">
-            <Button
-              variant="brand"
-              rightIcon={<ArrowRight className="h-4 w-4" />}
-            >
-              Review audit trail
-            </Button>
-          </Link>
-        </div>
-      </section>
-    </div>
+    </AdminSectionGuard>
   );
 }

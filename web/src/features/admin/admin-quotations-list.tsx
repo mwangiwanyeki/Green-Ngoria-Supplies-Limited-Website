@@ -309,6 +309,31 @@ export function AdminQuotationsList() {
     setDialogOpen(true);
   };
 
+  const handleExport = () => {
+    if (!quotations.length) { toast.error('No data to export'); return; }
+    const headers = ['Quote #', 'Title', 'Client', 'Status', 'Rev', 'Currency', 'Total', 'Valid Until', 'Created'];
+    const csv = [
+      headers.join(','),
+      ...quotations.map((q) => [
+        q.quoteNumber ?? '',
+        q.title ?? '',
+        q.client?.companyName ?? '',
+        q.status ?? '',
+        `R${q.revision ?? 0}`,
+        q.currency ?? '',
+        Number(q.totalAmount ?? 0).toFixed(2),
+        q.validUntil ? new Date(q.validUntil).toLocaleDateString('en-KE') : '',
+        new Date(q.createdAt).toLocaleDateString('en-KE'),
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `quotations-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast.success('Export ready');
+  };
+
   const onSubmit = async (values: QuotationFormValues) => {
     const payload = compact({
       title: values.title.trim(),
@@ -436,6 +461,7 @@ export function AdminQuotationsList() {
               size="sm"
               variant="outline"
               leftIcon={<Download className="h-4 w-4" />}
+              onClick={handleExport}
             >
               Export
             </Button>

@@ -23,6 +23,7 @@ import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { CreateConsultationDto } from './dto/create-consultation.dto';
+import { UpdateConsultationDto } from './dto/update-consultation.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -183,5 +184,25 @@ export class LeadsController {
       actor.id,
     );
     return successResponse(consultation, 'Consultation scheduled');
+  }
+
+  @Patch(':id/consultations/:consultationId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update a consultation or mark it complete' })
+  async updateConsultation(
+    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('consultationId', ParseUUIDPipe) consultationId: string,
+    @Body() dto: UpdateConsultationDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    const result = await this.leadsService.updateConsultation(
+      orgId,
+      id,
+      consultationId,
+      dto,
+      actor.id,
+    );
+    return successResponse(result, 'Consultation updated');
   }
 }

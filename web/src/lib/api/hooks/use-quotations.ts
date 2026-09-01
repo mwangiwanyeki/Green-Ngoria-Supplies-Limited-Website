@@ -105,7 +105,9 @@ export function useSendQuotation(orgId: string, id: string) {
   return useMutation({
     mutationFn: () =>
       post(`/organizations/${orgId}/quotations/${id}/send`).then((r) => r.data),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: QK.quotations.detail(orgId, id) }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QK.quotations.detail(orgId, id) });
+      void qc.invalidateQueries({ queryKey: QK.quotations.all(orgId) });
+    },
   });
 }

@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 
 // Config
-import configuration from './config/configuration';
-import { validationSchema } from './config/validation.schema';
+import { ConfigModule, ConfigService } from './config/config.module';
 
 // Infrastructure (global)
 import { PrismaModule } from './lib/database/prisma.module';
@@ -95,11 +93,7 @@ interface SerializedHttpRequest {
 @Module({
   imports: [
     // ── Configuration ─────────────────────────────────────────────────────────
-    ConfigModule.forRoot({
-      isGlobal: true,
-      load: [configuration],
-      validationSchema,
-    }),
+    ConfigModule,
 
     // ── Structured logging ────────────────────────────────────────────────────
     LoggerModule.forRoot({

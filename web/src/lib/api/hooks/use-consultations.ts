@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
-import { get, post } from '../api-client';
+import { get, post, patch } from '../api-client';
 import { QK } from '../query-keys';
 
 /**
@@ -102,6 +102,32 @@ export function useCreateConsultation(orgId: string) {
       });
       void qc.invalidateQueries({ queryKey: QK.leads.all(orgId) });
       void qc.invalidateQueries({ queryKey: QK.consultations.all(orgId) });
+    },
+  });
+}
+
+/** Mark a consultation complete — stamps completedAt on the backend. */
+export function useMarkConsultationComplete(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      leadId,
+      consultationId,
+      outcome,
+    }: {
+      leadId: string;
+      consultationId: string;
+      outcome?: string;
+    }) =>
+      patch(
+        `/organizations/${orgId}/leads/${leadId}/consultations/${consultationId}`,
+        { markComplete: true, outcome },
+      ).then((r) => r.data),
+    onSuccess: (_result, variables) => {
+      void qc.invalidateQueries({
+        queryKey: QK.leads.detail(orgId, variables.leadId),
+      });
+      void qc.invalidateQueries({ queryKey: QK.leads.all(orgId) });
     },
   });
 }

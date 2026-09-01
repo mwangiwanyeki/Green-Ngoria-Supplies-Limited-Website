@@ -3,7 +3,6 @@ import axios, {
   type AxiosRequestConfig,
   type AxiosError,
 } from 'axios';
-import { v4 as uuidv4 } from 'uuid';
 import { ApiError } from './api-error';
 
 // ─── Base URL ─────────────────────────────────────────────────────────────
@@ -58,7 +57,7 @@ export function refreshAccessToken(): Promise<string> {
 
 // ─── Request interceptor ──────────────────────────────────────────────────
 httpClient.interceptors.request.use((config) => {
-  config.headers['X-Request-ID'] = uuidv4();
+  config.headers['X-Request-ID'] = crypto.randomUUID();
 
   const token = getAccessToken();
   if (token) {

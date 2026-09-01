@@ -285,6 +285,40 @@ export class LeadsService {
     });
   }
 
+  async updateConsultation(
+    organizationId: string,
+    leadId: string,
+    consultationId: string,
+    dto: import('./dto/update-consultation.dto').UpdateConsultationDto,
+    userId: string,
+  ) {
+    await this.findById(organizationId, leadId, userId);
+
+    const consultation = await this.prisma.consultation.findUnique({
+      where: { id: consultationId },
+      select: { id: true, leadId: true },
+    });
+
+    if (!consultation || consultation.leadId !== leadId) {
+      throw new (await import('@nestjs/common')).NotFoundException(
+        'Consultation not found for this lead',
+      );
+    }
+
+    return this.prisma.consultation.update({
+      where: { id: consultationId },
+      data: {
+        ...(dto.scheduledAt !== undefined && { scheduledAt: dto.scheduledAt }),
+        ...(dto.type !== undefined && { type: dto.type }),
+        ...(dto.location !== undefined && { location: dto.location }),
+        ...(dto.notes !== undefined && { notes: dto.notes }),
+        ...(dto.outcome !== undefined && { outcome: dto.outcome }),
+        ...(dto.nextSteps !== undefined && { nextSteps: dto.nextSteps }),
+        ...(dto.markComplete ? { completedAt: new Date() } : {}),
+      },
+    });
+  }
+
   // ─── Pipeline analytics ────────────────────────────────────────────────────
 
   async getPipelineSummary(organizationId: string, userId: string) {

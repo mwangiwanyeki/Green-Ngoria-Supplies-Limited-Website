@@ -296,6 +296,26 @@ export function AdminSparesList() {
     setDialogOpen(true);
   };
 
+  const handleExport = () => {
+    if (!items.length) { toast.error('No data to export'); return; }
+    const headers = ['SKU', 'Name', 'Part Number', 'Manufacturer', 'Equipment', 'Stock', 'Reorder Level', 'Unit Price', 'Currency', 'Lead Time (days)', 'Available'];
+    const csv = [headers.join(','), ...items.map((s) => [
+      s.sku, s.name, s.partNumber ?? '', s.manufacturer ?? '',
+      s.equipment?.name ?? '',
+      s.quantityInStock ?? 0, s.reorderLevel ?? 0,
+      s.unitPrice != null ? Number(s.unitPrice).toFixed(2) : '',
+      s.currency ?? 'USD',
+      s.leadTimeDays ?? '',
+      s.isAvailable ? 'Yes' : 'No',
+    ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `spares-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast.success('Export ready');
+  };
+
   const openEdit = (spare: SparePart) => {
     setEditing(spare);
     reset({
@@ -403,6 +423,7 @@ export function AdminSparesList() {
               size="sm"
               variant="outline"
               leftIcon={<Download className="h-4 w-4" />}
+              onClick={handleExport}
             >
               Export
             </Button>

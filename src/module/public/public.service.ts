@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigService } from '../../config/config.module';
 import { PrismaService } from '../../lib/database/prisma.service';
 import { MailService } from '../../lib/mail/mail.service';
 import {

@@ -43,3 +43,6 @@ coverage/
 .claude/
 .codex/
 .agents/skills/
+
+.vercel
+.env*

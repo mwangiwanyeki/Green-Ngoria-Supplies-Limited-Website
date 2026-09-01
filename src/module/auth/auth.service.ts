@@ -6,9 +6,8 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigService } from '../../config/config.module';
 import { JwtService } from '@nestjs/jwt';
-import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
 import * as argon2 from 'argon2';
 import { authenticator } from 'otplib';
@@ -253,7 +252,7 @@ export class AuthService {
     const primaryOrgId = user.organizationMemberships[0]?.organizationId;
 
     // Create session
-    const sessionId = uuidv4();
+    const sessionId = crypto.randomUUID();
     const refreshToken = this.createRefreshToken();
     const refreshExpiresIn =
       this.config.get<string>('auth.jwtRefreshExpiresIn') ?? '7d';
@@ -414,7 +413,7 @@ export class AuthService {
       };
     }
 
-    const token = uuidv4();
+    const token = crypto.randomUUID();
     const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await this.prisma.user.update({

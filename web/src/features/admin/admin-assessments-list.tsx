@@ -100,7 +100,7 @@ export function AdminAssessmentsList() {
     try {
       await transitionMutation.mutateAsync({
         id,
-        targetStatus: newStatus,
+        status: newStatus,
       });
       toast.success(`Assessment transitioned to ${newStatus}`);
       void refetch();
