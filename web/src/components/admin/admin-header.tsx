@@ -12,12 +12,15 @@ import {
   UserRound,
   Settings,
   Home,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useMe, useLogout } from '@/lib/api/hooks/use-auth';
 import { getInitials } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@/stores/ui-store';
 
 /* ── Breadcrumb builder ─────────────────────────────────────────────────── */
 
@@ -45,6 +48,7 @@ export function AdminHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const breadcrumbs = buildBreadcrumbs(pathname);
+  const { sidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
 
   const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : '';
 
@@ -56,8 +60,21 @@ export function AdminHeader() {
 
   return (
     <header className="flex h-14 items-center justify-between gap-4 border-b border-white/[0.06] bg-card/60 backdrop-blur-xl px-6 shrink-0">
-      {/* Left: Breadcrumbs */}
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+      {/* Left: Sidebar Toggle & Breadcrumbs */}
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <button
+          type="button"
+          onClick={toggleSidebarCollapsed}
+          className="hidden md:flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition-colors shrink-0"
+          title={sidebarCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+        >
+          {sidebarCollapsed ? (
+            <PanelLeftOpen className="h-4 w-4" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4" />
+          )}
+        </button>
+
         <Link
           href="/admin"
           className="text-muted-foreground hover:text-foreground transition-colors shrink-0"

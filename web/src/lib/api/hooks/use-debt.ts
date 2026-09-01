@@ -9,7 +9,11 @@ import { useErpList, useErpResource } from './use-erp';
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 export const DEBT_PAYMENT_METHODS = [
-  'CASH', 'BANK_TRANSFER', 'MOBILE_MONEY', 'CHEQUE', 'OTHER',
+  'CASH',
+  'BANK_TRANSFER',
+  'MOBILE_MONEY',
+  'CHEQUE',
+  'OTHER',
 ] as const;
 export type DebtPaymentMethod = (typeof DEBT_PAYMENT_METHODS)[number];
 
@@ -22,7 +26,11 @@ export const DEBT_PAYMENT_METHOD_LABELS: Record<DebtPaymentMethod, string> = {
 };
 
 export const DEBT_STATUSES = [
-  'CURRENT', 'OVERDUE', 'SETTLED', 'WRITTEN_OFF', 'SUSPENDED',
+  'CURRENT',
+  'OVERDUE',
+  'SETTLED',
+  'WRITTEN_OFF',
+  'SUSPENDED',
 ] as const;
 export type DebtStatus = (typeof DEBT_STATUSES)[number];
 
@@ -76,7 +84,7 @@ function useCtx() {
   return { orgId, branchId };
 }
 
-const BASE = (orgId: string) => `/organizations/${orgId}/erp/debt`;
+const BASE = (orgId: string) => `/organizations/${orgId}/erp/debt/accounts`;
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
@@ -97,8 +105,12 @@ export function useRecordDebtPayment(accountId: string) {
     mutationFn: (p: RecordDebtPaymentPayload) =>
       post(`${BASE(orgId!)}/${accountId}/payments`, p).then((r) => r.data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['erp', orgId, branchId, 'erp/debt/accounts'] });
-      void qc.invalidateQueries({ queryKey: ['erp', orgId, branchId, 'erp/debt/stats', 'one', {}] });
+      void qc.invalidateQueries({
+        queryKey: ['erp', orgId, branchId, 'erp/debt/accounts'],
+      });
+      void qc.invalidateQueries({
+        queryKey: ['erp', orgId, branchId, 'erp/debt/stats', 'one', {}],
+      });
     },
   });
 }
@@ -110,7 +122,9 @@ export function useUpdateDebtAccount(accountId: string) {
     mutationFn: (p: UpdateDebtAccountPayload) =>
       patch(`${BASE(orgId!)}/${accountId}`, p).then((r) => r.data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['erp', orgId, branchId, 'erp/debt/accounts'] });
+      void qc.invalidateQueries({
+        queryKey: ['erp', orgId, branchId, 'erp/debt/accounts'],
+      });
     },
   });
 }

@@ -135,18 +135,18 @@ export function AdminSalesDashboard() {
         description="Real-time commercial pipeline, client acquisition, quotation conversions, and store sales operations."
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/pos">
+            <Link href="/admin/pos">
+              <Button variant="outline" size="sm">
                 <Calculator className="h-4 w-4 mr-1.5 text-brand-600 dark:text-brand-400" />
                 Open POS Register
-              </Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/admin/quotations">
+              </Button>
+            </Link>
+            <Link href="/admin/quotations">
+              <Button size="sm">
                 <Plus className="h-4 w-4 mr-1.5" />
                 New Quotation
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </div>
         }
       />

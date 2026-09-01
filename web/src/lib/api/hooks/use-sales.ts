@@ -22,13 +22,14 @@ export type SaleStatus = (typeof SALE_STATUSES)[number];
 export const SALE_CHANNELS = ['POS', 'BACK_OFFICE', 'ONLINE'] as const;
 export type SaleChannel = (typeof SALE_CHANNELS)[number];
 
+// Must mirror the backend Prisma `PaymentMethod` enum exactly — the sales DTO
+// validates against it, so any value not listed here is rejected on checkout.
 export const PAYMENT_METHODS = [
   'CASH',
-  'MPESA',
-  'CARD',
+  'MOBILE_MONEY',
   'BANK_TRANSFER',
   'CHEQUE',
-  'CREDIT',
+  'OTHER',
 ] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 

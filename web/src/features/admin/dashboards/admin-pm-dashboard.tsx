@@ -138,18 +138,18 @@ export function AdminPmDashboard() {
         description="Active mining plant delivery, construction phases, daily site logs, workforce tracking, and commissioning schedules."
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/site-ops">
+            <Link href="/admin/site-ops">
+              <Button variant="outline" size="sm">
                 <Hammer className="h-4 w-4 mr-1.5 text-brand-600 dark:text-brand-400" />
                 Submit Site Report
-              </Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/admin/projects">
+              </Button>
+            </Link>
+            <Link href="/admin/projects">
+              <Button size="sm">
                 <Plus className="h-4 w-4 mr-1.5" />
                 New Project
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </div>
         }
       />

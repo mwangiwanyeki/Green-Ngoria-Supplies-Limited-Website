@@ -1,7 +1,17 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, X } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Minus,
+  Trash2,
+  ShoppingCart,
+  CreditCard,
+  X,
+  Printer,
+  CheckCircle2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -33,19 +43,20 @@ import {
   PAYMENT_METHODS,
   type PaymentMethod,
   type SaleChannel,
+  type SaleDetail,
 } from '@/lib/api/hooks/use-sales';
 import { useBranchStore } from '@/stores/branch-store';
 import { getApiErrorMessage } from '@/lib/api/api-error';
+import { SaleReceipt } from './sale-receipt';
 
 import { useErpCustomers as useCustomers } from '@/lib/api/hooks/use-erp-customers';
 
 const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Cash',
-  MPESA: 'M-Pesa',
-  CARD: 'Card',
+  MOBILE_MONEY: 'M-Pesa / Mobile',
   BANK_TRANSFER: 'Bank Transfer',
   CHEQUE: 'Cheque',
-  CREDIT: 'Credit',
+  OTHER: 'Other',
 };
 
 interface CartLine {
@@ -54,6 +65,7 @@ interface CartLine {
   price: number;
   qty: number;
   sku?: string;
+  stock: number;
 }
 
 interface PaymentLine {
@@ -68,6 +80,10 @@ export function AdminPos() {
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [receipt, setReceipt] = useState<{
+    sale: SaleDetail;
+    tendered: number;
+  } | null>(null);
 
   const query = useInventoryItems({ search, page: 1, limit: 60 });
   const items = query.data?.data ?? [];
@@ -79,19 +95,35 @@ export function AdminPos() {
 
   function add(i: InventoryItem) {
     const price = Number(i.unitPrice ?? 0);
+    const stock = i.quantity ?? 0;
     setCart((c) => {
       const existing = c.find((l) => l.itemId === i.id);
       if (existing) {
+        if (existing.qty >= stock) {
+          toast.error(`Only ${stock} of "${i.name}" in stock`);
+          return c;
+        }
         return c.map((l) => (l.itemId === i.id ? { ...l, qty: l.qty + 1 } : l));
       }
-      return [...c, { itemId: i.id, name: i.name, price, qty: 1, sku: i.sku }];
+      return [
+        ...c,
+        { itemId: i.id, name: i.name, price, qty: 1, sku: i.sku, stock },
+      ];
     });
   }
 
   function bump(id: string, delta: number) {
     setCart((c) =>
       c
-        .map((l) => (l.itemId === id ? { ...l, qty: l.qty + delta } : l))
+        .map((l) => {
+          if (l.itemId !== id) return l;
+          const next = l.qty + delta;
+          if (delta > 0 && next > l.stock) {
+            toast.error(`Only ${l.stock} of "${l.name}" in stock`);
+            return l;
+          }
+          return { ...l, qty: next };
+        })
         .filter((l) => l.qty > 0),
     );
   }
@@ -127,7 +159,9 @@ export function AdminPos() {
             <ErrorState retry={() => void query.refetch()} />
           ) : items.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
-              {search ? 'No products match your search.' : 'No products in inventory yet.'}
+              {search
+                ? 'No products match your search.'
+                : 'No products in inventory yet.'}
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
@@ -194,12 +228,19 @@ export function AdminPos() {
           ) : (
             <ul className="max-h-[420px] space-y-2 overflow-y-auto py-3">
               {cart.map((l) => (
-                <li key={l.itemId} className="rounded-md border border-border p-2">
+                <li
+                  key={l.itemId}
+                  className="rounded-md border border-border p-2"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <span className="block truncate text-sm font-medium">{l.name}</span>
+                      <span className="block truncate text-sm font-medium">
+                        {l.name}
+                      </span>
                       {l.sku && (
-                        <span className="font-mono text-[10px] text-muted-foreground">{l.sku}</span>
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {l.sku}
+                        </span>
                       )}
                     </div>
                     <button
@@ -266,11 +307,86 @@ export function AdminPos() {
           cart={cart}
           total={total}
           branchId={branchId}
-          onSuccess={clearCart}
+          onSuccess={(sale, tendered) => {
+            setCart([]);
+            setShowCheckout(false);
+            setReceipt({ sale, tendered });
+          }}
           onClose={() => setShowCheckout(false)}
         />
       )}
+
+      {/* Post-sale receipt preview */}
+      {receipt && (
+        <ReceiptDialog
+          sale={receipt.sale}
+          tendered={receipt.tendered}
+          onClose={() => setReceipt(null)}
+        />
+      )}
     </div>
+  );
+}
+
+// ─── Receipt Preview Dialog ───────────────────────────────────────────────────
+
+function ReceiptDialog({
+  sale,
+  tendered,
+  onClose,
+}: {
+  sale: SaleDetail;
+  tendered: number;
+  onClose: () => void;
+}) {
+  const [printing, setPrinting] = useState(false);
+
+  function handlePrint() {
+    setPrinting(true);
+    setTimeout(() => {
+      window.print();
+      setPrinting(false);
+    }, 100);
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-success" />
+            Sale complete
+          </DialogTitle>
+          <DialogDescription>
+            Receipt {sale.receiptNumber} · {formatKsh(sale.totalAmount)}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="px-6 pb-2">
+          <div className="rounded-lg border border-border bg-muted/20 p-4">
+            <SaleReceipt sale={sale} tendered={tendered} />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            leftIcon={<Printer className="h-4 w-4" />}
+            loading={printing}
+            onClick={handlePrint}
+          >
+            Print receipt
+          </Button>
+          <Button
+            variant="brand"
+            leftIcon={<Plus className="h-4 w-4" />}
+            onClick={onClose}
+          >
+            New sale
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -286,11 +402,11 @@ function CheckoutDialog({
   cart: CartLine[];
   total: number;
   branchId: string;
-  onSuccess: () => void;
+  onSuccess: (sale: SaleDetail, tendered: number) => void;
   onClose: () => void;
 }) {
   const [customerId, setCustomerId] = useState('');
-  const [channel, setChannel] = useState<SaleChannel>('POS');
+  const channel: SaleChannel = 'POS';
   const [payments, setPayments] = useState<PaymentLine[]>([
     { id: crypto.randomUUID(), method: 'CASH', amount: total, reference: '' },
   ]);
@@ -306,7 +422,12 @@ function CheckoutDialog({
   function addPayment() {
     setPayments((p) => [
       ...p,
-      { id: crypto.randomUUID(), method: 'CASH', amount: Math.max(0, amountDue), reference: '' },
+      {
+        id: crypto.randomUUID(),
+        method: 'CASH',
+        amount: Math.max(0, amountDue),
+        reference: '',
+      },
     ]);
   }
 
@@ -323,8 +444,24 @@ function CheckoutDialog({
       toast.error('Select a customer for credit sales');
       return;
     }
+    // The backend rejects payments that exceed the sale total, so clamp the
+    // applied amounts to what actually settles the sale. Any excess cash is
+    // change, tracked separately and shown on the receipt.
+    let remaining = total;
+    const appliedPayments = payments
+      .filter((p) => p.amount > 0)
+      .map((p) => {
+        const applied = Math.min(p.amount, remaining);
+        remaining = Math.round((remaining - applied) * 100) / 100;
+        return {
+          method: p.method,
+          amount: applied,
+          reference: p.reference || undefined,
+        };
+      })
+      .filter((p) => p.amount > 0);
     try {
-      await createSale.mutateAsync({
+      const sale = await createSale.mutateAsync({
         branchId,
         customerId: customerId || undefined,
         channel,
@@ -334,16 +471,10 @@ function CheckoutDialog({
           quantity: l.qty,
           unitPrice: l.price,
         })),
-        payments: payments
-          .filter((p) => p.amount > 0)
-          .map((p) => ({
-            method: p.method,
-            amount: p.amount,
-            reference: p.reference || undefined,
-          })),
+        payments: appliedPayments,
       });
       toast.success('Sale recorded');
-      onSuccess();
+      onSuccess(sale, totalPaid);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Could not process sale'));
     }
@@ -379,7 +510,8 @@ function CheckoutDialog({
                 <SelectItem value="">Walk-in / no account</SelectItem>
                 {customers.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.name}{c.phone ? ` · ${c.phone}` : ''}
+                    {c.name}
+                    {c.phone ? ` · ${c.phone}` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -390,28 +522,55 @@ function CheckoutDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Payments</Label>
-              <Button type="button" size="sm" variant="outline"
-                leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={addPayment}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                leftIcon={<Plus className="h-3.5 w-3.5" />}
+                onClick={addPayment}
+              >
                 Split
               </Button>
             </div>
             {payments.map((p) => (
-              <div key={p.id} className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
-                <Select value={p.method}
-                  onValueChange={(v) => updatePayment(p.id, { method: v as PaymentMethod })}>
-                  <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+              <div
+                key={p.id}
+                className="grid grid-cols-[auto_1fr_auto] gap-2 items-center"
+              >
+                <Select
+                  value={p.method}
+                  onValueChange={(v) =>
+                    updatePayment(p.id, { method: v as PaymentMethod })
+                  }
+                >
+                  <SelectTrigger className="h-8 w-32 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {PAYMENT_METHODS.map((m) => (
-                      <SelectItem key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</SelectItem>
+                      <SelectItem key={m} value={m}>
+                        {PAYMENT_METHOD_LABELS[m]}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Input type="number" min={0} step={0.01} value={p.amount || ''}
-                  onChange={(e) => updatePayment(p.id, { amount: Number(e.target.value) })}
-                  className="h-8 text-sm" placeholder="Amount" />
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={p.amount || ''}
+                  onChange={(e) =>
+                    updatePayment(p.id, { amount: Number(e.target.value) })
+                  }
+                  className="h-8 text-sm"
+                  placeholder="Amount"
+                />
                 {payments.length > 1 && (
-                  <button type="button" onClick={() => removePayment(p.id)}
-                    className="text-muted-foreground hover:text-destructive">
+                  <button
+                    type="button"
+                    onClick={() => removePayment(p.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
                     <X className="h-3.5 w-3.5" />
                   </button>
                 )}
@@ -423,11 +582,15 @@ function CheckoutDialog({
           <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total</span>
-              <span className="font-semibold tabular-nums">{formatKsh(total)}</span>
+              <span className="font-semibold tabular-nums">
+                {formatKsh(total)}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Tendered</span>
-              <span className="tabular-nums text-success">{formatKsh(totalPaid)}</span>
+              <span className="tabular-nums text-success">
+                {formatKsh(totalPaid)}
+              </span>
             </div>
             {amountDue > 0 && (
               <div className="flex justify-between font-semibold text-warning-foreground">
@@ -452,12 +615,19 @@ function CheckoutDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" disabled={createSale.isPending} onClick={onClose}>
+          <Button
+            variant="outline"
+            disabled={createSale.isPending}
+            onClick={onClose}
+          >
             Cancel
           </Button>
-          <Button variant="brand" loading={createSale.isPending}
+          <Button
+            variant="brand"
+            loading={createSale.isPending}
             disabled={amountDue > 0 && !customerId}
-            onClick={() => void handleCharge()}>
+            onClick={() => void handleCharge()}
+          >
             Confirm · {formatKsh(total)}
           </Button>
         </DialogFooter>

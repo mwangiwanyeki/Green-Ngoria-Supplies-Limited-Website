@@ -195,6 +195,34 @@ export function AdminSiteOpsList() {
     setDialogOpen(true);
   };
 
+  const handleExport = () => {
+    if (!items.length) { toast.error('No data to export'); return; }
+    const headers = ['Date', 'Work Areas', 'Headcount', 'Weather', 'Activities', 'Progress', 'Materials', 'Equipment', 'Issues', 'Next Day Plan'];
+    const csv = [
+      headers.join(','),
+      ...items.map((r) => [
+        formatDate(r.reportDate),
+        r.workAreas ?? '',
+        r.laborCount ?? 0,
+        r.weather ?? '',
+        r.activities,
+        r.progress ?? '',
+        r.materials ?? '',
+        r.equipment ?? '',
+        r.issues ?? '',
+        r.nextDayPlan ?? '',
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const projectLabel = projects.find((p) => p.id === selectedProjectId);
+    a.href = url;
+    a.download = `site-ops-${projectLabel?.projectNumber ?? 'reports'}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast.success('Export ready');
+  };
+
   const onSubmit = async (values: ReportFormValues) => {
     const laborCount = Number(values.laborCount);
     try {
@@ -255,6 +283,7 @@ export function AdminSiteOpsList() {
               size="sm"
               variant="outline"
               leftIcon={<Download className="h-4 w-4" />}
+              onClick={handleExport}
             >
               Export
             </Button>

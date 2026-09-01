@@ -129,7 +129,7 @@ export function Logo({
           height={INTRINSIC_HEIGHT}
           priority={priority}
           style={{ height, width: 'auto' }}
-          className="h-auto w-auto object-contain"
+          className="object-contain"
         />
       </span>
     );
@@ -150,7 +150,7 @@ export function Logo({
           height={INTRINSIC_HEIGHT}
           priority={priority}
           style={{ height, width: 'auto' }}
-          className="h-auto w-auto object-contain"
+          className="object-contain"
         />
       </span>
     );
@@ -171,7 +171,7 @@ export function Logo({
         height={INTRINSIC_HEIGHT}
         priority={priority}
         style={{ height, width: 'auto' }}
-        className="h-auto w-auto object-contain dark:hidden"
+        className="object-contain dark:hidden"
       />
       <Image
         src={LOGO_DARK_SRC}
@@ -180,7 +180,7 @@ export function Logo({
         height={INTRINSIC_HEIGHT}
         priority={priority}
         style={{ height, width: 'auto' }}
-        className="hidden h-auto w-auto object-contain dark:inline-block"
+        className="hidden object-contain dark:inline-block"
       />
     </span>
   );

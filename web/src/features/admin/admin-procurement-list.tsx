@@ -39,6 +39,7 @@ import {
   formatRelativeDate,
   cn,
 } from '@/lib/utils';
+import Link from 'next/link';
 import {
   FormDialog,
   Field,
@@ -892,6 +893,12 @@ export function AdminProcurementList() {
             >
               New Requisition
             </Button>
+          ) : tab === 'vendors' ? (
+            <Link href="/admin/suppliers">
+              <Button size="sm" variant="outline">
+                Manage Suppliers
+              </Button>
+            </Link>
           ) : tab === 'purchase-orders' ? (
             <Button
               size="sm"

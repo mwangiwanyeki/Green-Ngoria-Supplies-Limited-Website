@@ -119,18 +119,18 @@ export function AdminEngineeringDashboard() {
         description="Technical plant assessments, ore metallurgy kinetics, P&ID drawing revisions, commissioning test compliance, and asset reliability."
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/engineering">
+            <Link href="/admin/engineering">
+              <Button variant="outline" size="sm">
                 <Files className="h-4 w-4 mr-1.5 text-brand-600 dark:text-brand-400" />
                 Upload P&amp;ID Drawing
-              </Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/admin/assessments">
+              </Button>
+            </Link>
+            <Link href="/admin/assessments">
+              <Button size="sm">
                 <Plus className="h-4 w-4 mr-1.5" />
                 New Assessment
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </div>
         }
       />

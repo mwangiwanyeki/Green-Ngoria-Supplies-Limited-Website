@@ -131,18 +131,18 @@ export function AdminExecutiveDashboard() {
         description="Consolidated cross-system visibility across Sales, Project Delivery, Mining Engineering, Finance, and Administration."
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/reports">
+            <Link href="/admin/reports">
+              <Button variant="outline" size="sm">
                 <BarChart3 className="h-4 w-4 mr-1.5 text-brand-600 dark:text-brand-400" />
                 Executive Reports
-              </Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/admin/projects">
+              </Button>
+            </Link>
+            <Link href="/admin/projects">
+              <Button size="sm">
                 <Plus className="h-4 w-4 mr-1.5" />
                 New Project
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </div>
         }
       />

@@ -63,12 +63,12 @@ export function AdminSectionGuard({
         </p>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Button variant="outline" asChild>
-            <Link href="/admin">
+          <Link href="/admin">
+            <Button variant="outline">
               <LayoutDashboard className="h-4 w-4 mr-2 text-brand-600 dark:text-brand-400" />
               Return to My Dashboard
-            </Link>
-          </Button>
+            </Button>
+          </Link>
           <Button variant="secondary" onClick={() => window.history.back()}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Go Back

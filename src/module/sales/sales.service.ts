@@ -67,144 +67,147 @@ export class SalesService {
     );
 
     const sale = await retryOnUniqueConstraint(() =>
-      this.prisma.$transaction(async (tx) => {
-        // ── Resolve prices from the live item rows, inside the transaction ──
-        const lines = await this.priceLines(
-          tx,
-          organizationId,
-          data.branchId,
-          data.items,
-        );
-
-        const subtotal = lines.reduce(
-          (sum, line) => sum.plus(line.lineTotal),
-          new Prisma.Decimal(0),
-        );
-        const taxable = subtotal.minus(discountAmount);
-        if (taxable.lessThan(0)) {
-          throw new BadRequestException(
-            'Discount cannot exceed the sale subtotal',
-          );
-        }
-        const taxAmount = taxable.times(taxRate).div(100);
-        const totalAmount = taxable.plus(taxAmount);
-
-        if (amountPaid.greaterThan(totalAmount)) {
-          throw new BadRequestException('Payments exceed the sale total');
-        }
-        const amountDue = totalAmount.minus(amountPaid);
-
-        if (amountDue.greaterThan(0) && !data.customerId) {
-          throw new BadRequestException(
-            'A credit sale requires a customer to bill',
-          );
-        }
-
-        if (data.customerId) {
-          const customer = await tx.customer.findFirst({
-            where: {
-              id: data.customerId,
-              ...branchScope(organizationId, data.branchId),
-            },
-            select: { id: true },
-          });
-          if (!customer) throw new NotFoundException('Customer not found');
-        }
-
-        const status: SaleStatus = amountDue.lessThanOrEqualTo(0)
-          ? SaleStatus.COMPLETED
-          : amountPaid.greaterThan(0)
-            ? SaleStatus.PARTIALLY_PAID
-            : SaleStatus.CREDIT;
-
-        const receiptNumber = await generateReceiptNumber(tx, data.branchId);
-
-        const created = await tx.sale.create({
-          data: {
-            organizationId,
-            branchId: data.branchId,
-            customerId: data.customerId,
-            cashierId: userId,
-            receiptNumber,
-            status,
-            channel: data.channel ?? 'POS',
-            subtotal,
-            discountAmount,
-            taxRate,
-            taxAmount,
-            totalAmount,
-            amountPaid,
-            amountDue,
-            notes: data.notes,
-            soldAt: data.soldAt ?? new Date(),
-            lineItems: {
-              create: lines.map((line) => ({
-                itemId: line.itemId,
-                name: line.name,
-                sku: line.sku,
-                quantity: line.quantity,
-                unitPrice: line.unitPrice,
-                discount: line.discount,
-                lineTotal: line.lineTotal,
-              })),
-            },
-            payments: {
-              create: payments.map((p) => ({
-                method: p.method,
-                amount: new Prisma.Decimal(p.amount),
-                reference: p.reference,
-                paidAt: p.paidAt ?? new Date(),
-              })),
-            },
-          },
-        });
-
-        // ── Stock: atomic decrement + ledger row per stocked line ───────────
-        for (const line of lines) {
-          if (!line.itemId) continue;
-
-          const item = await tx.inventoryItem.update({
-            where: { id: line.itemId },
-            data: { quantity: { decrement: line.quantity } },
-          });
-
-          if (item.quantity < 0) {
-            throw new BadRequestException(
-              `Insufficient stock for ${line.name}`,
-            );
-          }
-
-          await tx.stockMovement.create({
-            data: {
-              organizationId,
-              branchId: data.branchId,
-              itemId: line.itemId,
-              storeId: item.storeId,
-              type: 'SALE',
-              quantityDelta: -line.quantity,
-              balanceAfter: item.quantity,
-              reason: `Sale ${receiptNumber}`,
-              referenceType: 'Sale',
-              referenceId: created.id,
-              performedById: userId,
-            },
-          });
-        }
-
-        // ── Credit: open or top up the customer's debt account ──────────────
-        if (amountDue.greaterThan(0) && data.customerId) {
-          await this.applyDebtCharge(
+      this.prisma.$transaction(
+        async (tx) => {
+          // ── Resolve prices from the live item rows, inside the transaction ──
+          const lines = await this.priceLines(
             tx,
             organizationId,
             data.branchId,
-            data.customerId,
-            amountDue,
-            data.dueDate,
+            data.items,
           );
-        }
 
-        return created;
-      }),
+          const subtotal = lines.reduce(
+            (sum, line) => sum.plus(line.lineTotal),
+            new Prisma.Decimal(0),
+          );
+          const taxable = subtotal.minus(discountAmount);
+          if (taxable.lessThan(0)) {
+            throw new BadRequestException(
+              'Discount cannot exceed the sale subtotal',
+            );
+          }
+          const taxAmount = taxable.times(taxRate).div(100);
+          const totalAmount = taxable.plus(taxAmount);
+
+          if (amountPaid.greaterThan(totalAmount)) {
+            throw new BadRequestException('Payments exceed the sale total');
+          }
+          const amountDue = totalAmount.minus(amountPaid);
+
+          if (amountDue.greaterThan(0) && !data.customerId) {
+            throw new BadRequestException(
+              'A credit sale requires a customer to bill',
+            );
+          }
+
+          if (data.customerId) {
+            const customer = await tx.customer.findFirst({
+              where: {
+                id: data.customerId,
+                ...branchScope(organizationId, data.branchId),
+              },
+              select: { id: true },
+            });
+            if (!customer) throw new NotFoundException('Customer not found');
+          }
+
+          const status: SaleStatus = amountDue.lessThanOrEqualTo(0)
+            ? SaleStatus.COMPLETED
+            : amountPaid.greaterThan(0)
+              ? SaleStatus.PARTIALLY_PAID
+              : SaleStatus.CREDIT;
+
+          const receiptNumber = await generateReceiptNumber(tx, data.branchId);
+
+          const created = await tx.sale.create({
+            data: {
+              organizationId,
+              branchId: data.branchId,
+              customerId: data.customerId,
+              cashierId: userId,
+              receiptNumber,
+              status,
+              channel: data.channel ?? 'POS',
+              subtotal,
+              discountAmount,
+              taxRate,
+              taxAmount,
+              totalAmount,
+              amountPaid,
+              amountDue,
+              notes: data.notes,
+              soldAt: data.soldAt ?? new Date(),
+              lineItems: {
+                create: lines.map((line) => ({
+                  itemId: line.itemId,
+                  name: line.name,
+                  sku: line.sku,
+                  quantity: line.quantity,
+                  unitPrice: line.unitPrice,
+                  discount: line.discount,
+                  lineTotal: line.lineTotal,
+                })),
+              },
+              payments: {
+                create: payments.map((p) => ({
+                  method: p.method,
+                  amount: new Prisma.Decimal(p.amount),
+                  reference: p.reference,
+                  paidAt: p.paidAt ?? new Date(),
+                })),
+              },
+            },
+          });
+
+          // ── Stock: atomic decrement + ledger row per stocked line ───────────
+          for (const line of lines) {
+            if (!line.itemId) continue;
+
+            const item = await tx.inventoryItem.update({
+              where: { id: line.itemId },
+              data: { quantity: { decrement: line.quantity } },
+            });
+
+            if (item.quantity < 0) {
+              throw new BadRequestException(
+                `Insufficient stock for ${line.name}`,
+              );
+            }
+
+            await tx.stockMovement.create({
+              data: {
+                organizationId,
+                branchId: data.branchId,
+                itemId: line.itemId,
+                storeId: item.storeId,
+                type: 'SALE',
+                quantityDelta: -line.quantity,
+                balanceAfter: item.quantity,
+                reason: `Sale ${receiptNumber}`,
+                referenceType: 'Sale',
+                referenceId: created.id,
+                performedById: userId,
+              },
+            });
+          }
+
+          // ── Credit: open or top up the customer's debt account ──────────────
+          if (amountDue.greaterThan(0) && data.customerId) {
+            await this.applyDebtCharge(
+              tx,
+              organizationId,
+              data.branchId,
+              data.customerId,
+              amountDue,
+              data.dueDate,
+            );
+          }
+
+          return created;
+        },
+        { maxWait: 10_000, timeout: 20_000 },
+      ),
     );
 
     await this.auditService.log({

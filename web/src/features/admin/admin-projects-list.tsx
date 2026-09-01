@@ -60,7 +60,8 @@ interface Project {
   name: string;
   description?: string | null;
   clientId?: string | null;
-  clientName: string | null;
+  /** Nested from findAll include */
+  client?: { id: string; companyName: string } | null;
   location: string | null;
   country?: string | null;
   status: string;
@@ -72,7 +73,8 @@ interface Project {
   startDate: string | null;
   targetEndDate?: string | null;
   mineralType?: string | null;
-  managerName: string | null;
+  /** Nested from findAll include */
+  manager?: { id: string; firstName: string; lastName: string } | null;
   notes?: string | null;
   createdAt: string;
   _count?: { milestones: number; tasks: number };
@@ -95,6 +97,22 @@ const LIFECYCLE_STAGES = [
   'SUPPORT',
   'COMPLETED',
 ];
+
+/** Mirror of the server-side STATUS_TRANSITIONS map — drives the stage select. */
+const PROJECT_TRANSITIONS: Record<string, string[]> = {
+  AWARDED:       ['PLANNING', 'ON_HOLD', 'CANCELLED'],
+  PLANNING:      ['ENGINEERING', 'ON_HOLD', 'CANCELLED'],
+  ENGINEERING:   ['PROCUREMENT', 'PLANNING', 'ON_HOLD'],
+  PROCUREMENT:   ['CONSTRUCTION', 'ENGINEERING', 'ON_HOLD'],
+  CONSTRUCTION:  ['INSTALLATION', 'PROCUREMENT', 'ON_HOLD'],
+  INSTALLATION:  ['COMMISSIONING', 'CONSTRUCTION', 'ON_HOLD'],
+  COMMISSIONING: ['HANDOVER', 'INSTALLATION', 'ON_HOLD'],
+  HANDOVER:      ['SUPPORT', 'COMMISSIONING'],
+  SUPPORT:       ['COMPLETED', 'ON_HOLD'],
+  COMPLETED:     [],
+  ON_HOLD:       ['PLANNING', 'ENGINEERING', 'PROCUREMENT', 'CONSTRUCTION', 'CANCELLED'],
+  CANCELLED:     [],
+};
 
 /** Matches `ProjectType` in prisma/schema.prisma. */
 const PROJECT_TYPES = [
@@ -306,9 +324,9 @@ function buildColumns(handlers: RowHandlers): ColumnDef<Project>[] {
       ),
     },
     {
-      accessorKey: 'clientName',
+      accessorKey: 'client',
       header: 'Client',
-      cell: ({ row }) => row.original.clientName ?? '—',
+      cell: ({ row }) => row.original.client?.companyName ?? '—',
     },
     {
       accessorKey: 'location',
@@ -348,9 +366,12 @@ function buildColumns(handlers: RowHandlers): ColumnDef<Project>[] {
       },
     },
     {
-      accessorKey: 'managerName',
+      accessorKey: 'manager',
       header: 'Manager',
-      cell: ({ row }) => row.original.managerName ?? '—',
+      cell: ({ row }) => {
+        const m = row.original.manager;
+        return m ? `${m.firstName} ${m.lastName}` : '—';
+      },
     },
     {
       accessorKey: 'createdAt',
@@ -408,6 +429,37 @@ export function AdminProjectsList() {
     setEditing(null);
     reset(EMPTY_PROJECT);
     setDialogOpen(true);
+  };
+
+  const handleExport = () => {
+    if (!projects.length) { toast.error('No data to export'); return; }
+    const headers = ['Project #', 'Name', 'Client', 'Type', 'Status', 'Location', 'Country', 'Mineral', 'Contract Value', 'Budget', 'Currency', 'Start Date', 'Target End', 'Manager', 'Created'];
+    const csv = [
+      headers.join(','),
+      ...projects.map((p) => [
+        p.projectNumber,
+        p.name,
+        p.client?.companyName ?? '',
+        p.type ?? '',
+        p.status,
+        p.location ?? '',
+        p.country ?? '',
+        p.mineralType ?? '',
+        p.contractValue != null ? Number(p.contractValue).toFixed(2) : '',
+        (p.budgetAmount ?? p.budget) != null ? Number(p.budgetAmount ?? p.budget).toFixed(2) : '',
+        p.currency,
+        p.startDate ? new Date(p.startDate).toLocaleDateString('en-KE') : '',
+        p.targetEndDate ? new Date(p.targetEndDate).toLocaleDateString('en-KE') : '',
+        p.manager ? `${p.manager.firstName} ${p.manager.lastName}` : '',
+        new Date(p.createdAt).toLocaleDateString('en-KE'),
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `projects-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast.success('Export ready');
   };
 
   const openEdit = (project: Project) => {
@@ -490,8 +542,9 @@ export function AdminProjectsList() {
         onEdit: openEdit,
         onAdvance: (project) => {
           setAdvancing(project);
-          const idx = LIFECYCLE_STAGES.indexOf(project.status);
-          setNextStage(LIFECYCLE_STAGES[idx + 1] ?? '');
+          // Pre-select the first valid transition from the current status
+          const validNext = PROJECT_TRANSITIONS[project.status] ?? [];
+          setNextStage(validNext[0] ?? '');
         },
         onCancel: setCancelling,
       }),
@@ -520,6 +573,7 @@ export function AdminProjectsList() {
               size="sm"
               variant="outline"
               leftIcon={<Download className="h-4 w-4" />}
+              onClick={handleExport}
             >
               Export
             </Button>
@@ -836,7 +890,7 @@ export function AdminProjectsList() {
                 onChange={(event) => setNextStage(event.target.value)}
               >
                 <option value="">Select stage…</option>
-                {[...LIFECYCLE_STAGES, 'ON_HOLD'].map((stage) => (
+                {(PROJECT_TRANSITIONS[advancing?.status ?? ''] ?? [...LIFECYCLE_STAGES, 'ON_HOLD', 'CANCELLED']).map((stage) => (
                   <option key={stage} value={stage}>
                     {stage.replace(/_/g, ' ')}
                   </option>

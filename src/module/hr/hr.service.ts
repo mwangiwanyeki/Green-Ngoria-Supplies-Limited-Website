@@ -266,6 +266,140 @@ export class HrService {
     return { id, deleted: true };
   }
 
+  // ─── Payroll runs ──────────────────────────────────────────────────────────
+
+  async findPayrollRuns(
+    organizationId: string,
+    userId: string,
+    query: import('./dto/query-payroll-runs.dto').QueryPayrollRunsDto,
+  ) {
+    await this.assertScope(organizationId, query.branchId, userId);
+    const { skip, take, orderBy } = buildPagination(query, 'createdAt');
+
+    const where: Prisma.PayrollRunWhereInput = {
+      organizationId,
+      branchId: query.branchId,
+    };
+    if (query.status) where.status = query.status;
+    if (query.periodMonth) where.periodMonth = query.periodMonth;
+    if (query.periodYear) where.periodYear = query.periodYear;
+
+    const [items, total] = await Promise.all([
+      this.prisma.payrollRun.findMany({
+        where,
+        skip,
+        take,
+        orderBy,
+        include: { _count: { select: { entries: true } } },
+      }),
+      this.prisma.payrollRun.count({ where }),
+    ]);
+    return { items, meta: buildPaginatedMeta(total, query) };
+  }
+
+  // ─── Leave requests ────────────────────────────────────────────────────────
+
+  async createLeaveRequest(
+    organizationId: string,
+    dto: import('./dto/create-leave-request.dto').CreateLeaveRequestDto,
+    userId: string,
+  ) {
+    await this.assertScope(organizationId, dto.branchId, userId);
+
+    const staff = await this.prisma.staff.findFirst({
+      where: { id: dto.staffId, ...branchScope(organizationId, dto.branchId) },
+      select: { id: true },
+    });
+    if (!staff) throw new NotFoundException('Staff member not found');
+
+    const diffMs =
+      new Date(dto.endDate).getTime() - new Date(dto.startDate).getTime();
+    const calendarDays =
+      dto.days ?? Math.max(1, Math.ceil(diffMs / (24 * 60 * 60 * 1000)) + 1);
+
+    return this.prisma.leaveRequest.create({
+      data: {
+        organizationId,
+        branchId: dto.branchId,
+        staffId: dto.staffId,
+        type: dto.type ?? 'ANNUAL',
+        startDate: dto.startDate,
+        endDate: dto.endDate,
+        days: calendarDays,
+        reason: dto.reason,
+        status: 'PENDING',
+      },
+    });
+  }
+
+  async findLeaveRequests(
+    organizationId: string,
+    userId: string,
+    query: import('./dto/query-leave-requests.dto').QueryLeaveRequestsDto,
+  ) {
+    await this.assertScope(organizationId, query.branchId, userId);
+    const { skip, take, orderBy } = buildPagination(query, 'startDate');
+
+    const now = new Date();
+    const where: Prisma.LeaveRequestWhereInput = {
+      organizationId,
+      branchId: query.branchId,
+      deletedAt: null,
+    };
+    if (query.status && !query.overdue) where.status = query.status;
+    if (query.type) where.type = query.type;
+    if (query.staffId) where.staffId = query.staffId;
+    if (query.from || query.to) {
+      where.startDate = {
+        ...(query.from ? { gte: query.from } : {}),
+        ...(query.to ? { lte: query.to } : {}),
+      };
+    }
+    if (query.overdue) {
+      where.status = 'APPROVED';
+      where.endDate = { lt: now };
+      where.returnedAt = null;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.leaveRequest.findMany({
+        where,
+        skip,
+        take,
+        orderBy,
+        include: {
+          staff: { select: { id: true, firstName: true, lastName: true } },
+        },
+      }),
+      this.prisma.leaveRequest.count({ where }),
+    ]);
+    return { items, meta: buildPaginatedMeta(total, query) };
+  }
+
+  async reviewLeaveRequest(
+    organizationId: string,
+    id: string,
+    status: 'APPROVED' | 'DENIED',
+    reviewerId: string,
+    comments?: string,
+  ) {
+    await this.orgsService.assertMembership(organizationId, reviewerId);
+    const request = await this.prisma.leaveRequest.findFirst({
+      where: { id, organizationId, deletedAt: null },
+    });
+    if (!request) throw new NotFoundException('Leave request not found');
+
+    return this.prisma.leaveRequest.update({
+      where: { id },
+      data: {
+        status,
+        reviewedById: reviewerId,
+        reviewedAt: new Date(),
+        reviewComments: comments,
+      },
+    });
+  }
+
   // ─── HR Overview ───────────────────────────────────────────────────────────
 
   /** Drives the "HR Overview" screen. */

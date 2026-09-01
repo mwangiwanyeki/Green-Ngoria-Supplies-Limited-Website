@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { get, patch, post, del } from '../api-client';
+import { patch, post, del } from '../api-client';
 import { useAuthStore } from '@/stores/auth-store';
 import { useBranchStore } from '@/stores/branch-store';
 import { useErpList, useErpResource } from './use-erp';
@@ -105,6 +105,20 @@ export interface AdjustStockPayload {
   unitCost?: number;
 }
 
+export interface CreateStorePayload {
+  branchId: string;
+  name: string;
+  location?: string;
+  description?: string;
+  isDefault?: boolean;
+}
+
+export interface UpdateStorePayload extends Partial<
+  Omit<CreateStorePayload, 'branchId'>
+> {
+  branchId: string;
+}
+
 // ─── Context helper ───────────────────────────────────────────────────────────
 
 function useErpContext() {
@@ -114,7 +128,10 @@ function useErpContext() {
   return { orgId, accessToken, branchId };
 }
 
-function erpKey(orgId: string | undefined, branchId: string | null | undefined) {
+function erpKey(
+  orgId: string | undefined,
+  branchId: string | null | undefined,
+) {
   return ['erp', orgId, branchId] as const;
 }
 
@@ -152,8 +169,17 @@ export function useCreateInventoryItem() {
         (r) => r.data,
       ),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: [...erpKey(orgId, branchId), 'erp/inventory/items'] });
-      void qc.invalidateQueries({ queryKey: [...erpKey(orgId, branchId), 'erp/inventory/stats', 'one', {}] });
+      void qc.invalidateQueries({
+        queryKey: [...erpKey(orgId, branchId), 'erp/inventory/items'],
+      });
+      void qc.invalidateQueries({
+        queryKey: [
+          ...erpKey(orgId, branchId),
+          'erp/inventory/stats',
+          'one',
+          {},
+        ],
+      });
     },
   });
 }
@@ -165,11 +191,14 @@ export function useUpdateInventoryItem(itemId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdateInventoryItemPayload) =>
-      patch(`/organizations/${orgId}/erp/inventory/items/${itemId}`, payload).then(
-        (r) => r.data,
-      ),
+      patch(
+        `/organizations/${orgId}/erp/inventory/items/${itemId}`,
+        payload,
+      ).then((r) => r.data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: [...erpKey(orgId, branchId), 'erp/inventory/items'] });
+      void qc.invalidateQueries({
+        queryKey: [...erpKey(orgId, branchId), 'erp/inventory/items'],
+      });
     },
   });
 }
@@ -186,8 +215,78 @@ export function useAdjustStock(itemId: string) {
         payload,
       ).then((r) => r.data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: [...erpKey(orgId, branchId), 'erp/inventory/items'] });
-      void qc.invalidateQueries({ queryKey: [...erpKey(orgId, branchId), 'erp/inventory/stats', 'one', {}] });
+      void qc.invalidateQueries({
+        queryKey: [...erpKey(orgId, branchId), 'erp/inventory/items'],
+      });
+      void qc.invalidateQueries({
+        queryKey: [
+          ...erpKey(orgId, branchId),
+          'erp/inventory/stats',
+          'one',
+          {},
+        ],
+      });
+    },
+  });
+}
+
+// ─── Create store ─────────────────────────────────────────────────────────────
+
+export function useCreateStore() {
+  const { orgId, branchId } = useErpContext();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateStorePayload) =>
+      post(`/organizations/${orgId}/erp/inventory/stores`, payload).then(
+        (r) => r.data,
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: [...erpKey(orgId, branchId), 'erp/inventory/stores'],
+      });
+    },
+  });
+}
+
+// ─── Update store ─────────────────────────────────────────────────────────────
+
+export function useUpdateStore(storeId: string) {
+  const { orgId, branchId } = useErpContext();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateStorePayload) =>
+      patch(
+        `/organizations/${orgId}/erp/inventory/stores/${storeId}`,
+        payload,
+      ).then((r) => r.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: [...erpKey(orgId, branchId), 'erp/inventory/stores'],
+      });
+    },
+  });
+}
+
+// ─── Delete (archive) store ───────────────────────────────────────────────────
+
+export function useDeleteStore() {
+  const { orgId, branchId } = useErpContext();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      storeId,
+      deleteBranchId,
+    }: {
+      storeId: string;
+      deleteBranchId: string;
+    }) =>
+      del(
+        `/organizations/${orgId}/erp/inventory/stores/${storeId}?branchId=${deleteBranchId}`,
+      ).then((r) => r.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: [...erpKey(orgId, branchId), 'erp/inventory/stores'],
+      });
     },
   });
 }
@@ -198,13 +297,28 @@ export function useArchiveInventoryItem() {
   const { orgId, branchId } = useErpContext();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ itemId, archiveBranchId }: { itemId: string; archiveBranchId: string }) =>
+    mutationFn: ({
+      itemId,
+      archiveBranchId,
+    }: {
+      itemId: string;
+      archiveBranchId: string;
+    }) =>
       del(
         `/organizations/${orgId}/erp/inventory/items/${itemId}?branchId=${archiveBranchId}`,
       ).then((r) => r.data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: [...erpKey(orgId, branchId), 'erp/inventory/items'] });
-      void qc.invalidateQueries({ queryKey: [...erpKey(orgId, branchId), 'erp/inventory/stats', 'one', {}] });
+      void qc.invalidateQueries({
+        queryKey: [...erpKey(orgId, branchId), 'erp/inventory/items'],
+      });
+      void qc.invalidateQueries({
+        queryKey: [
+          ...erpKey(orgId, branchId),
+          'erp/inventory/stats',
+          'one',
+          {},
+        ],
+      });
     },
   });
 }

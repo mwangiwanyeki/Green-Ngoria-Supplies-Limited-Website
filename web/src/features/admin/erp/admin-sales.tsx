@@ -43,14 +43,9 @@ import {
 } from '@/components/ui/select';
 import { PageHeader } from '@/components/ui/page-header';
 import { PageSkeleton } from '@/components/ui/skeleton';
-import {
-  KpiRow,
-  FilterChips,
-  ListSearchBar,
-  Pagination,
-  formatKsh,
-} from '@/components/admin/erp-list-shell';
+import { KpiRow, formatKsh } from '@/components/admin/erp-list-shell';
 import { ErpListPage, type ErpColumn } from './erp-list-page';
+import { SaleReceipt } from './sale-receipt';
 import {
   useSales,
   useSale,
@@ -93,32 +88,11 @@ const CHANNEL_LABELS: Record<SaleChannel, string> = {
 
 const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Cash',
-  MPESA: 'M-Pesa',
-  CARD: 'Card',
+  MOBILE_MONEY: 'M-Pesa / Mobile',
   BANK_TRANSFER: 'Bank Transfer',
   CHEQUE: 'Cheque',
-  CREDIT: 'Credit',
+  OTHER: 'Other',
 };
-
-function saleStatusVariant(
-  status?: string,
-): React.ComponentProps<typeof Badge>['variant'] {
-  switch (status) {
-    case 'COMPLETED':
-      return 'success';
-    case 'PARTIALLY_PAID':
-      return 'warning';
-    case 'CREDIT':
-      return 'warning';
-    case 'VOIDED':
-    case 'REFUNDED':
-      return 'destructive';
-    case 'DRAFT':
-      return 'mineral';
-    default:
-      return 'outline';
-  }
-}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -136,7 +110,9 @@ export function AdminSales({ scope = 'all' }: AdminSalesProps) {
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(15);
   const [statusFilter, setStatusFilter] = React.useState<SaleStatus | ''>('');
-  const [channelFilter, setChannelFilter] = React.useState<SaleChannel | ''>('');
+  const [channelFilter, setChannelFilter] = React.useState<SaleChannel | ''>(
+    '',
+  );
   const [dateFrom, setDateFrom] = React.useState(
     isToday ? format(new Date(), 'yyyy-MM-dd') : '',
   );
@@ -259,7 +235,9 @@ export function AdminSales({ scope = 'all' }: AdminSalesProps) {
       cell: (r) =>
         r.customer ? (
           <div className="min-w-0">
-            <div className="truncate text-sm font-medium">{r.customer.name}</div>
+            <div className="truncate text-sm font-medium">
+              {r.customer.name}
+            </div>
             {r.customer.phone && (
               <div className="truncate text-xs text-muted-foreground">
                 {r.customer.phone}
@@ -304,7 +282,9 @@ export function AdminSales({ scope = 'all' }: AdminSalesProps) {
         <span
           className={cn(
             'block text-right tabular-nums text-sm',
-            Number(r.amountDue) > 0 ? 'text-warning-foreground' : 'text-success',
+            Number(r.amountDue) > 0
+              ? 'text-warning-foreground'
+              : 'text-success',
           )}
         >
           {formatKsh(r.amountPaid)}
@@ -386,7 +366,10 @@ export function AdminSales({ scope = 'all' }: AdminSalesProps) {
         Filters
         {(statusFilter || channelFilter || dateFrom || dateTo) && (
           <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[9px] font-bold text-white">
-            {[statusFilter, channelFilter, dateFrom || dateTo].filter(Boolean).length}
+            {
+              [statusFilter, channelFilter, dateFrom || dateTo].filter(Boolean)
+                .length
+            }
           </span>
         )}
       </Button>
@@ -461,7 +444,12 @@ export function AdminSales({ scope = 'all' }: AdminSalesProps) {
     setPage(1);
   }
 
-  const hasActiveFilters = !!(statusFilter || channelFilter || dateFrom || dateTo);
+  const hasActiveFilters = !!(
+    statusFilter ||
+    channelFilter ||
+    dateFrom ||
+    dateTo
+  );
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -469,7 +457,7 @@ export function AdminSales({ scope = 'all' }: AdminSalesProps) {
         title={isToday ? 'Today Sales' : 'All Sales'}
         description={
           isToday
-            ? "Sales processed today across the active branch. Auto-refreshes every 2 minutes."
+            ? 'Sales processed today across the active branch. Auto-refreshes every 2 minutes.'
             : 'Complete sales history for the active branch.'
         }
         actions={
@@ -635,10 +623,7 @@ export function AdminSales({ scope = 'all' }: AdminSalesProps) {
       )}
 
       {/* New sale modal */}
-      <NewSaleDialog
-        open={showNewSale}
-        onClose={() => setShowNewSale(false)}
-      />
+      <NewSaleDialog open={showNewSale} onClose={() => setShowNewSale(false)} />
     </div>
   );
 }
@@ -698,8 +683,8 @@ function SaleDetailDialog({
                     {formatDate(sale.soldAt, 'dd MMM yyyy · HH:mm')}
                     {sale.cashier && (
                       <>
-                        {' · '}Cashier:{' '}
-                        {sale.cashier.firstName} {sale.cashier.lastName}
+                        {' · '}Cashier: {sale.cashier.firstName}{' '}
+                        {sale.cashier.lastName}
                       </>
                     )}
                   </p>
@@ -908,7 +893,7 @@ function SaleDetailDialog({
                     size="sm"
                     className="text-warning-foreground border-warning/40 hover:bg-warning/10"
                     leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
-                    onClick={() => onRefund(sale as unknown as Sale)}
+                    onClick={() => onRefund(sale)}
                   >
                     Refund
                   </Button>
@@ -916,13 +901,16 @@ function SaleDetailDialog({
                     variant="destructive"
                     size="sm"
                     leftIcon={<Ban className="h-3.5 w-3.5" />}
-                    onClick={() => onVoid(sale as unknown as Sale)}
+                    onClick={() => onVoid(sale)}
                   >
                     Void
                   </Button>
                 </>
               )}
             </DialogFooter>
+
+            {/* Print-only receipt — hidden on screen, rendered by print dialog */}
+            <SaleReceipt sale={sale} printOnly />
           </>
         )}
       </DialogContent>
@@ -943,10 +931,21 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <span className={cn('text-muted-foreground', bold && 'font-semibold text-foreground')}>
+      <span
+        className={cn(
+          'text-muted-foreground',
+          bold && 'font-semibold text-foreground',
+        )}
+      >
         {label}
       </span>
-      <span className={cn('tabular-nums', bold && 'font-bold text-base', valueClass)}>
+      <span
+        className={cn(
+          'tabular-nums',
+          bold && 'font-bold text-base',
+          valueClass,
+        )}
+      >
         {value}
       </span>
     </div>
@@ -1037,8 +1036,14 @@ function VoidSaleDialog({
 
           {/* Financial summary */}
           <div className="rounded-md border border-border p-3 text-sm space-y-1.5">
-            <SummaryRow label="Sale total" value={formatKsh(sale.totalAmount)} />
-            <SummaryRow label="Amount paid" value={formatKsh(sale.amountPaid)} />
+            <SummaryRow
+              label="Sale total"
+              value={formatKsh(sale.totalAmount)}
+            />
+            <SummaryRow
+              label="Amount paid"
+              value={formatKsh(sale.amountPaid)}
+            />
             {Number(sale.amountDue) > 0 && (
               <SummaryRow
                 label="Credit to unwind"
@@ -1081,7 +1086,9 @@ function VoidSaleDialog({
             disabled={!reason.trim()}
             onClick={() => void handleConfirm()}
             className={
-              isRefund ? 'border-warning/40 text-warning-foreground hover:bg-warning/10' : ''
+              isRefund
+                ? 'border-warning/40 text-warning-foreground hover:bg-warning/10'
+                : ''
             }
           >
             {isRefund ? 'Confirm refund' : 'Void sale'}
@@ -1130,9 +1137,10 @@ function NewSaleDialog({
   const createSale = useCreateSale();
   const { data: customersData } = useErpCustomers({ limit: 100 });
   const customers = customersData?.data ?? [];
-  const { data: itemsData } = useInventoryItems(
-    { search: itemSearch, limit: 20 },
-  );
+  const { data: itemsData } = useInventoryItems({
+    search: itemSearch,
+    limit: 20,
+  });
   const inventoryItems = itemsData?.data ?? [];
 
   // ── Derived totals ──
@@ -1146,7 +1154,12 @@ function NewSaleDialog({
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
   const amountDue = Math.max(0, total - totalPaid);
 
-  function addLine(item: { id: string; name: string; unitPrice: number | string; sku?: string | null }) {
+  function addLine(item: {
+    id: string;
+    name: string;
+    unitPrice: number | string;
+    sku?: string | null;
+  }) {
     setLines((prev) => [
       ...prev,
       {
@@ -1162,9 +1175,7 @@ function NewSaleDialog({
   }
 
   function updateLine(id: string, patch: Partial<LineItemDraft>) {
-    setLines((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, ...patch } : l)),
-    );
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   }
 
   function removeLine(id: string) {
@@ -1211,22 +1222,18 @@ function NewSaleDialog({
         discountAmount: discountAmount || undefined,
         taxRate: taxRate || undefined,
         notes: notes || undefined,
-        items: lines.map(
-          (l): CreateSaleLineItem => ({
-            itemId: l.itemId || undefined,
-            name: l.name,
-            quantity: l.quantity,
-            unitPrice: l.unitPrice,
-            discount: l.discount || undefined,
-          }),
-        ),
-        payments: payments.map(
-          (p): CreateSalePayment => ({
-            method: p.method,
-            amount: p.amount,
-            reference: p.reference || undefined,
-          }),
-        ),
+        items: lines.map((l): CreateSaleLineItem => ({
+          itemId: l.itemId || undefined,
+          name: l.name,
+          quantity: l.quantity,
+          unitPrice: l.unitPrice,
+          discount: l.discount || undefined,
+        })),
+        payments: payments.map((p): CreateSalePayment => ({
+          method: p.method,
+          amount: p.amount,
+          reference: p.reference || undefined,
+        })),
       });
       toast.success('Sale recorded');
       onClose();
@@ -1255,7 +1262,10 @@ function NewSaleDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5 px-6 pb-2">
+        <form
+          onSubmit={(e) => void handleSubmit(e)}
+          className="space-y-5 px-6 pb-2"
+        >
           {/* Customer + channel */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -1322,7 +1332,14 @@ function NewSaleDialog({
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => addLine({ id: item.id, name: item.name, unitPrice: item.unitPrice ?? 0, sku: item.sku })}
+                      onClick={() =>
+                        addLine({
+                          id: item.id,
+                          name: item.name,
+                          unitPrice: item.unitPrice ?? 0,
+                          sku: item.sku,
+                        })
+                      }
                       className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm hover:bg-accent"
                     >
                       <div>
@@ -1374,9 +1391,13 @@ function NewSaleDialog({
                 </thead>
                 <tbody>
                   {lines.map((line) => {
-                    const lineTotal = line.quantity * line.unitPrice - line.discount;
+                    const lineTotal =
+                      line.quantity * line.unitPrice - line.discount;
                     return (
-                      <tr key={line.id} className="border-b border-border last:border-0">
+                      <tr
+                        key={line.id}
+                        className="border-b border-border last:border-0"
+                      >
                         <td className="px-3 py-2">
                           <span className="font-medium">{line.name}</span>
                         </td>
@@ -1577,7 +1598,8 @@ function NewSaleDialog({
             ))}
             {payments.length === 0 && lines.length > 0 && (
               <p className="text-xs text-muted-foreground">
-                No payments added — sale will be recorded as a credit sale (requires customer).
+                No payments added — sale will be recorded as a credit sale
+                (requires customer).
               </p>
             )}
           </div>
@@ -1614,7 +1636,7 @@ function NewSaleDialog({
             variant="brand"
             loading={createSale.isPending}
             disabled={lines.length === 0 || (amountDue > 0 && !customerId)}
-            onClick={(e) => void handleSubmit(e as unknown as React.FormEvent)}
+            onClick={(e) => void handleSubmit(e)}
           >
             Record sale · {formatKsh(total)}
           </Button>

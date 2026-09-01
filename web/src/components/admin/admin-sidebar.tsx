@@ -56,8 +56,11 @@ import {
   Image,
   Activity,
   Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import * as Popover from '@radix-ui/react-popover';
 import { cn } from '@/lib/utils';
 import { useLogout, useMe } from '@/lib/api/hooks/use-auth';
 import { toast } from 'sonner';
@@ -69,6 +72,13 @@ import {
   getPrimaryRoleCategory,
 } from '@/config/navigation';
 import { Logo } from '@/components/brand/logo';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useUIStore } from '@/stores/ui-store';
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -148,7 +158,17 @@ export function useMobileSidebar() {
 
 /* ── Sidebar content (shared between desktop and mobile) ─────────────── */
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+interface SidebarContentProps {
+  collapsed?: boolean;
+  onNavigate?: () => void;
+  onToggleCollapse?: () => void;
+}
+
+function SidebarContent({
+  collapsed = false,
+  onNavigate,
+  onToggleCollapse,
+}: SidebarContentProps) {
   const pathname = usePathname();
   const logout = useLogout();
   const router = useRouter();
@@ -190,40 +210,102 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   };
 
   return (
-    <>
-      {/* Brand & Persona Badge */}
-      <div className="px-5 py-4 border-b border-white/[0.06] shrink-0 space-y-2">
-        <Link
-          href="/admin"
-          className="flex items-center gap-3"
-          aria-label="Green Ngoria — admin home"
-          onClick={onNavigate}
-        >
-          <Logo height={36} />
-        </Link>
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-600 dark:text-teal-400 border border-teal-500/20">
-            <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse" />
-            {roleBadgeText}
-          </span>
-          {user?.firstName && (
-            <span className="text-[11px] text-muted-foreground truncate max-w-[100px]">
-              {user.firstName}
-            </span>
+    <TooltipProvider delayDuration={150}>
+      {/* Brand & Persona Badge Header */}
+      <div
+        className={cn(
+          'border-b border-white/[0.06] shrink-0 transition-all duration-300',
+          collapsed ? 'p-3 flex flex-col items-center gap-2' : 'px-5 py-4 space-y-2',
+        )}
+      >
+        <div className="flex items-center justify-between w-full">
+          <Link
+            href="/admin"
+            className={cn(
+              'flex items-center gap-3 overflow-hidden',
+              collapsed && 'mx-auto justify-center',
+            )}
+            aria-label="Green Ngoria — admin home"
+            onClick={onNavigate}
+          >
+            {collapsed ? (
+              <Logo markOnly height={32} />
+            ) : (
+              <Logo height={36} />
+            )}
+          </Link>
+
+          {!collapsed && onToggleCollapse && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="rounded-lg p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition-colors"
+              title="Collapse sidebar"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
           )}
         </div>
+
+        {/* Collapsed vs Expanded Badge */}
+        {!collapsed && (
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-600 dark:text-teal-400 border border-teal-500/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse" />
+              {roleBadgeText}
+            </span>
+            {user?.firstName && (
+              <span className="text-[11px] text-muted-foreground truncate max-w-[90px]">
+                {user.firstName}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Nav */}
+      {/* Navigation List */}
       <nav
-        className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 scrollbar-thin"
+        className={cn(
+          'flex-1 overflow-y-auto py-3 space-y-1 scrollbar-thin',
+          collapsed ? 'px-2' : 'px-2 space-y-0.5',
+        )}
         role="navigation"
         aria-label="Admin navigation"
       >
         {filteredNav.map((item) => {
+          /* ── Single Nav Item (No sub-items) ── */
           if (!isNavGroup(item)) {
             const Icon = iconFor(item.icon);
             const active = isActive(pathname, item.href);
+
+            if (collapsed) {
+              return (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      href={item.href}
+                      onClick={onNavigate}
+                      className={cn(
+                        'group relative flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200',
+                        active
+                          ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400 shadow-sm'
+                          : 'text-muted-foreground hover:bg-white/[0.08] hover:text-foreground',
+                      )}
+                      aria-current={active ? 'page' : undefined}
+                    >
+                      {active && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-teal-500" />
+                      )}
+                      <Icon className="h-4.5 w-4.5 shrink-0" aria-hidden="true" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" sideOffset={12}>
+                    <div className="font-semibold text-xs">{item.label}</div>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+
             return (
               <Link
                 key={item.href}
@@ -254,9 +336,80 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             );
           }
 
+          /* ── Group Nav Item (with children) ── */
           const Icon = iconFor(item.icon);
           const expanded = open[item.label] ?? false;
           const active = groupIsActive(pathname, item);
+
+          // In Collapsed Mode: Render as Radix Popover with floating sub-menu
+          if (collapsed) {
+            return (
+              <Popover.Root key={item.label}>
+                <Popover.Trigger asChild>
+                  <button
+                    type="button"
+                    aria-expanded={expanded}
+                    aria-label={item.label}
+                    title={item.label}
+                    className={cn(
+                      'group relative flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200',
+                      active
+                        ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400 shadow-sm'
+                        : 'text-muted-foreground hover:bg-white/[0.08] hover:text-foreground',
+                    )}
+                  >
+                    {active && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-teal-500" />
+                    )}
+                    <Icon className="h-4.5 w-4.5 shrink-0" aria-hidden="true" />
+                  </button>
+                </Popover.Trigger>
+
+                <Popover.Portal>
+                  <Popover.Content
+                    side="right"
+                    sideOffset={14}
+                    align="start"
+                    className="z-50 w-56 rounded-xl border border-hairline bg-card/95 p-2 text-card-foreground shadow-2xl backdrop-blur-xl animate-in fade-in-0 zoom-in-95"
+                  >
+                    <div className="px-2.5 py-1.5 border-b border-hairline/60 mb-1">
+                      <div className="text-xs font-bold text-foreground">{item.label}</div>
+                      <div className="text-[10px] text-muted-foreground">Functional section</div>
+                    </div>
+                    <div className="space-y-0.5">
+                      {item.children.map((child) => {
+                        const ChildIcon = iconFor(child.icon);
+                        const childActive = isActive(pathname, child.href);
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={onNavigate}
+                            className={cn(
+                              'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors',
+                              childActive
+                                ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 font-medium'
+                                : 'text-muted-foreground hover:bg-white/[0.06] hover:text-foreground',
+                            )}
+                          >
+                            <ChildIcon className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate flex-1">{child.label}</span>
+                            {child.badge && (
+                              <span className="rounded bg-teal-500/20 px-1 py-0.2 text-[9px] font-bold text-teal-600 dark:text-teal-400">
+                                {child.badge}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </Popover.Content>
+                </Popover.Portal>
+              </Popover.Root>
+            );
+          }
+
+          // In Expanded Mode: Render full accordion dropdown
           return (
             <div key={item.label}>
               <button
@@ -339,17 +492,69 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-white/[0.06] p-2 shrink-0">
-        <button
-          onClick={() => void handleLogout()}
-          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
-        >
-          <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
-          Sign out
-        </button>
+      {/* Footer: Sign out & Expand/Collapse Toggle */}
+      <div className="border-t border-white/[0.06] p-2 shrink-0 space-y-1">
+        {collapsed ? (
+          <>
+            {onToggleCollapse && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={onToggleCollapse}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl mx-auto text-muted-foreground hover:bg-white/[0.08] hover:text-foreground transition-all"
+                  >
+                    <PanelLeftOpen className="h-4.5 w-4.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={12}>
+                  <div className="font-semibold text-xs">Expand sidebar</div>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => void handleLogout()}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl mx-auto text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                >
+                  <LogOut className="h-4.5 w-4.5" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={12}>
+                <div className="font-semibold text-xs">Sign out</div>
+              </TooltipContent>
+            </Tooltip>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => void handleLogout()}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+            >
+              <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Sign out
+            </button>
+            {onToggleCollapse && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition-all duration-200"
+              >
+                <span className="flex items-center gap-2">
+                  <PanelLeftClose className="h-3.5 w-3.5" />
+                  Collapse sidebar
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground/60 border border-hairline px-1 rounded">
+                  Ctrl+B
+                </span>
+              </button>
+            )}
+          </>
+        )}
       </div>
-    </>
+    </TooltipProvider>
   );
 }
 
@@ -357,6 +562,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AdminSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { sidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
 
   // Register mobile state globally
   useEffect(() => {
@@ -367,11 +573,31 @@ export function AdminSidebar() {
     };
   }, [mobileOpen]);
 
+  // Keyboard shortcut Ctrl+B or Cmd+B to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebarCollapsed();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleSidebarCollapsed]);
+
   return (
     <>
-      {/* Desktop — always visible ≥ md */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-white/[0.06] bg-card/80 backdrop-blur-xl overflow-hidden">
-        <SidebarContent />
+      {/* Desktop — always visible ≥ md, dynamic collapsible width */}
+      <aside
+        className={cn(
+          'hidden md:flex shrink-0 flex-col border-r border-white/[0.06] bg-card/80 backdrop-blur-xl overflow-hidden transition-all duration-300 ease-in-out',
+          sidebarCollapsed ? 'w-[72px]' : 'w-64',
+        )}
+      >
+        <SidebarContent
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={toggleSidebarCollapsed}
+        />
       </aside>
 
       {/* Mobile hamburger button */}
@@ -410,7 +636,10 @@ export function AdminSidebar() {
               >
                 <X className="h-5 w-5" />
               </button>
-              <SidebarContent onNavigate={() => setMobileOpen(false)} />
+              <SidebarContent
+                collapsed={false}
+                onNavigate={() => setMobileOpen(false)}
+              />
             </motion.aside>
           </>
         )}

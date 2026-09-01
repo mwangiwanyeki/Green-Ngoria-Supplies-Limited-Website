@@ -73,6 +73,7 @@ export function useTransitionProject(orgId: string, projectId: string) {
         queryKey: QK.projects.detail(orgId, projectId),
       });
       void qc.invalidateQueries({ queryKey: QK.projects.all(orgId) });
+      void qc.invalidateQueries({ queryKey: QK.projects.dashboard(orgId) });
     },
   });
 }

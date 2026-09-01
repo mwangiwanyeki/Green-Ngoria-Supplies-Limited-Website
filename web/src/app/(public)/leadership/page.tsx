@@ -1,15 +1,15 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
-import { Mail, Phone } from 'lucide-react';
 import { PageHero } from '@/components/marketing/page-hero';
 import { Section, SectionIntro } from '@/components/marketing/section';
-import { Reveal, RevealItem } from '@/components/marketing/reveal';
+import { Reveal } from '@/components/marketing/reveal';
 import { CtaBanner } from '@/components/marketing/cta-banner';
+import { LeadershipSection } from '@/components/marketing/leadership-section';
 import { company } from '@/config/company';
+import { ShieldCheck, Award, Quote } from 'lucide-react';
 
-const title = 'Leadership';
+const title = 'Executive Leadership & Technical Governance';
 const description =
-  'The chairperson, managing director, legal officer and production manager who direct Green Ngoria Supplies Limited.';
+  'Meet the Board of Directors, Executive Management, and Technical Engineering Leads directing Green Ngoria Supplies Limited across East Africa.';
 
 export const metadata: Metadata = {
   title,
@@ -22,165 +22,94 @@ export const metadata: Metadata = {
   },
 };
 
-/** Monogram used in place of a portrait — the profile supplies no photographs. */
-function monogram(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('');
-}
-
 export default function LeadershipPage() {
   const chair = company.leadership[0];
 
   return (
     <>
       <PageHero
-        title="The people directing Green Ngoria"
+        title="Engineering-Led Leadership & Technical Governance"
         lead={[
-          'Green Ngoria is directed by a small leadership team covering governance, commercial management, legal and compliance, and production at the operating sites.',
-          'Every technical department below them is headed by a qualified engineer, supported by qualified staff for project construction, project supervision and supplies.',
+          'Green Ngoria is directed by a seasoned executive board covering mineral strategy, operational plant execution, legal compliance, and metallurgical processing.',
+          'Every technical discipline is directed by certified professional engineers, delivering turnkey gold CIP/CIL processing plants and industrial infrastructure across East & Central Africa.',
         ]}
-        primaryAction={{ label: 'Contact the office', href: '/contact' }}
-        secondaryAction={{ label: 'About the company', href: '/about' }}
+        primaryAction={{ label: 'Contact Executive Office', href: '/contact' }}
+        secondaryAction={{ label: 'Technical Plant Assessment', href: '/request-plant-assessment' }}
         facts={[
-          { term: 'Named directors', value: String(company.leadership.length) },
-          { term: 'Head office', value: 'Nairobi, Kenya' },
-          { term: 'Regional contact', value: 'Uganda' },
+          { term: 'Board Governance', value: '4 Key Principals' },
+          { term: 'Head Office', value: 'Nairobi, Kenya' },
+          { term: 'Regional Reach', value: 'Kenya, Uganda, Tanzania' },
           {
-            term: 'Technical departments',
-            value: 'Each headed by a qualified engineer',
+            term: 'Technical Execution',
+            value: 'Each Division Headed by Qualified Engineers',
           },
         ]}
       />
 
+      {/* ── Main Interactive Team Section with Pop-Up Detail Modals ── */}
       <Section labelledBy="team-heading">
         <SectionIntro
           id="team-heading"
-          title="Direct lines into the company"
-          lead={`General enquiries are handled from the head office at ${company.contact.addressOneLine}. Directors can also be reached on the numbers listed against each profile.`}
+          title="Board of Directors & Executive Management"
+          lead="Click on any executive director or manager to inspect their full executive dossier, operational mandate, strategic focus portfolios, and direct contact coordinates."
           align="stack"
         />
 
-        <Reveal
-          kind="draw"
-          as="ol"
-          className="mt-14 divide-y divide-hairline border-y border-hairline"
-        >
-          {company.leadership.map((person) => (
-            <RevealItem key={person.name} as="li">
-              <article className="grid gap-6 py-10 lg:grid-cols-[auto_minmax(0,1fr)_16rem] lg:gap-12 items-start">
-                <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-hairline bg-muted shadow-card">
-                  {person.image ? (
-                    <Image
-                      src={person.image}
-                      alt={person.name}
-                      fill
-                      unoptimized
-                      priority
-                      className="object-cover object-top"
-                      sizes="112px"
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center font-display text-lg font-bold text-brand-700 dark:text-brand-400">
-                      {monogram((person as { name: string }).name)}
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  <h3 className="font-display text-xl font-bold tracking-tight">
-                    {person.name}
-                  </h3>
-                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-brand-700 dark:text-brand-400">
-                    {person.role}
-                  </p>
-                  {'shares' in person && (
-                    <p className="mt-1 font-mono text-xs text-muted-foreground">
-                      Shareholding: {person.shares}
-                    </p>
-                  )}
-                  <p className="measure mt-4 text-[0.9375rem] leading-7 text-muted-foreground">
-                    {person.responsibilities}
-                  </p>
-                </div>
-
-                <dl className="space-y-3 lg:border-l lg:border-hairline lg:pl-8">
-                  {person.email && (
-                    <div>
-                      <dt className="tech-label">Email</dt>
-                      <dd className="mt-1.5">
-                        <a
-                          href={`mailto:${person.email}`}
-                          className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          <Mail
-                            className="h-4 w-4 shrink-0 text-subtle"
-                            aria-hidden="true"
-                          />
-                          <span className="underline decoration-border underline-offset-4 transition-colors group-hover:decoration-foreground">
-                            {person.email}
-                          </span>
-                        </a>
-                      </dd>
-                    </div>
-                  )}
-                  {person.phone && (
-                    <div>
-                      <dt className="tech-label">Telephone</dt>
-                      <dd className="mt-1.5">
-                        <a
-                          href={`tel:${person.phone.replace(/\s/g, '')}`}
-                          className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          <Phone
-                            className="h-4 w-4 shrink-0 text-subtle"
-                            aria-hidden="true"
-                          />
-                          <span className="font-mono underline decoration-border underline-offset-4 transition-colors group-hover:decoration-foreground">
-                            {person.phone}
-                          </span>
-                        </a>
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-              </article>
-            </RevealItem>
-          ))}
-        </Reveal>
+        <div className="mt-12">
+          <LeadershipSection />
+        </div>
       </Section>
 
-      {/* Shareholding & Technical Structure */}
+      {/* ── Shareholding & Corporate Governance ── */}
       <Section tone="sunken" rule labelledBy="governance-heading">
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-start">
           <Reveal kind="rise">
-            <h2
-              id="governance-heading"
-              className="font-display text-2xl font-bold tracking-tight"
-            >
-              Shareholding Structure
-            </h2>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Nominal share capital: {company.shareholding.nominalCapital}.
-            </p>
-            <div className="mt-6 divide-y divide-hairline rounded-xl border border-hairline bg-card p-6 shadow-card">
+            <div className="space-y-4">
+              <span className="tech-label">EQUITY &amp; STATUTORY GOVERNANCE</span>
+              <h2
+                id="governance-heading"
+                className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
+              >
+                Shareholding &amp; Capital Structure
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Incorporated under the Companies Act 2015 as a private limited company (CPR/2011/57284). Nominal share capital: <span className="font-semibold text-foreground">{company.shareholding.nominalCapital}</span>.
+              </p>
+            </div>
+
+            {/* Equity Progress Bar */}
+            <div className="mt-6 space-y-2">
+              <div className="flex h-4 w-full overflow-hidden rounded-full bg-surface-sunken border border-hairline p-0.5">
+                <div className="h-full rounded-l-full bg-teal-600" style={{ width: '50%' }} title="Davis Mragha Ngoo (50%)" />
+                <div className="h-full bg-amber-500" style={{ width: '25%' }} title="Kenneth Madete Namboga (25%)" />
+                <div className="h-full rounded-r-full bg-indigo-500" style={{ width: '25%' }} title="Raymond Nyange Ngoo (25%)" />
+              </div>
+              <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-teal-600" /> Davis (50%)</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500" /> Kenneth (25%)</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-indigo-500" /> Raymond (25%)</span>
+              </div>
+            </div>
+
+            <div className="mt-6 divide-y divide-hairline rounded-2xl border border-hairline bg-card p-6 shadow-card">
               {company.shareholding.directors.map((d) => (
                 <div
                   key={d.name}
-                  className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                  className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0"
                 >
-                  <div>
-                    <span className="font-display text-sm font-semibold">
+                  <div className="space-y-0.5">
+                    <span className="font-display text-sm font-bold text-foreground">
                       {d.name}
                     </span>
+                    <div className="text-xs text-muted-foreground">Ordinary Shareholder</div>
                   </div>
                   <div className="text-right">
-                    <span className="font-mono text-sm font-medium text-brand-700 dark:text-brand-400">
-                      {d.shares} shares ({d.percentage})
+                    <span className="font-mono text-sm font-bold text-brand-700 dark:text-brand-400">
+                      {d.shares} shares
                     </span>
+                    <div className="font-mono text-xs text-muted-foreground">
+                      {d.percentage} Equity
+                    </div>
                   </div>
                 </div>
               ))}
@@ -188,60 +117,85 @@ export default function LeadershipPage() {
           </Reveal>
 
           <Reveal kind="rise" delay={0.08}>
-            <h2 className="font-display text-2xl font-bold tracking-tight">
-              Technical Departments
-            </h2>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Engineering-led execution model across five operating divisions.
-            </p>
-            <div className="mt-6 space-y-4 rounded-xl border border-hairline bg-card p-6 text-sm leading-7 text-muted-foreground shadow-card">
-              <p>
-                Each technical department is headed by a qualified engineer. The
-                company maintains permanent staff for project construction, site
-                supervision and the supplies function, with additional
-                specialist labour engaged as project requirements dictate.
+            <div className="space-y-4">
+              <span className="tech-label">CORE OPERATIONAL VALUES</span>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                Corporate Governance Standards
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Operating with institutional accountability across Kenya, Tanzania, Uganda, Rwanda, and Burundi.
               </p>
-              <p>
-                Our workforce is experienced across all sectors in which the
-                group operates across Kenya, Tanzania, Uganda, Rwanda, and
-                Burundi.
-              </p>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {company.values.slice(0, 6).map((val) => (
+                <div
+                  key={val.name}
+                  className="rounded-xl border border-hairline bg-card p-4 shadow-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-brand-600 dark:text-brand-400 shrink-0" />
+                    <h4 className="font-display text-xs font-bold text-foreground">
+                      {val.name}
+                    </h4>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                    {val.description}
+                  </p>
+                </div>
+              ))}
             </div>
           </Reveal>
         </div>
       </Section>
 
+      {/* ── Chairperson's Official Message ── */}
       <Section tone="sunken" rule width="prose" labelledBy="chair-heading">
-        <h2 id="chair-heading" className="tech-label">
-          The chairperson&rsquo;s message
-        </h2>
-        <Reveal kind="unblur" className="mt-8">
-          <blockquote className="space-y-6">
-            {company.chairmanMessage.map((paragraph) => (
-              <p
-                key={paragraph}
-                className="font-display text-xl font-medium leading-9 tracking-tight sm:text-[1.5rem] sm:leading-10"
-              >
-                {paragraph}
-              </p>
-            ))}
-          </blockquote>
-          <p className="mt-10 font-display text-lg font-bold tracking-tight text-brand-700 dark:text-brand-400">
-            &ldquo;{company.chairmanMotto}&rdquo;
-          </p>
-          <p className="mt-2 text-sm text-subtle">
-            {chair.name} · {chair.role}
-          </p>
-        </Reveal>
+        <div className="relative rounded-3xl border border-hairline bg-card/90 p-8 sm:p-12 shadow-card backdrop-blur-md">
+          <Quote className="h-10 w-10 text-brand-600/20 absolute right-8 top-8" />
+
+          <h2 id="chair-heading" className="tech-label">
+            THE CHAIRPERSON&rsquo;S MESSAGE
+          </h2>
+
+          <Reveal kind="unblur" className="mt-6">
+            <blockquote className="space-y-4">
+              {company.chairmanMessage.map((paragraph) => (
+                <p
+                  key={paragraph}
+                  className="font-display text-base sm:text-lg font-medium leading-relaxed text-foreground/90"
+                >
+                  &ldquo;{paragraph}&rdquo;
+                </p>
+              ))}
+            </blockquote>
+
+            <div className="mt-8 pt-6 border-t border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <p className="font-display text-base font-bold text-brand-700 dark:text-brand-400">
+                  &ldquo;{company.chairmanMotto}&rdquo;
+                </p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  {chair.name} · {chair.role}
+                </p>
+              </div>
+
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-600 dark:text-brand-400 border border-brand-500/20">
+                <Award className="h-3.5 w-3.5" />
+                Est. September 2011
+              </span>
+            </div>
+          </Reveal>
+        </div>
       </Section>
 
       <CtaBanner
-        title="Reach the right person directly"
-        body="General enquiries, prequalification documents and project discussions are all handled from the head office in Nairobi."
-        primary={{ label: 'Contact the office', href: '/contact' }}
+        title="Consult directly with our leadership team"
+        body="Technical plant assessments, mineral concession feasibility, EPC prequalifications, and corporate inquiries are managed directly from our Nairobi headquarters."
+        primary={{ label: 'Contact Executive Office', href: '/contact' }}
         secondary={{
-          label: 'Send a request for quotation',
-          href: '/request-rfq',
+          label: 'Request Plant Assessment',
+          href: '/request-plant-assessment',
         }}
       />
     </>

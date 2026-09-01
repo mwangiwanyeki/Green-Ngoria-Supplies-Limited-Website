@@ -74,10 +74,20 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
-    const Comp = asChild ? Slot : 'button';
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref as any}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
+    }
 
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={disabled || loading}
@@ -96,7 +106,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             {rightIcon}
           </span>
         )}
-      </Comp>
+      </button>
     );
   },
 );
