@@ -9,15 +9,14 @@ import {
   buildPagination,
   buildPaginatedMeta,
 } from '../../common/utils/pagination.util';
+import {
+  generateClientNumber,
+  retryOnUniqueConstraint,
+} from '../../common/utils/generate-reference.util';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateContactDto } from './dto/create-contact.dto';
 
-let clientCounter = 1000;
-
-function generateClientNumber(): string {
-  return `CLT-${++clientCounter}`;
-}
 
 @Injectable()
 export class ClientsService {
@@ -36,24 +35,31 @@ export class ClientsService {
   ) {
     await this.orgsService.assertMembership(organizationId, createdById);
 
-    const clientNumber = generateClientNumber();
-
-    const client = await this.prisma.client.create({
-      data: {
-        organizationId,
-        clientNumber,
-        companyName: dto.companyName,
-        industry: dto.industry,
-        country: dto.country ?? 'Kenya',
-        city: dto.city,
-        address: dto.address,
-        website: dto.website,
-        email: dto.email,
-        phone: dto.phone,
-        miningInterest: dto.miningInterest,
-        notes: dto.notes,
-      },
-    });
+    // `clientNumber` is `@unique`, so the number is drawn from the shared
+    // ReferenceSequence table (same pattern as projects/RFQs/quotations)
+    // rather than an in-process counter, which collided after every restart.
+    let clientNumber = '';
+    const client = await retryOnUniqueConstraint(() =>
+      this.prisma.$transaction(async (tx) => {
+        clientNumber = await generateClientNumber(tx);
+        return tx.client.create({
+          data: {
+            organizationId,
+            clientNumber,
+            companyName: dto.companyName,
+            industry: dto.industry,
+            country: dto.country ?? 'Kenya',
+            city: dto.city,
+            address: dto.address,
+            website: dto.website,
+            email: dto.email,
+            phone: dto.phone,
+            miningInterest: dto.miningInterest,
+            notes: dto.notes,
+          },
+        });
+      }),
+    );
 
     await this.auditService.log({
       userId: createdById,

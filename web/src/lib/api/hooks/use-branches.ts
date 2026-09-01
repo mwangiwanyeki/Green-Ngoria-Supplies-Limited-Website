@@ -30,13 +30,14 @@ export function useBranches() {
 
 export function useBranchBusinessProfile(branchId: string | null | undefined) {
   const orgId = useAuthStore((s) => s.user?.organizationId);
+  const accessToken = useAuthStore((s) => s.accessToken);
   return useQuery({
     queryKey: ['branches', orgId, branchId, 'settings', 'business-profile'],
     queryFn: () =>
       get(
         `/organizations/${orgId}/branches/${branchId}/settings/business-profile`,
       ).then((r) => r.data),
-    enabled: !!orgId && !!branchId,
+    enabled: !!accessToken && !!orgId && !!branchId,
   });
 }
 
@@ -58,13 +59,14 @@ export function useUpdateBranchBusinessProfile(branchId: string) {
 
 export function useBranchGeneralSettings(branchId: string | null | undefined) {
   const orgId = useAuthStore((s) => s.user?.organizationId);
+  const accessToken = useAuthStore((s) => s.accessToken);
   return useQuery({
     queryKey: ['branches', orgId, branchId, 'settings', 'general'],
     queryFn: () =>
       get(`/organizations/${orgId}/branches/${branchId}/settings/general`).then(
         (r) => r.data,
       ),
-    enabled: !!orgId && !!branchId,
+    enabled: !!accessToken && !!orgId && !!branchId,
   });
 }
 
@@ -90,17 +92,16 @@ export interface BranchSessionSecurity {
   warningCountdownSeconds: number;
 }
 
-export function useBranchSessionSecurity(
-  branchId: string | null | undefined,
-) {
+export function useBranchSessionSecurity(branchId: string | null | undefined) {
   const orgId = useAuthStore((s) => s.user?.organizationId);
+  const accessToken = useAuthStore((s) => s.accessToken);
   return useQuery({
     queryKey: ['branches', orgId, branchId, 'settings', 'session-security'],
     queryFn: () =>
       get<BranchSessionSecurity>(
         `/organizations/${orgId}/branches/${branchId}/settings/session-security`,
       ).then((r) => r.data),
-    enabled: !!orgId && !!branchId,
+    enabled: !!accessToken && !!orgId && !!branchId,
   });
 }
 

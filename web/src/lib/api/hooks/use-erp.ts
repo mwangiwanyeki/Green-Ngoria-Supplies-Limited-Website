@@ -8,6 +8,12 @@ import { useBranchStore } from '@/stores/branch-store';
 /**
  * Generic org-scoped ERP list query. All ERP endpoints follow the shape
  * `/organizations/:orgId/<path>` and return paginated ApiResponse<T[]>.
+ *
+ * Every ERP read endpoint requires `branchId` as a query param
+ * (`BranchScopeQueryDto`/`BranchScopedPaginationDto` on the backend — see
+ * `src/common/dto/branch-scope.dto.ts` — has no `@IsOptional()`). It is read
+ * here from the branch store and merged into `params` on every request; a
+ * caller-supplied `branchId` in `params` still wins if explicitly passed.
  */
 export function useErpList<T = unknown>(
   path: string,
@@ -19,8 +25,10 @@ export function useErpList<T = unknown>(
   return useQuery<ApiResponse<T[]>>({
     queryKey: ['erp', orgId, branchId, path, params ?? {}],
     queryFn: () =>
-      get<T[]>(`/organizations/${orgId}/${path}`, { params }),
-    enabled: !!accessToken && !!orgId,
+      get<T[]>(`/organizations/${orgId}/${path}`, {
+        params: { branchId, ...params },
+      }),
+    enabled: !!accessToken && !!orgId && !!branchId,
   });
 }
 
@@ -34,7 +42,9 @@ export function useErpResource<T = unknown>(
   return useQuery<T>({
     queryKey: ['erp', orgId, branchId, path, 'one', params ?? {}],
     queryFn: () =>
-      get<T>(`/organizations/${orgId}/${path}`, { params }).then((r) => r.data),
-    enabled: !!accessToken && !!orgId,
+      get<T>(`/organizations/${orgId}/${path}`, {
+        params: { branchId, ...params },
+      }).then((r) => r.data),
+    enabled: !!accessToken && !!orgId && !!branchId,
   });
 }

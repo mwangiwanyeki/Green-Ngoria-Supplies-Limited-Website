@@ -246,6 +246,92 @@ export class ExpensesService {
     };
   }
 
+  /**
+   * Expenses in `[from, to]` grouped by category and resolved to names,
+   * largest first. Uncategorised spend is reported under a null categoryId
+   * rather than being dropped, so the parts always add up to the total.
+   */
+  async getCategoryBreakdown(
+    organizationId: string,
+    userId: string,
+    query: BranchScopeQueryDto & { from?: Date; to?: Date },
+  ): Promise<{ categoryId: string | null; name: string; total: string }[]> {
+    await this.assertScope(organizationId, userId, query.branchId);
+
+    const where: Prisma.ExpenseWhereInput = branchScope(
+      organizationId,
+      query.branchId,
+    );
+    if (query.from || query.to) {
+      where.incurredAt = {
+        ...(query.from ? { gte: query.from } : {}),
+        ...(query.to ? { lte: query.to } : {}),
+      };
+    }
+
+    const rows = await this.prisma.expense.groupBy({
+      by: ['categoryId'],
+      where,
+      _sum: { amount: true },
+    });
+    if (rows.length === 0) return [];
+
+    const ids = rows
+      .map((row) => row.categoryId)
+      .filter((id): id is string => !!id);
+    const categories = ids.length
+      ? await this.prisma.expenseCategory.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameById = new Map(categories.map((c) => [c.id, c.name]));
+
+    return rows
+      .map((row) => ({
+        categoryId: row.categoryId,
+        name: row.categoryId
+          ? (nameById.get(row.categoryId) ?? 'Unknown category')
+          : 'Uncategorised',
+        total: new Prisma.Decimal(row._sum.amount ?? 0).toString(),
+      }))
+      .sort((a, b) => Number(b.total) - Number(a.total));
+  }
+
+  /**
+   * Expenses summed per calendar month over `[from, to]`, ordered oldest
+   * first. Month grouping is not expressible through the Prisma aggregate
+   * API, so this uses parameterised raw SQL and keeps the arithmetic in
+   * `numeric`. Months with no expenses are absent — the caller fills gaps.
+   */
+  async getMonthlyTotals(
+    organizationId: string,
+    userId: string,
+    query: BranchScopeQueryDto & { from: Date; to: Date },
+  ): Promise<{ month: string; total: string }[]> {
+    await this.assertScope(organizationId, userId, query.branchId);
+
+    const rows = await this.prisma.$queryRaw<
+      { month: string; total: Prisma.Decimal | null }[]
+    >`
+      SELECT to_char(date_trunc('month', "incurredAt"), 'YYYY-MM') AS month,
+             COALESCE(SUM("amount"), 0)::numeric AS total
+      FROM "expenses"
+      WHERE "organizationId" = ${organizationId}
+        AND "branchId" = ${query.branchId}
+        AND "deletedAt" IS NULL
+        AND "incurredAt" >= ${query.from}
+        AND "incurredAt" <= ${query.to}
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `;
+
+    return rows.map((row) => ({
+      month: row.month,
+      total: new Prisma.Decimal(row.total ?? 0).toString(),
+    }));
+  }
+
   // ─── Categories ───────────────────────────────────────────────────────────
 
   async createCategory(

@@ -16,6 +16,24 @@ import { AdminClientsList } from '@/features/admin/admin-clients-list';
 import { AdminCommissioningList } from '@/features/admin/admin-commissioning-list';
 import { AdminContractsList } from '@/features/admin/admin-contracts-list';
 import { AdminEngineeringList } from '@/features/admin/admin-engineering-list';
+import { AdminLeadsList } from '@/features/admin/admin-leads-list';
+import { AdminProjectsList } from '@/features/admin/admin-projects-list';
+import { AdminQuotationsList } from '@/features/admin/admin-quotations-list';
+import { AdminUsersList } from '@/features/admin/admin-users-list';
+import { AdminAuditList } from '@/features/admin/admin-audit-list';
+import { AdminRolesList } from '@/features/admin/admin-roles-list';
+import { AdminOrganizationsList } from '@/features/admin/admin-organizations-list';
+import { AdminConsultationsList } from '@/features/admin/admin-consultations-list';
+import { AdminMiningSitesList } from '@/features/admin/admin-mining-sites-list';
+import { AdminVendorsList } from '@/features/admin/admin-vendors-list';
+import { AdminSparesList } from '@/features/admin/admin-spares-list';
+import { AdminRfqsList } from '@/features/admin/admin-rfqs-list';
+import { AdminSiteOpsList } from '@/features/admin/admin-site-ops-list';
+import { AdminMaintenanceList } from '@/features/admin/admin-maintenance-list';
+import { AdminWarrantiesList } from '@/features/admin/admin-warranties-list';
+import { AdminSupportList } from '@/features/admin/admin-support-list';
+import { AdminCmsList } from '@/features/admin/admin-cms-list';
+import { AdminMediaList } from '@/features/admin/admin-media-list';
 import { AdminInventory } from '@/features/admin/erp/admin-inventory';
 import { AdminPos } from '@/features/admin/erp/admin-pos';
 import { AdminSales } from '@/features/admin/erp/admin-sales';
@@ -48,43 +66,86 @@ function AdminPaymentsModule() {
   return <AdminFinanceList initialTab="payments" />;
 }
 
+function AdminTodaySales() {
+  return <AdminSales scope="today" />;
+}
+
+function AdminAllSales() {
+  return <AdminSales scope="all" />;
+}
+
 // Modules with a real, data-wired list/dashboard component. Rendered in
 // place of the generic placeholder scaffold below.
 const wiredModules: Record<string, React.ComponentType> = {
-  // Engineering-services modules
-  analytics: AdminDashboard,
-  assets: AdminAssetsList,
+  // Core Business & CRM
+  leads: AdminLeadsList,
   clients: AdminClientsList,
-  commissioning: AdminCommissioningList,
+  organizations: AdminOrganizationsList,
+  consultations: AdminConsultationsList,
+
+  // Commercial & Projects
+  quotations: AdminQuotationsList,
   contracts: AdminContractsList,
+  rfqs: AdminRfqsList,
+  projects: AdminProjectsList,
+
+  // Engineering & Delivery
+  assessments: AdminAssessmentsList,
   engineering: AdminEngineeringList,
   equipment: AdminEquipmentList,
-  invoices: AdminInvoicesModule,
-  payments: AdminPaymentsModule,
+  spares: AdminSparesList,
+  'mining-sites': AdminMiningSitesList,
+  commissioning: AdminCommissioningList,
+
+  // Operations & Sites
+  'site-ops': AdminSiteOpsList,
   hse: AdminHseList,
   procurement: AdminProcurementList,
-  notifications: AdminNotificationsList,
-  assessments: AdminAssessmentsList,
-  // Operations ERP modules
+  vendors: AdminVendorsList,
+  'vat-leach': AdminVatLeach,
+  'stock-piles': AdminStockPiles,
+  security: AdminSecurity,
+
+  // Asset Lifecycle & Support
+  assets: AdminAssetsList,
+  maintenance: AdminMaintenanceList,
+  warranties: AdminWarrantiesList,
+  support: AdminSupportList,
+
+  // Sales & ERP Operations
   inventory: AdminInventory,
   pos: AdminPos,
-  'today-sales': AdminSales,
-  'all-sales': AdminSales,
+  'today-sales': AdminTodaySales,
+  'all-sales': AdminAllSales,
   'store-management': AdminStoreManagement,
   customers: AdminCustomers,
   'manage-debt': AdminDebt,
   expenses: AdminExpenses,
   accounts: AdminAccounts,
   suppliers: AdminSuppliers,
-  'vat-leach': AdminVatLeach,
-  'stock-piles': AdminStockPiles,
-  security: AdminSecurity,
+
+  // Finance
+  invoices: AdminInvoicesModule,
+  payments: AdminPaymentsModule,
+
+  // HR
   'hr/overview': AdminHrOverview,
   'hr/staff': AdminHrStaff,
   'hr/payroll': AdminHrPayroll,
   'hr/leave': AdminHrLeave,
   visitors: AdminVisitors,
+
+  // Analytics, CMS & Admin
+  analytics: AdminDashboard,
   reports: AdminReports,
+  notifications: AdminNotificationsList,
+  cms: AdminCmsList,
+  media: AdminMediaList,
+  users: AdminUsersList,
+  roles: AdminRolesList,
+  audit: AdminAuditList,
+  'company-portal': AdminOrganizationsList,
+  'admin-panel': AdminUsersList,
   'activity-logs': AdminActivityLogs,
   settings: AdminSettings,
   profile: AdminProfile,

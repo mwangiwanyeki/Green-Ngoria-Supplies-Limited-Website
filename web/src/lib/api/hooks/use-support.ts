@@ -81,3 +81,43 @@ export function useResolveTicket(orgId: string, ticketId: string) {
     },
   });
 }
+
+// ─── List-friendly ticket mutations ───────────────────────────────────────
+
+/** Resolves a ticket chosen at call time. */
+export function useResolveTicketById(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, resolution }: { id: string; resolution: string }) =>
+      post(`/organizations/${orgId}/support/tickets/${id}/resolve`, {
+        resolution,
+      }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: QK.tickets.all(orgId) }),
+  });
+}
+
+/** Adds a message to a ticket chosen at call time. */
+export function useAddTicketMessageById(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      message,
+      isInternal,
+    }: {
+      id: string;
+      message: string;
+      isInternal?: boolean;
+    }) =>
+      post(`/organizations/${orgId}/support/tickets/${id}/messages`, {
+        message,
+        isInternal: isInternal ?? false,
+      }).then((r) => r.data),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({
+        queryKey: QK.tickets.detail(orgId, vars.id),
+      });
+      void qc.invalidateQueries({ queryKey: QK.tickets.all(orgId) });
+    },
+  });
+}

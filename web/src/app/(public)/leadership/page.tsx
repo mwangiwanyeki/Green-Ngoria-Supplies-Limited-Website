@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { Mail, Phone } from 'lucide-react';
 import { PageHero } from '@/components/marketing/page-hero';
 import { Section, SectionIntro } from '@/components/marketing/section';
@@ -70,13 +71,24 @@ export default function LeadershipPage() {
         >
           {company.leadership.map((person) => (
             <RevealItem key={person.name} as="li">
-              <article className="grid gap-6 py-10 lg:grid-cols-[auto_minmax(0,1fr)_16rem] lg:gap-12">
-                <p
-                  aria-hidden="true"
-                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-hairline bg-card font-display text-base font-bold tracking-tight text-brand-700 shadow-low dark:text-brand-400"
-                >
-                  {monogram(person.name)}
-                </p>
+              <article className="grid gap-6 py-10 lg:grid-cols-[auto_minmax(0,1fr)_16rem] lg:gap-12 items-start">
+                <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-hairline bg-muted shadow-card">
+                  {person.image ? (
+                    <Image
+                      src={person.image}
+                      alt={person.name}
+                      fill
+                      unoptimized
+                      priority
+                      className="object-cover object-top"
+                      sizes="112px"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center font-display text-lg font-bold text-brand-700 dark:text-brand-400">
+                      {monogram((person as { name: string }).name)}
+                    </span>
+                  )}
+                </div>
 
                 <div>
                   <h3 className="font-display text-xl font-bold tracking-tight">
@@ -85,7 +97,12 @@ export default function LeadershipPage() {
                   <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-brand-700 dark:text-brand-400">
                     {person.role}
                   </p>
-                  <p className="measure mt-5 text-[0.9375rem] leading-7 text-muted-foreground">
+                  {'shares' in person && (
+                    <p className="mt-1 font-mono text-xs text-muted-foreground">
+                      Shareholding: {person.shares}
+                    </p>
+                  )}
+                  <p className="measure mt-4 text-[0.9375rem] leading-7 text-muted-foreground">
                     {person.responsibilities}
                   </p>
                 </div>
@@ -134,6 +151,64 @@ export default function LeadershipPage() {
             </RevealItem>
           ))}
         </Reveal>
+      </Section>
+
+      {/* Shareholding & Technical Structure */}
+      <Section tone="sunken" rule labelledBy="governance-heading">
+        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+          <Reveal kind="rise">
+            <h2
+              id="governance-heading"
+              className="font-display text-2xl font-bold tracking-tight"
+            >
+              Shareholding Structure
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Nominal share capital: {company.shareholding.nominalCapital}.
+            </p>
+            <div className="mt-6 divide-y divide-hairline rounded-xl border border-hairline bg-card p-6 shadow-card">
+              {company.shareholding.directors.map((d) => (
+                <div
+                  key={d.name}
+                  className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                >
+                  <div>
+                    <span className="font-display text-sm font-semibold">
+                      {d.name}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono text-sm font-medium text-brand-700 dark:text-brand-400">
+                      {d.shares} shares ({d.percentage})
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Reveal>
+
+          <Reveal kind="rise" delay={0.08}>
+            <h2 className="font-display text-2xl font-bold tracking-tight">
+              Technical Departments
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Engineering-led execution model across five operating divisions.
+            </p>
+            <div className="mt-6 space-y-4 rounded-xl border border-hairline bg-card p-6 text-sm leading-7 text-muted-foreground shadow-card">
+              <p>
+                Each technical department is headed by a qualified engineer. The
+                company maintains permanent staff for project construction, site
+                supervision and the supplies function, with additional
+                specialist labour engaged as project requirements dictate.
+              </p>
+              <p>
+                Our workforce is experienced across all sectors in which the
+                group operates across Kenya, Tanzania, Uganda, Rwanda, and
+                Burundi.
+              </p>
+            </div>
+          </Reveal>
+        </div>
       </Section>
 
       <Section tone="sunken" rule width="prose" labelledBy="chair-heading">

@@ -55,3 +55,23 @@ export function useCloseHseIncident(orgId: string, id: string) {
     },
   });
 }
+
+/**
+ * List-friendly variant of `useCloseHseIncident` — takes the incident id as a
+ * mutation variable so a single instance can serve every row in a table.
+ */
+export function useCloseIncident(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      post(`/organizations/${orgId}/hse/incidents/${id}/close`).then(
+        (r) => r.data,
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QK.hseIncidents.all(orgId) });
+      void qc.invalidateQueries({
+        queryKey: ['orgs', orgId, 'hse', 'dashboard'],
+      });
+    },
+  });
+}

@@ -125,7 +125,12 @@ export class UsersController {
     @Body() dto: AssignRoleDto,
     @CurrentUser() actor: AuthUser,
   ) {
-    const result = await this.usersService.assignRole(id, dto.role, actor.id);
+    const result = await this.usersService.assignRole(
+      id,
+      dto.role,
+      actor.id,
+      actor.roles,
+    );
     return successResponse(result);
   }
 
@@ -138,7 +143,12 @@ export class UsersController {
     @Param('role') role: SystemRole,
     @CurrentUser() actor: AuthUser,
   ) {
-    const result = await this.usersService.removeRole(id, role, actor.id);
+    const result = await this.usersService.removeRole(
+      id,
+      role,
+      actor.id,
+      actor.roles,
+    );
     return successResponse(result);
   }
 

@@ -11,6 +11,7 @@ import { Suspense, useState } from 'react';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useLogin } from '@/lib/api/hooks/use-auth';
+import { getApiErrorMessage } from '@/lib/api/api-error';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -77,10 +78,7 @@ function LoginForm() {
             : '/portal';
       router.push(target);
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'message' in err
-          ? String(err.message)
-          : 'Login failed';
+      const msg = getApiErrorMessage(err, 'Login failed');
       // A rejected MFA code keeps the field open and surfaces the error.
       if (msg.toLowerCase().includes('mfa')) {
         setNeedsMfa(true);

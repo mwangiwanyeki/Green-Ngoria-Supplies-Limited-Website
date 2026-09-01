@@ -19,9 +19,7 @@ export function AdminStoreManagement() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
-  const query = useInventoryStores() as ReturnType<
-    typeof useInventoryStores
-  >;
+  const query = useInventoryStores() as ReturnType<typeof useInventoryStores>;
 
   const columns: ErpColumn<Store>[] = [
     {
@@ -38,7 +36,8 @@ export function AdminStoreManagement() {
     {
       key: 'location',
       header: 'Location',
-      cell: (r) => r.location ?? <span className="text-muted-foreground">—</span>,
+      cell: (r) =>
+        r.location ?? <span className="text-muted-foreground">—</span>,
     },
     {
       key: 'items',
@@ -56,7 +55,11 @@ export function AdminStoreManagement() {
       title="Store Management"
       description="Storage locations and stock placement rules."
       actions={
-        <Button size="sm" variant="brand" leftIcon={<Plus className="h-4 w-4" />}>
+        <Button
+          size="sm"
+          variant="brand"
+          leftIcon={<Plus className="h-4 w-4" />}
+        >
           Add Store
         </Button>
       }

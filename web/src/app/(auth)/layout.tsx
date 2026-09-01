@@ -18,7 +18,7 @@ export default function AuthLayout({
           className="relative z-10 inline-flex"
           aria-label="Green Ngoria Supplies Ltd — home"
         >
-          <Logo height={40} onDark />
+          <Logo height={52} onDark />
         </Link>
 
         <div className="relative z-10 space-y-6">
@@ -60,7 +60,7 @@ export default function AuthLayout({
             className="mb-10 flex lg:hidden"
             aria-label="Green Ngoria Supplies Ltd — home"
           >
-            <Logo height={36} />
+            <Logo height={48} />
           </Link>
           {children}
         </div>

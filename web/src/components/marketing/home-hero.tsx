@@ -45,62 +45,86 @@ export function HomeHero({
       <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-32 sm:px-8 sm:pb-20 sm:pt-36 lg:px-10 lg:pb-24 lg:pt-44">
         <div className="grid items-center gap-14 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:gap-10 lg:gap-20">
           <div>
+            <motion.div {...rise(0)} className="mb-4">
+              <span className="inline-flex items-center gap-2 rounded-full border border-brand-400/30 bg-brand-500/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-brand-300 backdrop-blur-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-400 animate-pulse" />
+                Mining · CIP/CIL Processing Plants · Equipment Installation
+              </span>
+            </motion.div>
+
             <motion.h1
-              {...rise(0)}
+              {...rise(0.04)}
               className="max-w-[16ch] font-display text-display-2xl font-extrabold text-[hsl(var(--on-ink))]"
             >
-              Mining, mineral processing and the plants that make them work.
+              Gold mining, processing plant engineering &amp; equipment installation.
             </motion.h1>
 
             <motion.p
-              {...rise(0.08)}
-              className="measure mt-8 text-lg leading-8 text-[hsl(var(--on-ink-muted))]"
+              {...rise(0.1)}
+              className="measure mt-6 text-lg leading-8 text-[hsl(var(--on-ink-muted))]"
             >
-              Green Ngoria mines gold and gemstones in Kenya and Tanzania, runs
-              a NEMA-approved gold processing plant at Bondo, and delivers the
-              civil, mechanical and electrical engineering that producing sites
-              depend on.
+              Green Ngoria operates producing gold concessions in Bondo (Siaya)
+              and Taita Taveta, constructs NEMA-approved Carbon-in-Pulp (CIP) and
+              Carbon-in-Leach (CIL) mineral processing plants, and installs heavy
+              mining machinery across Kenya, Tanzania, and East Africa.
             </motion.p>
 
             <motion.div
               {...rise(0.16)}
-              className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center"
+              className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
             >
               <Link href="/technical-assessment" className="sm:w-auto">
                 <Button
                   variant="brand"
                   size="xl"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto font-semibold"
                   rightIcon={<ArrowRight className="h-5 w-5" />}
                 >
-                  Request a plant assessment
+                  Request plant assessment
                 </Button>
               </Link>
-              <Link href="/contact" className="sm:w-auto">
+              <Link href="/gold-processing" className="sm:w-auto">
                 <Button size="xl" variant="on-ink" className="w-full sm:w-auto">
-                  Discuss a mining project
+                  Gold processing plant
+                </Button>
+              </Link>
+              <Link href="/equipment" className="sm:w-auto">
+                <Button
+                  size="xl"
+                  variant="ghost"
+                  className="w-full sm:w-auto text-white/80 hover:text-white hover:bg-white/10"
+                >
+                  Mining equipment &rarr;
                 </Button>
               </Link>
             </motion.div>
 
             <motion.dl
-              {...rise(0.24)}
-              className="mt-14 grid max-w-xl gap-x-10 gap-y-6 border-t border-white/10 pt-8 sm:grid-cols-2"
+              {...rise(0.22)}
+              className="mt-12 grid max-w-xl grid-cols-2 gap-x-8 gap-y-6 border-t border-white/10 pt-6 sm:grid-cols-3"
             >
               <div>
                 <dt className="tech-label text-[hsl(var(--on-ink-subtle))]">
-                  Operating countries
+                  Plant Approval
                 </dt>
-                <dd className="mt-2 text-sm leading-6 text-[hsl(var(--on-ink-muted))]">
-                  {countries.join(' · ')}
+                <dd className="mt-1.5 font-mono text-xs font-semibold text-white">
+                  NEMA/PR/SYA/002
                 </dd>
               </div>
               <div>
                 <dt className="tech-label text-[hsl(var(--on-ink-subtle))]">
-                  In-house disciplines
+                  Mining Sites
                 </dt>
-                <dd className="mt-2 text-sm leading-6 text-[hsl(var(--on-ink-muted))]">
-                  {disciplines.join(' · ')}
+                <dd className="mt-1.5 text-xs font-medium text-[hsl(var(--on-ink-muted))]">
+                  Bondo &amp; Taita Taveta
+                </dd>
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <dt className="tech-label text-[hsl(var(--on-ink-subtle))]">
+                  Plant Delivery
+                </dt>
+                <dd className="mt-1.5 text-xs font-medium text-[hsl(var(--on-ink-muted))]">
+                  Turnkey EPC / CIP-CIL
                 </dd>
               </div>
             </motion.dl>

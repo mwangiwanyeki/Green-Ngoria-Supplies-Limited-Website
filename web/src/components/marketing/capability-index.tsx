@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { ServiceIcon } from '@/components/marketing/service-icon';
@@ -51,30 +52,38 @@ export function CapabilityIndex({
                 >
                   <Link
                     href={`/services/${division.slug}`}
-                    className="group flex items-start gap-5 py-6 transition-colors duration-ui ease-out-expo hover:bg-accent/50 focus-visible:bg-accent/50 sm:gap-7 sm:px-4 sm:-mx-4"
+                    className="group flex flex-col sm:flex-row items-start sm:items-center gap-5 py-6 transition-colors duration-ui ease-out-expo hover:bg-accent/50 focus-visible:bg-accent/50 sm:gap-7 sm:px-4 sm:-mx-4 rounded-xl"
                   >
-                    <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-hairline bg-card text-muted-foreground shadow-low transition-[border-color,color,transform] duration-ui ease-out-expo group-hover:-translate-y-0.5 group-hover:border-brand-500/45 group-hover:text-brand-600 dark:group-hover:text-brand-400">
-                      <ServiceIcon name={division.icon} className="h-5 w-5" />
-                    </span>
+                    {division.primaryImage && (
+                      <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border border-hairline bg-muted shadow-sm">
+                        <Image
+                          src={division.primaryImage.src}
+                          alt={division.name}
+                          fill
+                          className="object-cover transition-transform duration-emphasis group-hover:scale-105"
+                          sizes="128px"
+                        />
+                        <div className="absolute inset-0 bg-black/20" />
+                      </div>
+                    )}
 
-                    <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <span className="font-display text-lg font-semibold tracking-tight">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <span className="font-display text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-brand-600 dark:group-hover:text-brand-400">
                           {division.name}
                         </span>
-                        <span className="font-mono text-xs text-subtle">
-                          {String(division.scope.length).padStart(2, '0')} scope
-                          items
+                        <span className="rounded bg-brand-500/10 px-2 py-0.5 font-mono text-xs font-bold text-brand-700 dark:text-brand-400">
+                          {String(division.scope.length).padStart(2, '0')} scope items
                         </span>
-                      </span>
-                      <span className="measure mt-2 block text-sm leading-6 text-muted-foreground">
+                      </div>
+                      <p className="measure mt-2 text-sm leading-6 text-muted-foreground">
                         {division.summary}
-                      </span>
-                    </span>
+                      </p>
+                    </div>
 
                     <ArrowUpRight
                       aria-hidden="true"
-                      className="mt-1 h-5 w-5 shrink-0 text-subtle transition-[transform,color] duration-ui ease-out-expo group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand-600 dark:group-hover:text-brand-400"
+                      className="hidden sm:block mt-1 h-5 w-5 shrink-0 text-subtle transition-[transform,color] duration-ui ease-out-expo group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand-600 dark:group-hover:text-brand-400"
                     />
                   </Link>
                 </RevealItem>

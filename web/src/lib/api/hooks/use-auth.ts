@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { post, get, patch, del } from '../api-client';
 import { QK } from '../query-keys';
 import { useAuthStore, type StoredUser } from '@/stores/auth-store';
+import { useBranchStore } from '@/stores/branch-store';
 
 export type { StoredUser as AuthUser };
 
@@ -114,11 +115,13 @@ export function useLogin() {
 export function useLogout() {
   const qc = useQueryClient();
   const clearTokens = useAuthStore((s) => s.clearTokens);
+  const clearBranches = useBranchStore((s) => s.clear);
 
   return useMutation({
     mutationFn: () => post('/auth/logout'),
     onSettled: () => {
       clearTokens();
+      clearBranches();
       if (typeof window !== 'undefined') {
         delete window.__GNG_ACCESS_TOKEN;
       }

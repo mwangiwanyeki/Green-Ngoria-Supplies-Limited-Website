@@ -196,6 +196,7 @@ export class AuthController {
 
   @Post('mfa/setup')
   @UseGuards(JwtAuthGuard)
+  @Throttle(AUTH_THROTTLE)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Initiate MFA setup — returns TOTP secret and QR URL',
@@ -207,6 +208,7 @@ export class AuthController {
 
   @Post('mfa/enable')
   @UseGuards(JwtAuthGuard)
+  @Throttle(AUTH_THROTTLE)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirm MFA setup with a valid TOTP code' })
@@ -217,6 +219,7 @@ export class AuthController {
 
   @Post('mfa/disable')
   @UseGuards(JwtAuthGuard)
+  @Throttle(AUTH_THROTTLE)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Disable MFA (requires current TOTP code)' })

@@ -459,6 +459,90 @@ export class SalesService {
     };
   }
 
+  /**
+   * Revenue, transaction count and average over an arbitrary date range.
+   * Same status filter as `getTodaySummary` — voided and draft sales are not
+   * revenue. Drives the ERP reports overview.
+   */
+  async getRevenueSummary(
+    organizationId: string,
+    userId: string,
+    query: BranchScopeQueryDto & { from?: Date; to?: Date },
+  ) {
+    await this.assertScope(organizationId, userId, query.branchId);
+
+    const where: Prisma.SaleWhereInput = {
+      ...branchScope(organizationId, query.branchId),
+      status: { notIn: [SaleStatus.VOIDED, SaleStatus.DRAFT] },
+    };
+    if (query.from || query.to) {
+      where.soldAt = {
+        ...(query.from ? { gte: query.from } : {}),
+        ...(query.to ? { lte: query.to } : {}),
+      };
+    }
+
+    const aggregate = await this.prisma.sale.aggregate({
+      where,
+      _sum: { totalAmount: true, amountPaid: true, amountDue: true },
+      _count: { _all: true },
+    });
+
+    const total = new Prisma.Decimal(aggregate._sum.totalAmount ?? 0);
+    const count = aggregate._count._all;
+    const average =
+      count > 0
+        ? total.dividedBy(count).toDecimalPlaces(2)
+        : new Prisma.Decimal(0);
+
+    return {
+      totalRevenue: total.toString(),
+      saleCount: count,
+      averageSale: average.toString(),
+      amountCollected: new Prisma.Decimal(
+        aggregate._sum.amountPaid ?? 0,
+      ).toString(),
+      amountOnCredit: new Prisma.Decimal(
+        aggregate._sum.amountDue ?? 0,
+      ).toString(),
+    };
+  }
+
+  /**
+   * Revenue summed per calendar month over `[from, to]`, ordered oldest first.
+   * Grouping by month is not expressible through the Prisma aggregate API, so
+   * this uses parameterised raw SQL and keeps the arithmetic in `numeric`.
+   * Months with no sales are simply absent — the caller fills the gaps.
+   */
+  async getMonthlyRevenue(
+    organizationId: string,
+    userId: string,
+    query: BranchScopeQueryDto & { from: Date; to: Date },
+  ): Promise<{ month: string; total: string }[]> {
+    await this.assertScope(organizationId, userId, query.branchId);
+
+    const rows = await this.prisma.$queryRaw<
+      { month: string; total: Prisma.Decimal | null }[]
+    >`
+      SELECT to_char(date_trunc('month', "soldAt"), 'YYYY-MM') AS month,
+             COALESCE(SUM("totalAmount"), 0)::numeric AS total
+      FROM "sales"
+      WHERE "organizationId" = ${organizationId}
+        AND "branchId" = ${query.branchId}
+        AND "deletedAt" IS NULL
+        AND "status" NOT IN ('VOIDED', 'DRAFT')
+        AND "soldAt" >= ${query.from}
+        AND "soldAt" <= ${query.to}
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `;
+
+    return rows.map((row) => ({
+      month: row.month,
+      total: new Prisma.Decimal(row.total ?? 0).toString(),
+    }));
+  }
+
   // ─── Internals ────────────────────────────────────────────────────────────
 
   /**

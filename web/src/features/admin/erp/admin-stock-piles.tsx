@@ -29,13 +29,16 @@ export function AdminStockPiles() {
     {
       key: 'location',
       header: 'Location',
-      cell: (r) => r.location ?? <span className="text-muted-foreground">—</span>,
+      cell: (r) =>
+        r.location ?? <span className="text-muted-foreground">—</span>,
     },
     {
       key: 'tonnage',
       header: <span className="text-right block">Tonnage</span>,
       cell: (r) => (
-        <span className="text-right block tabular-nums">{r.tonnage ?? 0} t</span>
+        <span className="text-right block tabular-nums">
+          {r.tonnage ?? 0} t
+        </span>
       ),
     },
     {
@@ -73,7 +76,11 @@ export function AdminStockPiles() {
       title="Stock Piles"
       description="Ore stockpile tracking: tonnage, grade and movements."
       actions={
-        <Button size="sm" variant="brand" leftIcon={<Plus className="h-4 w-4" />}>
+        <Button
+          size="sm"
+          variant="brand"
+          leftIcon={<Plus className="h-4 w-4" />}
+        >
           Add Pile
         </Button>
       }

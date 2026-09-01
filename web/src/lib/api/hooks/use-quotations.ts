@@ -52,6 +52,54 @@ export function useApproveQuotation(orgId: string, id: string) {
   });
 }
 
+/**
+ * Quotations have no PATCH endpoint — the backend models an edit as a new
+ * revision (`POST :id/revise`, which snapshots the current version and resets
+ * it to DRAFT). Pass the reason for the revision.
+ */
+export function useReviseQuotation(orgId: string, id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reason: string) =>
+      post(`/organizations/${orgId}/quotations/${id}/revise`, { reason }).then(
+        (r) => r.data,
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QK.quotations.detail(orgId, id) });
+      void qc.invalidateQueries({ queryKey: QK.quotations.all(orgId) });
+    },
+  });
+}
+
+export function useSubmitQuotation(orgId: string, id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      post(`/organizations/${orgId}/quotations/${id}/submit`).then(
+        (r) => r.data,
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QK.quotations.detail(orgId, id) });
+      void qc.invalidateQueries({ queryKey: QK.quotations.all(orgId) });
+    },
+  });
+}
+
+/** There is no DELETE for quotations — rejecting is the terminal action. */
+export function useRejectQuotation(orgId: string, id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reason: string) =>
+      post(`/organizations/${orgId}/quotations/${id}/reject`, { reason }).then(
+        (r) => r.data,
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QK.quotations.detail(orgId, id) });
+      void qc.invalidateQueries({ queryKey: QK.quotations.all(orgId) });
+    },
+  });
+}
+
 export function useSendQuotation(orgId: string, id: string) {
   const qc = useQueryClient();
   return useMutation({

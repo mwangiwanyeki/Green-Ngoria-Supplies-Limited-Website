@@ -62,6 +62,7 @@ async function bootstrap(): Promise<void> {
       'Authorization',
       'X-Request-ID',
       'X-Org-ID',
+      'X-Branch-Id',
     ],
     exposedHeaders: ['X-Request-ID'],
     credentials: true,

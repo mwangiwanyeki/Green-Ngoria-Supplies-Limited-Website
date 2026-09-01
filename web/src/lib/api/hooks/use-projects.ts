@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { get, post } from '../api-client';
+import { get, post, patch } from '../api-client';
 import { QK } from '../query-keys';
 import type { ProjectSummary } from '../models';
 
@@ -41,6 +41,23 @@ export function useCreateProject(orgId: string) {
     mutationFn: (data: unknown) =>
       post(`/organizations/${orgId}/projects`, data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: QK.projects.all(orgId) }),
+  });
+}
+
+/**
+ * PATCH /organizations/:orgId/projects/:id — note the backend binds the full
+ * `CreateProjectDto`, so callers must send every required field (name).
+ */
+export function useUpdateProject(orgId: string, id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) =>
+      patch(`/organizations/${orgId}/projects/${id}`, data).then((r) => r.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QK.projects.detail(orgId, id) });
+      void qc.invalidateQueries({ queryKey: QK.projects.all(orgId) });
+      void qc.invalidateQueries({ queryKey: QK.projects.dashboard(orgId) });
+    },
   });
 }
 

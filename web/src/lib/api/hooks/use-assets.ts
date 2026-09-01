@@ -33,14 +33,39 @@ export function useCreateAsset(orgId: string) {
   });
 }
 
-export function useExpiringWarranties(orgId: string) {
+// ─── Warranties (sub-resource of an asset) ────────────────────────────────
+
+export function useExpiringWarranties<T = unknown>(orgId: string) {
   return useQuery({
-    queryKey: ['orgs', orgId, 'assets', 'warranties', 'expiring'],
+    queryKey: QK.warranties.expiring(orgId),
     queryFn: () =>
-      get(`/organizations/${orgId}/assets/warranties/expiring`).then(
+      get<T[]>(`/organizations/${orgId}/assets/warranties/expiring`).then(
         (r) => r.data,
       ),
     enabled: !!orgId,
+  });
+}
+
+/**
+ * `POST /organizations/:orgId/assets/:assetId/warranty` upserts — the same
+ * endpoint both registers a new warranty and edits the existing one, because a
+ * warranty is unique per asset. There is no delete endpoint; clear coverage by
+ * upserting with `isActive: false`.
+ */
+export function useUpsertWarranty(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ assetId, data }: { assetId: string; data: unknown }) =>
+      post(`/organizations/${orgId}/assets/${assetId}/warranty`, data).then(
+        (r) => r.data,
+      ),
+    onSuccess: (_result, variables) => {
+      void qc.invalidateQueries({ queryKey: QK.warranties.expiring(orgId) });
+      void qc.invalidateQueries({
+        queryKey: QK.assets.detail(orgId, variables.assetId),
+      });
+      void qc.invalidateQueries({ queryKey: QK.assets.all(orgId) });
+    },
   });
 }
 

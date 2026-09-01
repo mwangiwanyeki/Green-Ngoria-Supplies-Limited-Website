@@ -128,6 +128,14 @@ export async function generateLeadReference(
   return `LEAD-${5000 + seq}`;
 }
 
+/** Client number — `CLT-<seq>`, offset to keep the historic CLT-1001 style. */
+export async function generateClientNumber(
+  db: ReferenceDbClient,
+): Promise<string> {
+  const seq = await nextSequenceValue(db, 'client');
+  return `CLT-${1000 + seq}`;
+}
+
 // ─── Operations ERP ─────────────────────────────────────────────────────────
 // ERP references are branch-scoped: the sequence key embeds the branch id so
 // two branches never contend on the same counter and each gets its own run of

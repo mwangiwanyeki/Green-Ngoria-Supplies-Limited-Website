@@ -2,7 +2,18 @@
 
 import { useState } from 'react';
 import { type ColumnDef } from '@tanstack/react-table';
-import { ClipboardList, Truck, Building2 } from 'lucide-react';
+import {
+  ClipboardList,
+  Truck,
+  Building2,
+  Plus,
+  MoreHorizontal,
+  ArrowRight,
+  Trash2,
+  Loader2,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   PageHeader,
   EmptyState,
@@ -17,6 +28,10 @@ import {
   useRequisitions,
   useVendors,
   usePurchaseOrders,
+  useCreateRequisition,
+  useCreatePurchaseOrder,
+  useTransitionRequisitionById,
+  useUpdatePurchaseOrderStatus,
 } from '@/lib/api/hooks/use-procurement';
 import {
   formatCurrency,
@@ -24,6 +39,23 @@ import {
   formatRelativeDate,
   cn,
 } from '@/lib/utils';
+import {
+  FormDialog,
+  Field,
+  TextField,
+  TextAreaField,
+  SelectField,
+  apiErrorMessage,
+  buildPayload,
+  optionalNumber,
+  optionalDate,
+  enumOptions,
+  confirmAction,
+  rowMenuContentClass,
+  rowMenuItemClass,
+  rowMenuDestructiveItemClass,
+  type SelectOption,
+} from './_form-kit';
 
 interface RequisitionRow {
   id: string;
@@ -58,7 +90,473 @@ interface PurchaseOrderRow {
   vendor?: { name: string } | null;
 }
 
-const requisitionColumns: ColumnDef<RequisitionRow>[] = [
+
+/** Mirrors the Currency enum in prisma/schema.prisma. */
+const CURRENCIES = ['USD', 'KES', 'TZS', 'UGX', 'RWF', 'EUR', 'GBP'] as const;
+
+/** The urgency values CreateRequisitionDto documents. */
+const URGENCIES = ['LOW', 'NORMAL', 'URGENT', 'EMERGENCY'] as const;
+
+/**
+ * Requisitions move through ProcurementStatus. The controller exposes no
+ * DELETE — CANCELLED is the terminal "remove" state.
+ */
+const REQUISITION_NEXT: Record<string, string[]> = {
+  REQUISITION: ['PENDING_APPROVAL', 'CANCELLED'],
+  PENDING_APPROVAL: ['APPROVED', 'CANCELLED'],
+  APPROVED: ['SUPPLIER_RFQ', 'CANCELLED'],
+  SUPPLIER_RFQ: ['QUOTES_RECEIVED', 'CANCELLED'],
+  QUOTES_RECEIVED: ['COMPARISON', 'CANCELLED'],
+  COMPARISON: ['PO_RAISED', 'CANCELLED'],
+  PO_RAISED: ['DELIVERY', 'CANCELLED'],
+  DELIVERY: ['RECEIVED', 'CANCELLED'],
+  RECEIVED: [],
+  CANCELLED: [],
+};
+
+/** The PO states the PATCH /purchase-orders/:poId/status route documents. */
+const PO_STATUSES = [
+  'ACKNOWLEDGED',
+  'SHIPPED',
+  'DELIVERED',
+  'CANCELLED',
+] as const;
+
+// ─── Requisition dialog ────────────────────────────────────────────────────
+
+interface RequisitionItemForm {
+  description: string;
+  quantity: string;
+  unit: string;
+  estimatedPrice: string;
+}
+
+interface RequisitionForm {
+  title: string;
+  description: string;
+  urgency: string;
+  currency: string;
+  requiredByDate: string;
+  notes: string;
+  items: RequisitionItemForm[];
+}
+
+const EMPTY_ITEM: RequisitionItemForm = {
+  description: '',
+  quantity: '',
+  unit: 'EA',
+  estimatedPrice: '',
+};
+
+const EMPTY_REQUISITION: RequisitionForm = {
+  title: '',
+  description: '',
+  urgency: 'NORMAL',
+  currency: 'USD',
+  requiredByDate: '',
+  notes: '',
+  items: [{ ...EMPTY_ITEM }],
+};
+
+function CreateRequisitionDialog({
+  open,
+  onOpenChange,
+  orgId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  orgId: string;
+}) {
+  const [form, setForm] = useState<RequisitionForm>(EMPTY_REQUISITION);
+  const [titleError, setTitleError] = useState<string | undefined>();
+  const [itemsError, setItemsError] = useState<string | undefined>();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const createRequisition = useCreateRequisition(orgId);
+
+  const close = (next: boolean) => {
+    onOpenChange(next);
+    if (!next) {
+      setForm({ ...EMPTY_REQUISITION, items: [{ ...EMPTY_ITEM }] });
+      setTitleError(undefined);
+      setItemsError(undefined);
+      setSubmitError(null);
+    }
+  };
+
+  const setItem = (
+    index: number,
+    key: keyof RequisitionItemForm,
+    value: string,
+  ) => {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) =>
+        i === index ? { ...it, [key]: value } : it,
+      ),
+    }));
+    setItemsError(undefined);
+  };
+
+  const handleSubmit = () => {
+    // Mirrors CreateRequisitionDto: title @IsNotEmpty, items is a required
+    // array whose entries need a description and a quantity >= 0.01.
+    let ok = true;
+    if (!form.title.trim()) {
+      setTitleError('Title is required.');
+      ok = false;
+    } else {
+      setTitleError(undefined);
+    }
+
+    const items = form.items.filter(
+      (it) => it.description.trim() || it.quantity.trim(),
+    );
+    if (items.length === 0) {
+      setItemsError('Add at least one line item.');
+      ok = false;
+    } else if (items.some((it) => !it.description.trim())) {
+      setItemsError('Every line item needs a description.');
+      ok = false;
+    } else if (
+      items.some((it) => {
+        const n = Number(it.quantity);
+        return !Number.isFinite(n) || n < 0.01;
+      })
+    ) {
+      setItemsError('Every line item needs a quantity of at least 0.01.');
+      ok = false;
+    } else {
+      setItemsError(undefined);
+    }
+    if (!ok) return;
+    setSubmitError(null);
+
+    createRequisition.mutate(
+      {
+        ...buildPayload({
+          title: form.title,
+          description: form.description,
+          urgency: form.urgency,
+          currency: form.currency,
+          requiredByDate: optionalDate(form.requiredByDate),
+          notes: form.notes,
+        }),
+        items: items.map((it) =>
+          buildPayload({
+            description: it.description,
+            quantity: Number(it.quantity),
+            unit: it.unit,
+            estimatedPrice: optionalNumber(it.estimatedPrice),
+          }),
+        ),
+      },
+      {
+        onSuccess: () => {
+          toast.success('Requisition raised');
+          close(false);
+        },
+        onError: (err) => setSubmitError(apiErrorMessage(err)),
+      },
+    );
+  };
+
+  return (
+    <FormDialog
+      open={open}
+      onOpenChange={close}
+      title="Raise a purchase requisition"
+      description="Requisitions start in the REQUISITION state and move through approval, supplier RFQ and PO via the row actions."
+      submitLabel="Raise requisition"
+      onSubmit={handleSubmit}
+      pending={createRequisition.isPending}
+      error={submitError}
+      className="sm:max-w-2xl"
+    >
+      <TextField
+        label="Title"
+        required
+        value={form.title}
+        error={titleError}
+        placeholder="CIP Plant — Grinding Media Batch 3"
+        onChange={(v) => {
+          setForm((f) => ({ ...f, title: v }));
+          setTitleError(undefined);
+        }}
+      />
+      <TextAreaField
+        label="Description"
+        value={form.description}
+        rows={2}
+        onChange={(v) => setForm((f) => ({ ...f, description: v }))}
+      />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <SelectField
+          label="Urgency"
+          value={form.urgency}
+          options={enumOptions(URGENCIES)}
+          onChange={(v) => setForm((f) => ({ ...f, urgency: v }))}
+        />
+        <SelectField
+          label="Currency"
+          value={form.currency}
+          options={enumOptions(CURRENCIES)}
+          onChange={(v) => setForm((f) => ({ ...f, currency: v }))}
+        />
+        <TextField
+          label="Required by"
+          type="date"
+          value={form.requiredByDate}
+          onChange={(v) => setForm((f) => ({ ...f, requiredByDate: v }))}
+        />
+      </div>
+
+      <Field label="Line items" required error={itemsError}>
+        <div className="space-y-3">
+          {form.items.map((item, index) => (
+            <div
+              key={index}
+              className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-[1fr_5rem_4.5rem_6rem_auto]"
+            >
+              <input
+                value={item.description}
+                aria-label={`Line item ${index + 1} description`}
+                placeholder="Description"
+                onChange={(e) => setItem(index, 'description', e.target.value)}
+                className="h-9 rounded-md border border-input bg-card px-2 text-sm"
+              />
+              <input
+                value={item.quantity}
+                type="number"
+                aria-label={`Line item ${index + 1} quantity`}
+                placeholder="Qty"
+                onChange={(e) => setItem(index, 'quantity', e.target.value)}
+                className="h-9 rounded-md border border-input bg-card px-2 text-sm"
+              />
+              <input
+                value={item.unit}
+                aria-label={`Line item ${index + 1} unit`}
+                placeholder="Unit"
+                onChange={(e) => setItem(index, 'unit', e.target.value)}
+                className="h-9 rounded-md border border-input bg-card px-2 text-sm"
+              />
+              <input
+                value={item.estimatedPrice}
+                type="number"
+                aria-label={`Line item ${index + 1} estimated price`}
+                placeholder="Est. price"
+                onChange={(e) =>
+                  setItem(index, 'estimatedPrice', e.target.value)
+                }
+                className="h-9 rounded-md border border-input bg-card px-2 text-sm"
+              />
+              <button
+                type="button"
+                aria-label={`Remove line item ${index + 1}`}
+                disabled={form.items.length === 1}
+                onClick={() =>
+                  setForm((f) => ({
+                    ...f,
+                    items: f.items.filter((_, i) => i !== index),
+                  }))
+                }
+                className="rounded-md p-2 text-muted-foreground hover:bg-muted disabled:opacity-40"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            leftIcon={<Plus className="h-4 w-4" />}
+            onClick={() =>
+              setForm((f) => ({ ...f, items: [...f.items, { ...EMPTY_ITEM }] }))
+            }
+          >
+            Add line item
+          </Button>
+        </div>
+      </Field>
+
+      <TextAreaField
+        label="Notes"
+        value={form.notes}
+        rows={2}
+        onChange={(v) => setForm((f) => ({ ...f, notes: v }))}
+      />
+    </FormDialog>
+  );
+}
+
+// ─── Purchase order dialog ─────────────────────────────────────────────────
+
+interface PoForm {
+  vendorId: string;
+  totalAmount: string;
+  currency: string;
+  paymentTerms: string;
+  deliveryAddress: string;
+  expectedDelivery: string;
+  notes: string;
+}
+
+const EMPTY_PO: PoForm = {
+  vendorId: '',
+  totalAmount: '',
+  currency: 'USD',
+  paymentTerms: '',
+  deliveryAddress: '',
+  expectedDelivery: '',
+  notes: '',
+};
+
+function CreatePurchaseOrderDialog({
+  open,
+  onOpenChange,
+  orgId,
+  vendors,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  orgId: string;
+  vendors: VendorRow[];
+}) {
+  const [form, setForm] = useState<PoForm>(EMPTY_PO);
+  const [errors, setErrors] = useState<Partial<Record<keyof PoForm, string>>>(
+    {},
+  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const createPo = useCreatePurchaseOrder(orgId);
+
+  const set = <K extends keyof PoForm>(key: K, value: PoForm[K]) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setErrors((e) => ({ ...e, [key]: undefined }));
+  };
+
+  const close = (next: boolean) => {
+    onOpenChange(next);
+    if (!next) {
+      setForm(EMPTY_PO);
+      setErrors({});
+      setSubmitError(null);
+    }
+  };
+
+  const vendorOptions: SelectOption[] = vendors.map((v) => ({
+    value: v.id,
+    label: v.name,
+  }));
+
+  const handleSubmit = () => {
+    // Mirrors CreatePurchaseOrderDto: vendorId is a required UUID and
+    // totalAmount is a required number >= 0.
+    const found: Partial<Record<keyof PoForm, string>> = {};
+    if (!form.vendorId) found.vendorId = 'Select a vendor.';
+    if (!form.totalAmount.trim()) {
+      found.totalAmount = 'Total amount is required.';
+    } else {
+      const n = Number(form.totalAmount);
+      if (!Number.isFinite(n)) found.totalAmount = 'Must be a number.';
+      else if (n < 0) found.totalAmount = 'Cannot be negative.';
+    }
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+    setSubmitError(null);
+
+    createPo.mutate(
+      buildPayload({
+        vendorId: form.vendorId,
+        totalAmount: optionalNumber(form.totalAmount),
+        currency: form.currency,
+        paymentTerms: form.paymentTerms,
+        deliveryAddress: form.deliveryAddress,
+        expectedDelivery: optionalDate(form.expectedDelivery),
+        notes: form.notes,
+      }),
+      {
+        onSuccess: () => {
+          toast.success('Purchase order raised');
+          close(false);
+        },
+        onError: (err) => setSubmitError(apiErrorMessage(err)),
+      },
+    );
+  };
+
+  return (
+    <FormDialog
+      open={open}
+      onOpenChange={close}
+      title="Raise a purchase order"
+      description="Issued against an approved vendor. Delivery status is updated from the row actions."
+      submitLabel="Raise PO"
+      onSubmit={handleSubmit}
+      pending={createPo.isPending}
+      error={submitError}
+    >
+      <SelectField
+        label="Vendor"
+        required
+        value={form.vendorId}
+        error={errors.vendorId}
+        placeholder={
+          vendors.length === 0
+            ? 'No vendors registered yet'
+            : 'Select a vendor…'
+        }
+        options={vendorOptions}
+        onChange={(v) => set('vendorId', v)}
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField
+          label="Total amount"
+          required
+          type="number"
+          value={form.totalAmount}
+          error={errors.totalAmount}
+          onChange={(v) => set('totalAmount', v)}
+        />
+        <SelectField
+          label="Currency"
+          value={form.currency}
+          options={enumOptions(CURRENCIES)}
+          onChange={(v) => set('currency', v)}
+        />
+      </div>
+      <TextField
+        label="Payment terms"
+        value={form.paymentTerms}
+        placeholder="Net 30"
+        onChange={(v) => set('paymentTerms', v)}
+      />
+      <TextAreaField
+        label="Delivery address"
+        value={form.deliveryAddress}
+        rows={2}
+        onChange={(v) => set('deliveryAddress', v)}
+      />
+      <TextField
+        label="Expected delivery"
+        type="date"
+        value={form.expectedDelivery}
+        onChange={(v) => set('expectedDelivery', v)}
+      />
+      <TextAreaField
+        label="Notes"
+        value={form.notes}
+        rows={2}
+        onChange={(v) => set('notes', v)}
+      />
+    </FormDialog>
+  );
+}
+
+function buildRequisitionColumns(
+  onTransition: (req: RequisitionRow, status: string) => void,
+  pendingId: string | undefined,
+): ColumnDef<RequisitionRow>[] {
+  return [
   {
     accessorKey: 'requisitionNo',
     header: 'Req #',
@@ -108,7 +606,62 @@ const requisitionColumns: ColumnDef<RequisitionRow>[] = [
     header: 'Created',
     cell: ({ row }) => formatRelativeDate(row.original.createdAt),
   },
-];
+  {
+    id: 'actions',
+    header: '',
+    cell: ({ row }) => {
+      const req = row.original;
+      const next = REQUISITION_NEXT[req.status] ?? [];
+      const pending = pendingId === req.id;
+      return (
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted"
+              aria-label={`Actions for ${req.requisitionNo}`}
+              disabled={pending}
+            >
+              {pending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MoreHorizontal className="h-4 w-4" />
+              )}
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              align="end"
+              sideOffset={4}
+              className={rowMenuContentClass}
+            >
+              {next.length === 0 ? (
+                <DropdownMenu.Item className={rowMenuItemClass} disabled>
+                  No further transitions
+                </DropdownMenu.Item>
+              ) : (
+                next.map((status) => (
+                  <DropdownMenu.Item
+                    key={status}
+                    className={
+                      status === 'CANCELLED'
+                        ? rowMenuDestructiveItemClass
+                        : rowMenuItemClass
+                    }
+                    onSelect={() => onTransition(req, status)}
+                  >
+                    <ArrowRight className="h-3.5 w-3.5" />
+                    Move to {status.replace(/_/g, ' ').toLowerCase()}
+                  </DropdownMenu.Item>
+                ))
+              )}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      );
+    },
+  },
+  ];
+}
 
 const vendorColumns: ColumnDef<VendorRow>[] = [
   {
@@ -147,11 +700,34 @@ const vendorColumns: ColumnDef<VendorRow>[] = [
   },
 ];
 
-const poColumns: ColumnDef<PurchaseOrderRow>[] = [
+function buildPoColumns(
+  onUpdateStatus: (po: PurchaseOrderRow, status: string) => void,
+  pendingId: string | undefined,
+): ColumnDef<PurchaseOrderRow>[] {
+  return [
+  {
+    id: 'poNumber',
+    header: 'PO #',
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {row.original.poNumber ?? '—'}
+      </span>
+    ),
+  },
   {
     id: 'vendor',
     header: 'Vendor',
     cell: ({ row }) => row.original.vendor?.name ?? '—',
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    cell: ({ row }) =>
+      row.original.status ? (
+        <StatusBadge status={row.original.status} />
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      ),
   },
   {
     accessorKey: 'totalAmount',
@@ -169,7 +745,57 @@ const poColumns: ColumnDef<PurchaseOrderRow>[] = [
     header: 'Created',
     cell: ({ row }) => formatRelativeDate(row.original.createdAt),
   },
-];
+  {
+    id: 'actions',
+    header: '',
+    cell: ({ row }) => {
+      const po = row.original;
+      const pending = pendingId === po.id;
+      return (
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted"
+              aria-label={`Actions for purchase order ${po.poNumber ?? po.id}`}
+              disabled={pending}
+            >
+              {pending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MoreHorizontal className="h-4 w-4" />
+              )}
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              align="end"
+              sideOffset={4}
+              className={rowMenuContentClass}
+            >
+              {PO_STATUSES.filter((status) => status !== po.status).map(
+                (status) => (
+                  <DropdownMenu.Item
+                    key={status}
+                    className={
+                      status === 'CANCELLED'
+                        ? rowMenuDestructiveItemClass
+                        : rowMenuItemClass
+                    }
+                    onSelect={() => onUpdateStatus(po, status)}
+                  >
+                    <ArrowRight className="h-3.5 w-3.5" />
+                    Mark {status.toLowerCase()}
+                  </DropdownMenu.Item>
+                ),
+              )}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      );
+    },
+  },
+  ];
+}
 
 type Tab = 'requisitions' | 'vendors' | 'purchase-orders';
 
@@ -196,11 +822,87 @@ export function AdminProcurementList() {
         ? vendorsQuery
         : poQuery;
 
+  const [requisitionDialogOpen, setRequisitionDialogOpen] = useState(false);
+  const [poDialogOpen, setPoDialogOpen] = useState(false);
+  const transitionRequisition = useTransitionRequisitionById(orgId);
+  const updatePoStatus = useUpdatePurchaseOrderStatus(orgId);
+
+  const handleRequisitionTransition = (
+    req: RequisitionRow,
+    status: string,
+  ) => {
+    if (
+      status === 'CANCELLED' &&
+      !confirmAction(
+        `Cancel requisition ${req.requisitionNo}? This closes it out and cannot be undone from here.`,
+      )
+    )
+      return;
+
+    transitionRequisition.mutate(
+      { id: req.id, status },
+      {
+        onSuccess: () => toast.success(`Requisition moved to ${status}`),
+        onError: (err) => toast.error(apiErrorMessage(err)),
+      },
+    );
+  };
+
+  const handlePoStatus = (po: PurchaseOrderRow, status: string) => {
+    if (
+      status === 'CANCELLED' &&
+      !confirmAction(
+        `Cancel purchase order ${po.poNumber ?? ''}? The vendor will need a new PO to proceed.`,
+      )
+    )
+      return;
+
+    updatePoStatus.mutate(
+      { id: po.id, status },
+      {
+        onSuccess: () => toast.success(`Purchase order marked ${status}`),
+        onError: (err) => toast.error(apiErrorMessage(err)),
+      },
+    );
+  };
+
+  const requisitionColumns = buildRequisitionColumns(
+    handleRequisitionTransition,
+    transitionRequisition.isPending
+      ? transitionRequisition.variables?.id
+      : undefined,
+  );
+  const poColumns = buildPoColumns(
+    handlePoStatus,
+    updatePoStatus.isPending ? updatePoStatus.variables?.id : undefined,
+  );
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <PageHeader
         title="Procurement"
         description="Requisitions, supplier vendors, comparisons and purchase orders."
+        actions={
+          tab === 'requisitions' ? (
+            <Button
+              size="sm"
+              variant="brand"
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={() => setRequisitionDialogOpen(true)}
+            >
+              New Requisition
+            </Button>
+          ) : tab === 'purchase-orders' ? (
+            <Button
+              size="sm"
+              variant="brand"
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={() => setPoDialogOpen(true)}
+            >
+              New Purchase Order
+            </Button>
+          ) : undefined
+        }
       />
       <div className="flex gap-2 border-b border-border">
         {(
@@ -238,6 +940,15 @@ export function AdminProcurementList() {
             icon={<ClipboardList className="h-6 w-6" />}
             title="No requisitions yet"
             description="Purchase requisitions raised for projects will appear here."
+            action={
+              <Button
+                variant="brand"
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={() => setRequisitionDialogOpen(true)}
+              >
+                New Requisition
+              </Button>
+            }
           />
         ) : (
           <DataTable
@@ -267,6 +978,15 @@ export function AdminProcurementList() {
           icon={<Truck className="h-6 w-6" />}
           title="No purchase orders yet"
           description="Purchase orders issued to vendors will appear here."
+          action={
+            <Button
+              variant="brand"
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={() => setPoDialogOpen(true)}
+            >
+              New Purchase Order
+            </Button>
+          }
         />
       ) : (
         <DataTable columns={poColumns} data={purchaseOrders} />
@@ -292,6 +1012,18 @@ export function AdminProcurementList() {
           </Button>
         </div>
       )}
+
+      <CreateRequisitionDialog
+        open={requisitionDialogOpen}
+        onOpenChange={setRequisitionDialogOpen}
+        orgId={orgId}
+      />
+      <CreatePurchaseOrderDialog
+        open={poDialogOpen}
+        onOpenChange={setPoDialogOpen}
+        orgId={orgId}
+        vendors={vendors}
+      />
     </div>
   );
 }

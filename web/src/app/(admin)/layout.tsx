@@ -1,6 +1,7 @@
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { AuthBoundary } from '@/components/auth-boundary';
+import { BranchBootstrap } from '@/components/admin/branch-bootstrap';
 
 const ADMIN_ROLES = [
   'SUPER_ADMIN',
@@ -30,6 +31,7 @@ export default function AdminLayout({
 }) {
   return (
     <AuthBoundary allowedRoles={ADMIN_ROLES} loginPath="/auth/admin">
+      <BranchBootstrap />
       <div className="flex h-screen overflow-hidden bg-background">
         <AdminSidebar />
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">

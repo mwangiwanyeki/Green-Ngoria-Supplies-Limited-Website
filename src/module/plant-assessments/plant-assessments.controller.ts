@@ -15,6 +15,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { MULTER_FILE_LIMITS } from '../../common/constants/upload.constants';
 import {
   ApiBearerAuth,
   ApiConsumes,
@@ -289,7 +290,7 @@ export class PlantAssessmentsController {
 
   @Post(':id/attachments')
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', MULTER_FILE_LIMITS))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Upload supporting document or photo to assessment',

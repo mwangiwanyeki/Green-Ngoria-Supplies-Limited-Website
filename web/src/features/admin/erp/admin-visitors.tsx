@@ -58,7 +58,11 @@ export function AdminVisitors() {
       title="Visitors Management"
       description="Register and track visitors at the active branch."
       actions={
-        <Button size="sm" variant="brand" leftIcon={<Plus className="h-4 w-4" />}>
+        <Button
+          size="sm"
+          variant="brand"
+          leftIcon={<Plus className="h-4 w-4" />}
+        >
           Register Visitor
         </Button>
       }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { get, post, patch } from '../api-client';
+import { get, post, patch, del } from '../api-client';
 import { QK } from '../query-keys';
 
 // ─── Equipment ────────────────────────────────────────────────────────────
@@ -86,6 +86,22 @@ export function useCreateSpare() {
   });
 }
 
+/**
+ * PATCH /equipment/spares/:id — the backend binds the full
+ * `CreateSparePartDto`, so `sku` and `name` must always be present.
+ */
+export function useUpdateSpare(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) =>
+      patch(`/equipment/spares/${id}`, data).then((r) => r.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QK.spares.detail(id) });
+      void qc.invalidateQueries({ queryKey: ['equipment', 'spares'] });
+    },
+  });
+}
+
 export function useAdjustStock(id: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -100,5 +116,38 @@ export function useAdjustStock(id: string) {
         (r) => r.data,
       ),
     onSuccess: () => qc.invalidateQueries({ queryKey: QK.spares.detail(id) }),
+  });
+}
+
+// ─── List-friendly equipment mutations ────────────────────────────────────
+// These take the equipment id as a mutation variable so one hook instance can
+// serve every row of the catalogue table.
+
+export function useUpdateEquipmentById() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: unknown }) =>
+      patch(`/equipment/${id}`, data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['equipment'] }),
+  });
+}
+
+export function useSetEquipmentPublished() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, published }: { id: string; published: boolean }) =>
+      post(`/equipment/${id}/${published ? 'publish' : 'unpublish'}`).then(
+        (r) => r.data,
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['equipment'] }),
+  });
+}
+
+/** Archives (soft-deletes) a catalogue item. */
+export function useDeleteEquipment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => del(`/equipment/${id}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['equipment'] }),
   });
 }

@@ -64,51 +64,75 @@ export type AdminNavItem = AdminNavLeaf | AdminNavGroup;
 
 export const adminNav: readonly AdminNavItem[] = [
   { label: 'Dashboard', href: '/admin', icon: 'LayoutDashboard' },
+
+  // ── CRM & Commercial ──
   {
-    label: 'Sales',
-    icon: 'ShoppingBag',
+    label: 'CRM',
+    icon: 'Users',
     children: [
-      { label: 'Inventory', href: '/admin/inventory', icon: 'Boxes' },
       {
-        label: 'POS',
-        href: '/admin/pos',
-        icon: 'Calculator',
-        badge: 'UPDATED',
+        label: 'Leads',
+        href: '/admin/leads',
+        icon: 'Users',
+        badge: 'NEW',
       },
+      { label: 'Clients', href: '/admin/clients', icon: 'Building2' },
       {
-        label: 'Today Sales',
-        href: '/admin/today-sales',
-        icon: 'CalendarClock',
+        label: 'Organizations',
+        href: '/admin/organizations',
+        icon: 'Building2',
+        badge: 'NEW',
       },
     ],
   },
-  { label: 'All Sales', href: '/admin/all-sales', icon: 'Receipt' },
   {
-    label: 'Store Management',
-    href: '/admin/store-management',
-    icon: 'Warehouse',
-  },
-  {
-    label: 'Debt Management',
-    icon: 'HandCoins',
+    label: 'Commercial',
+    icon: 'FileCheck',
     children: [
-      { label: 'Customers', href: '/admin/customers', icon: 'Users' },
-      { label: 'Manage Debt', href: '/admin/manage-debt', icon: 'Coins' },
+      {
+        label: 'Quotations',
+        href: '/admin/quotations',
+        icon: 'FileCheck',
+        badge: 'NEW',
+      },
+      { label: 'Contracts', href: '/admin/contracts', icon: 'ScrollText' },
+      { label: 'RFQs', href: '/admin/rfqs', icon: 'FileText' },
     ],
   },
-  { label: 'Expenses', href: '/admin/expenses', icon: 'Wallet' },
-  { label: 'Accounts', href: '/admin/accounts', icon: 'Landmark' },
+
+  // ── Projects & Engineering ──
   {
-    label: 'Orders',
-    icon: 'PackageCheck',
-    children: [
-      { label: 'Suppliers', href: '/admin/suppliers', icon: 'Truck' },
-    ],
+    label: 'Projects',
+    href: '/admin/projects',
+    icon: 'FolderKanban',
+    badge: 'NEW',
   },
   {
-    label: 'Operations Control',
+    label: 'Engineering',
+    icon: 'Cpu',
+    children: [
+      {
+        label: 'Assessments',
+        href: '/admin/assessments',
+        icon: 'ClipboardList',
+      },
+      { label: 'Documents', href: '/admin/engineering', icon: 'Files' },
+      { label: 'Equipment', href: '/admin/equipment', icon: 'Boxes' },
+      {
+        label: 'Commissioning',
+        href: '/admin/commissioning',
+        icon: 'FileCheck',
+      },
+    ],
+  },
+
+  // ── Operations ──
+  {
+    label: 'Operations',
     icon: 'Cog',
     children: [
+      { label: 'HSE', href: '/admin/hse', icon: 'ShieldAlert' },
+      { label: 'Procurement', href: '/admin/procurement', icon: 'Truck' },
       {
         label: 'Vat Leach',
         href: '/admin/vat-leach',
@@ -129,6 +153,49 @@ export const adminNav: readonly AdminNavItem[] = [
       },
     ],
   },
+
+  // ── Sales & Inventory ──
+  {
+    label: 'Sales',
+    icon: 'ShoppingBag',
+    children: [
+      { label: 'Inventory', href: '/admin/inventory', icon: 'Boxes' },
+      {
+        label: 'POS',
+        href: '/admin/pos',
+        icon: 'Calculator',
+        badge: 'UPDATED',
+      },
+      {
+        label: 'Today Sales',
+        href: '/admin/today-sales',
+        icon: 'CalendarClock',
+      },
+      { label: 'All Sales', href: '/admin/all-sales', icon: 'Receipt' },
+    ],
+  },
+  {
+    label: 'Store Management',
+    href: '/admin/store-management',
+    icon: 'Warehouse',
+  },
+
+  // ── Finance ──
+  {
+    label: 'Finance',
+    icon: 'Landmark',
+    children: [
+      { label: 'Invoices', href: '/admin/invoices', icon: 'Receipt' },
+      { label: 'Payments', href: '/admin/payments', icon: 'CreditCard' },
+      { label: 'Accounts', href: '/admin/accounts', icon: 'Landmark' },
+      { label: 'Expenses', href: '/admin/expenses', icon: 'Wallet' },
+      { label: 'Customers', href: '/admin/customers', icon: 'Users' },
+      { label: 'Manage Debt', href: '/admin/manage-debt', icon: 'Coins' },
+      { label: 'Suppliers', href: '/admin/suppliers', icon: 'Truck' },
+    ],
+  },
+
+  // ── HR ──
   {
     label: 'HR Statistics',
     icon: 'UsersRound',
@@ -153,13 +220,36 @@ export const adminNav: readonly AdminNavItem[] = [
     href: '/admin/visitors',
     icon: 'UserCheck',
   },
+
+  // ── Reports & Analytics ──
   { label: 'Reports', href: '/admin/reports', icon: 'FileBarChart' },
+  { label: 'Notifications', href: '/admin/notifications', icon: 'Bell' },
+
+  // ── Administration ──
   {
-    label: 'Company Portal',
-    href: '/admin/company-portal',
-    icon: 'Building2',
+    label: 'Administration',
+    icon: 'Lock',
+    children: [
+      {
+        label: 'Users',
+        href: '/admin/users',
+        icon: 'Users',
+        badge: 'NEW',
+      },
+      {
+        label: 'Roles',
+        href: '/admin/roles',
+        icon: 'Lock',
+        badge: 'NEW',
+      },
+      {
+        label: 'Audit Logs',
+        href: '/admin/audit',
+        icon: 'History',
+        badge: 'NEW',
+      },
+    ],
   },
-  { label: 'Admin Panel', href: '/admin/admin-panel', icon: 'Lock' },
   { label: 'Settings', href: '/admin/settings', icon: 'Settings' },
   { label: 'Activity Logs', href: '/admin/activity-logs', icon: 'History' },
 ] as const;

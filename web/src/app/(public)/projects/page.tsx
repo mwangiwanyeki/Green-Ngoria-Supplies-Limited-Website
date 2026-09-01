@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -95,30 +96,43 @@ export default function ProjectsPage() {
           }
         />
 
-        <Reveal
-          kind="draw"
-          as="dl"
-          className="mt-14 grid border-t border-hairline lg:grid-cols-3 lg:gap-x-16"
-        >
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {company.operations.miningSites.map((site) => (
-            <RevealItem
+            <div
               key={site.name}
-              className="border-b border-hairline py-7 lg:border-b-0 lg:pb-0"
+              className="group overflow-hidden rounded-2xl border border-hairline bg-card shadow-card transition-all duration-ui hover:border-brand-500/50 hover:shadow-panel"
             >
-              <dt>
-                <span className="block font-display text-lg font-bold tracking-tight">
-                  {site.name}
+              {site.image && (
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
+                  <Image
+                    src={site.image}
+                    alt={site.name}
+                    fill
+                    className="object-cover transition-transform duration-emphasis group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <span className="rounded bg-brand-500/90 px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wider text-black">
+                      {site.commodity}
+                    </span>
+                    <h3 className="mt-1 font-display text-base font-bold text-white">
+                      {site.name}
+                    </h3>
+                  </div>
+                </div>
+              )}
+              <div className="p-5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-400">
+                  {site.country} Concession
                 </span>
-                <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.12em] text-brand-700 dark:text-brand-400">
-                  {site.commodity}
-                </span>
-              </dt>
-              <dd className="measure mt-3 text-sm leading-6 text-muted-foreground">
-                {site.detail}
-              </dd>
-            </RevealItem>
+                <p className="mt-2 text-xs leading-6 text-muted-foreground">
+                  {site.detail}
+                </p>
+              </div>
+            </div>
           ))}
-        </Reveal>
+        </div>
       </Section>
 
       <CtaBanner

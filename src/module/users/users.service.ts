@@ -216,7 +216,24 @@ export class UsersService {
 
   // ─── RBAC ──────────────────────────────────────────────────────────────────
 
-  async assignRole(userId: string, roleName: SystemRole, grantedById: string) {
+  async assignRole(
+    userId: string,
+    roleName: SystemRole,
+    grantedById: string,
+    grantedByRoles: SystemRole[] = [],
+  ) {
+    // Privilege-escalation guard: only a SUPER_ADMIN may mint another
+    // SUPER_ADMIN. Without this an ADMIN could grant SUPER_ADMIN to their own
+    // account and escalate to the highest privilege level.
+    if (
+      roleName === SystemRole.SUPER_ADMIN &&
+      !grantedByRoles.includes(SystemRole.SUPER_ADMIN)
+    ) {
+      throw new ForbiddenException(
+        'Only a SUPER_ADMIN may assign the SUPER_ADMIN role',
+      );
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId, deletedAt: null },
     });
@@ -249,7 +266,24 @@ export class UsersService {
     return { message: `Role ${roleName} assigned` };
   }
 
-  async removeRole(userId: string, roleName: SystemRole, removedById: string) {
+  async removeRole(
+    userId: string,
+    roleName: SystemRole,
+    removedById: string,
+    removedByRoles: SystemRole[] = [],
+  ) {
+    // Symmetric guard: only a SUPER_ADMIN may strip a SUPER_ADMIN role,
+    // preventing a lower-privileged ADMIN from demoting/locking out the top
+    // administrators.
+    if (
+      roleName === SystemRole.SUPER_ADMIN &&
+      !removedByRoles.includes(SystemRole.SUPER_ADMIN)
+    ) {
+      throw new ForbiddenException(
+        'Only a SUPER_ADMIN may remove the SUPER_ADMIN role',
+      );
+    }
+
     const role = await this.prisma.role.findUnique({
       where: { name: roleName },
     });

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBranchStore } from '@/stores/branch-store';
+import { useAuthStore } from '@/stores/auth-store';
 import {
   useBranchBusinessProfile,
   useUpdateBranchBusinessProfile,
@@ -23,6 +24,7 @@ const IDLE_PRESETS = [5, 10, 15, 30, 60, 120];
 
 export function AdminSettings() {
   const activeBranchId = useBranchStore((s) => s.activeBranchId);
+  const orgId = useAuthStore((s) => s.user?.organizationId);
 
   if (!activeBranchId) {
     return (
@@ -30,6 +32,20 @@ export function AdminSettings() {
         <PageHeader
           title="Settings"
           description="Select a branch from the sidebar to configure its settings."
+        />
+      </div>
+    );
+  }
+
+  // Guard: if the user has no organizationId (e.g. global admin with no org
+  // membership), the branch API routes require a valid orgId in the path.
+  if (!orgId) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <PageHeader title="Settings" description="Per-branch business profile and system-wide preferences." />
+        <ErrorState
+          title="Organization context unavailable"
+          description="Your account is not associated with an organization. Contact a Super Admin to assign membership."
         />
       </div>
     );
@@ -70,30 +86,57 @@ export function AdminSettings() {
   );
 }
 
+// ─── Business Profile ────────────────────────────────────────────────────────
+
 interface BusinessProfileValues {
-  businessName?: string;
+  // API field name is `name` — not `businessName`.
+  name?: string;
   systemName?: string;
   phone?: string;
   email?: string;
   county?: string;
   address?: string;
+  postalCode?: string;
 }
 
-function BusinessProfileForm({ branchId }: { branchId: string }) {
-  const { data, isLoading, isError, refetch } =
+function BusinessProfileForm({
+  branchId,
+}: {
+  branchId: string;
+}) {
+  const { data, isLoading, isError, error, refetch } =
     useBranchBusinessProfile(branchId);
   const update = useUpdateBranchBusinessProfile(branchId);
   const [values, setValues] = useState<BusinessProfileValues>({});
+
   useEffect(() => {
-    if (data) setValues(data as BusinessProfileValues);
+    if (data) {
+      // API returns `name` (the branch name); map it into form state as-is.
+      setValues({
+        name: (data as BusinessProfileValues).name,
+        systemName: (data as BusinessProfileValues).systemName,
+        phone: (data as BusinessProfileValues).phone,
+        email: (data as BusinessProfileValues).email,
+        county: (data as BusinessProfileValues).county,
+        address: (data as BusinessProfileValues).address,
+        postalCode: (data as BusinessProfileValues).postalCode,
+      });
+    }
   }, [data]);
 
   if (isLoading) return <PageSkeleton />;
-  if (isError) return <ErrorState retry={() => void refetch()} />;
+  if (isError)
+    return (
+      <ErrorState
+        description={getErrorDescription(error)}
+        retry={() => void refetch()}
+      />
+    );
 
-  const set = (k: keyof BusinessProfileValues) => (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => setValues((v) => ({ ...v, [k]: e.target.value }));
+  const set =
+    (k: keyof BusinessProfileValues) =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      setValues((v) => ({ ...v, [k]: e.target.value }));
 
   return (
     <form
@@ -101,7 +144,8 @@ function BusinessProfileForm({ branchId }: { branchId: string }) {
         e.preventDefault();
         update.mutate(values, {
           onSuccess: () => toast.success('Business profile saved'),
-          onError: () => toast.error('Could not save profile'),
+          onError: (err) =>
+            toast.error(getErrorDescription(err) ?? 'Could not save profile'),
         });
       }}
       className="space-y-6 rounded-xl border border-border bg-card p-6"
@@ -112,7 +156,7 @@ function BusinessProfileForm({ branchId }: { branchId: string }) {
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Business Name">
-          <Input value={values.businessName ?? ''} onChange={set('businessName')} />
+          <Input value={values.name ?? ''} onChange={set('name')} />
         </Field>
         <Field label="System Name">
           <Input value={values.systemName ?? ''} onChange={set('systemName')} />
@@ -121,13 +165,20 @@ function BusinessProfileForm({ branchId }: { branchId: string }) {
           <Input value={values.phone ?? ''} onChange={set('phone')} />
         </Field>
         <Field label="Email">
-          <Input type="email" value={values.email ?? ''} onChange={set('email')} />
+          <Input
+            type="email"
+            value={values.email ?? ''}
+            onChange={set('email')}
+          />
         </Field>
         <Field label="County">
           <Input value={values.county ?? ''} onChange={set('county')} />
         </Field>
         <Field label="Address">
           <Input value={values.address ?? ''} onChange={set('address')} />
+        </Field>
+        <Field label="Postal Code">
+          <Input value={values.postalCode ?? ''} onChange={set('postalCode')} />
         </Field>
       </div>
       <Button
@@ -142,29 +193,65 @@ function BusinessProfileForm({ branchId }: { branchId: string }) {
   );
 }
 
+// ─── General Settings ────────────────────────────────────────────────────────
+
 interface GeneralSettingsValues {
   currencySymbol?: string;
-  taxRate?: number;
+  // taxRate comes back from the API as a Prisma Decimal serialised as a string
+  // (e.g. "16.00"). Store as string in form state; coerce to number on submit.
+  taxRate?: string | number;
   lowStockThreshold?: number;
 }
 
-function GeneralSettingsForm({ branchId }: { branchId: string }) {
-  const { data, isLoading, isError, refetch } =
+function GeneralSettingsForm({
+  branchId,
+}: {
+  branchId: string;
+}) {
+  const { data, isLoading, isError, error, refetch } =
     useBranchGeneralSettings(branchId);
   const update = useUpdateBranchGeneralSettings(branchId);
   const [values, setValues] = useState<GeneralSettingsValues>({});
+
   useEffect(() => {
-    if (data) setValues(data as GeneralSettingsValues);
+    if (data) {
+      const d = data as GeneralSettingsValues & { taxRate?: unknown };
+      setValues({
+        currencySymbol: d.currencySymbol,
+        // Prisma Decimal serialises as a string — convert to number for the input.
+        taxRate: d.taxRate != null ? Number(d.taxRate) : 0,
+        lowStockThreshold: d.lowStockThreshold,
+      });
+    }
   }, [data]);
+
   if (isLoading) return <PageSkeleton />;
-  if (isError) return <ErrorState retry={() => void refetch()} />;
+  if (isError)
+    return (
+      <ErrorState
+        description={getErrorDescription(error)}
+        retry={() => void refetch()}
+      />
+    );
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        update.mutate(values, {
-          onSuccess: () => toast.success('General settings saved'),
-        });
+        update.mutate(
+          {
+            ...values,
+            // Always send taxRate as a proper number to the API.
+            taxRate: values.taxRate != null ? Number(values.taxRate) : 0,
+          },
+          {
+            onSuccess: () => toast.success('General settings saved'),
+            onError: (err) =>
+              toast.error(
+                getErrorDescription(err) ?? 'Could not save settings',
+              ),
+          },
+        );
       }}
       className="space-y-6 rounded-xl border border-border bg-card p-6"
     >
@@ -183,15 +270,19 @@ function GeneralSettingsForm({ branchId }: { branchId: string }) {
         <Field label="Tax Rate (%)" hint="Applied to sales if enabled">
           <Input
             type="number"
+            step="0.01"
+            min={0}
+            max={100}
             value={values.taxRate ?? 0}
             onChange={(e) =>
-              setValues((v) => ({ ...v, taxRate: Number(e.target.value) }))
+              setValues((v) => ({ ...v, taxRate: e.target.value }))
             }
           />
         </Field>
         <Field label="Low Stock Threshold" hint="Default reorder alert level">
           <Input
             type="number"
+            min={0}
             value={values.lowStockThreshold ?? 10}
             onChange={(e) =>
               setValues((v) => ({
@@ -214,14 +305,20 @@ function GeneralSettingsForm({ branchId }: { branchId: string }) {
   );
 }
 
+// ─── Session Security ────────────────────────────────────────────────────────
+
 interface SessionSecurityValues {
   autoLogoutEnabled: boolean;
   idleTimeoutMinutes: number;
   warningCountdownSeconds: number;
 }
 
-function SessionSecurityForm({ branchId }: { branchId: string }) {
-  const { data, isLoading, isError, refetch } =
+function SessionSecurityForm({
+  branchId,
+}: {
+  branchId: string;
+}) {
+  const { data, isLoading, isError, error, refetch } =
     useBranchSessionSecurity(branchId);
   const update = useUpdateBranchSessionSecurity(branchId);
   const [values, setValues] = useState<SessionSecurityValues>({
@@ -229,17 +326,30 @@ function SessionSecurityForm({ branchId }: { branchId: string }) {
     idleTimeoutMinutes: 120,
     warningCountdownSeconds: 60,
   });
+
   useEffect(() => {
     if (data) setValues(data);
   }, [data]);
+
   if (isLoading) return <PageSkeleton />;
-  if (isError) return <ErrorState retry={() => void refetch()} />;
+  if (isError)
+    return (
+      <ErrorState
+        description={getErrorDescription(error)}
+        retry={() => void refetch()}
+      />
+    );
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         update.mutate(values, {
           onSuccess: () => toast.success('Session security saved'),
+          onError: (err) =>
+            toast.error(
+              getErrorDescription(err) ?? 'Could not save session settings',
+            ),
         });
       }}
       className="space-y-6 rounded-xl border border-border bg-card p-6"
@@ -329,6 +439,8 @@ function SessionSecurityForm({ branchId }: { branchId: string }) {
   );
 }
 
+// ─── Shared ──────────────────────────────────────────────────────────────────
+
 function Field({
   label,
   hint,
@@ -342,7 +454,20 @@ function Field({
     <label className="block space-y-1.5 text-sm">
       <span className="font-medium">{label}</span>
       {children}
-      {hint && <span className="block text-xs text-muted-foreground">{hint}</span>}
+      {hint && (
+        <span className="block text-xs text-muted-foreground">{hint}</span>
+      )}
     </label>
   );
+}
+
+/**
+ * Extract a human-readable message from an API error or unknown thrown value.
+ * Returns undefined if the input is falsy so callers can fall back gracefully.
+ */
+function getErrorDescription(err: unknown): string | undefined {
+  if (!err) return undefined;
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return undefined;
 }

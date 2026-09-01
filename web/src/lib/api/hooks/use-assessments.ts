@@ -149,3 +149,53 @@ export function useUploadAssessmentAttachment(
       }),
   });
 }
+
+// ─── List-friendly assessment mutations ───────────────────────────────────
+
+/** PATCHes an assessment chosen at call time (UpdateAssessmentDto is partial). */
+export function useUpdateAssessmentById(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: unknown }) =>
+      patch(`/organizations/${orgId}/plant-assessments/${id}`, data).then(
+        (r) => r.data,
+      ),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: QK.assessments.all(orgId) }),
+  });
+}
+
+/** Submits a DRAFT assessment for review, by row id. */
+export function useSubmitAssessmentById(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      post(`/organizations/${orgId}/plant-assessments/${id}/submit`).then(
+        (r) => r.data,
+      ),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: QK.assessments.all(orgId) }),
+  });
+}
+
+/** Advances an assessment through AssessmentStatus, by row id. */
+export function useTransitionAssessmentById(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      status,
+      assignedEngineerId,
+    }: {
+      id: string;
+      status: string;
+      assignedEngineerId?: string;
+    }) =>
+      post(`/organizations/${orgId}/plant-assessments/${id}/transition`, {
+        status,
+        ...(assignedEngineerId ? { assignedEngineerId } : {}),
+      }).then((r) => r.data),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: QK.assessments.all(orgId) }),
+  });
+}

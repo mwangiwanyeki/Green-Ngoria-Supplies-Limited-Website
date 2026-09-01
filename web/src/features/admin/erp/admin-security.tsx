@@ -14,9 +14,9 @@ import { formatRelativeDate } from '@/lib/utils';
 
 export function AdminSecurity() {
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'all' | 'open' | 'resolved' | 'investigating'>(
-    'all',
-  );
+  const [status, setStatus] = useState<
+    'all' | 'open' | 'resolved' | 'investigating'
+  >('all');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
   const query = useSecurityLogs({ search, status, page, limit: perPage });
@@ -57,12 +57,14 @@ export function AdminSecurity() {
     {
       key: 'location',
       header: 'Location',
-      cell: (r) => r.location ?? <span className="text-muted-foreground">—</span>,
+      cell: (r) =>
+        r.location ?? <span className="text-muted-foreground">—</span>,
     },
     {
       key: 'reporter',
       header: 'Reported by',
-      cell: (r) => r.reportedBy ?? <span className="text-muted-foreground">—</span>,
+      cell: (r) =>
+        r.reportedBy ?? <span className="text-muted-foreground">—</span>,
     },
     {
       key: 'status',
@@ -97,7 +99,11 @@ export function AdminSecurity() {
       title="Site Security"
       description="Security logs, incidents and guard shift entries for the active branch."
       actions={
-        <Button size="sm" variant="brand" leftIcon={<Plus className="h-4 w-4" />}>
+        <Button
+          size="sm"
+          variant="brand"
+          leftIcon={<Plus className="h-4 w-4" />}
+        >
           Log Incident
         </Button>
       }

@@ -4,50 +4,183 @@ import { cn } from '@/lib/utils';
 /**
  * Green Ngoria Supplies Ltd brand logo.
  *
- * Renders the official horizontal lockup (mark + wordmark) from
- * `public/brand/green-ngoria-logo.png`. The artwork is drawn for light
- * backgrounds (grey ring, black "seasons create ideas" text), so on dark
- * surfaces pass `onDark` to seat it on a white chip that keeps it legible.
+ * Fully transparent artwork engineered for seamless integration:
+ * - On light surfaces: crisp emerald green mark & wordmark with charcoal tagline.
+ * - On dark surfaces (`onDark`): 100% transparent background with brilliant white text/ring
+ *   and vivid emerald green mark/wordmark that harmonizes directly into the section.
+ * - In adaptive mode (default): automatically switches between light/dark variants based on theme.
  */
 
-const LOGO_SRC = '/brand/green-ngoria-logo.png';
-// Intrinsic aspect ratio of the supplied artwork (width : height ≈ 2.87 : 1).
-const INTRINSIC_WIDTH = 1490;
-const INTRINSIC_HEIGHT = 520;
+const LOGO_LIGHT_SRC = '/brand/green-ngoria-logo.png';
+const LOGO_DARK_SRC = '/brand/green-ngoria-logo-white.png';
+const LOGO_MARK_LIGHT_SRC = '/brand/green-ngoria-mark.png';
+const LOGO_MARK_DARK_SRC = '/brand/green-ngoria-mark-white.png';
+
+// Intrinsic aspect ratio of the supplied artwork (1001 x 356 ≈ 2.81 : 1).
+const INTRINSIC_WIDTH = 1001;
+const INTRINSIC_HEIGHT = 356;
 
 interface LogoProps {
   /** Rendered height of the logo image in pixels. Width scales to ratio. */
   height?: number;
-  /** Seat the logo on a white chip so it reads on dark surfaces. */
+  /** Force the dark-surface transparent logo variant (for dark sections like footer, hero, auth sidebar). */
   onDark?: boolean;
+  /** Render only the square brand mark (circular emblem) without wordmark text. */
+  markOnly?: boolean;
   /** Prioritise loading (use for the above-the-fold header logo). */
   priority?: boolean;
   className?: string;
 }
 
 export function Logo({
-  height = 40,
-  onDark = false,
+  height = 48,
+  onDark,
+  markOnly = false,
   priority = false,
   className,
 }: LogoProps) {
+  if (markOnly) {
+    if (onDark === true) {
+      return (
+        <span
+          className={cn(
+            'inline-flex shrink-0 items-center bg-transparent',
+            className,
+          )}
+        >
+          <Image
+            src={LOGO_MARK_DARK_SRC}
+            alt="Green Ngoria Supplies Ltd"
+            width={height}
+            height={height}
+            priority={priority}
+            style={{ height, width: height }}
+            className="object-contain"
+          />
+        </span>
+      );
+    }
+
+    if (onDark === false) {
+      return (
+        <span
+          className={cn(
+            'inline-flex shrink-0 items-center bg-transparent',
+            className,
+          )}
+        >
+          <Image
+            src={LOGO_MARK_LIGHT_SRC}
+            alt="Green Ngoria Supplies Ltd"
+            width={height}
+            height={height}
+            priority={priority}
+            style={{ height, width: height }}
+            className="object-contain"
+          />
+        </span>
+      );
+    }
+
+    // Adaptive (respects dark theme mode)
+    return (
+      <span
+        className={cn(
+          'inline-flex shrink-0 items-center bg-transparent',
+          className,
+        )}
+      >
+        <Image
+          src={LOGO_MARK_LIGHT_SRC}
+          alt="Green Ngoria Supplies Ltd"
+          width={height}
+          height={height}
+          priority={priority}
+          style={{ height, width: height }}
+          className="object-contain dark:hidden"
+        />
+        <Image
+          src={LOGO_MARK_DARK_SRC}
+          alt="Green Ngoria Supplies Ltd"
+          width={height}
+          height={height}
+          priority={priority}
+          style={{ height, width: height }}
+          className="hidden object-contain dark:inline-block"
+        />
+      </span>
+    );
+  }
+
   const width = Math.round((height * INTRINSIC_WIDTH) / INTRINSIC_HEIGHT);
 
+  if (onDark === true) {
+    return (
+      <span
+        className={cn(
+          'inline-flex shrink-0 items-center bg-transparent',
+          className,
+        )}
+      >
+        <Image
+          src={LOGO_DARK_SRC}
+          alt="Green Ngoria Supplies Ltd"
+          width={width}
+          height={INTRINSIC_HEIGHT}
+          priority={priority}
+          style={{ height, width: 'auto' }}
+          className="h-auto w-auto object-contain"
+        />
+      </span>
+    );
+  }
+
+  if (onDark === false) {
+    return (
+      <span
+        className={cn(
+          'inline-flex shrink-0 items-center bg-transparent',
+          className,
+        )}
+      >
+        <Image
+          src={LOGO_LIGHT_SRC}
+          alt="Green Ngoria Supplies Ltd"
+          width={width}
+          height={INTRINSIC_HEIGHT}
+          priority={priority}
+          style={{ height, width: 'auto' }}
+          className="h-auto w-auto object-contain"
+        />
+      </span>
+    );
+  }
+
+  // Adaptive (respects dark theme mode)
   return (
     <span
       className={cn(
-        'inline-flex items-center',
-        onDark && 'rounded-md bg-white px-2.5 py-1.5 shadow-sm',
+        'inline-flex shrink-0 items-center bg-transparent',
         className,
       )}
     >
       <Image
-        src={LOGO_SRC}
+        src={LOGO_LIGHT_SRC}
         alt="Green Ngoria Supplies Ltd"
         width={width}
-        height={height}
+        height={INTRINSIC_HEIGHT}
         priority={priority}
         style={{ height, width: 'auto' }}
+        className="h-auto w-auto object-contain dark:hidden"
+      />
+      <Image
+        src={LOGO_DARK_SRC}
+        alt="Green Ngoria Supplies Ltd"
+        width={width}
+        height={INTRINSIC_HEIGHT}
+        priority={priority}
+        style={{ height, width: 'auto' }}
+        className="hidden h-auto w-auto object-contain dark:inline-block"
       />
     </span>
   );

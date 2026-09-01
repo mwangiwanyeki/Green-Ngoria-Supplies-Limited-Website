@@ -237,7 +237,11 @@ export class AuthService {
     });
 
     // Extract roles and permissions
-    const roles = user.userRoles.map((ur) => ur.role.name);
+    // `Role.name` is TEXT (it also carries custom, non-system role names), but the
+    // JWT payload models the built-in role set.
+    const roles = user.userRoles.map(
+      (ur) => ur.role.name,
+    ) as SystemRole[];
     const permissions = [
       ...new Set(
         user.userRoles.flatMap((ur) =>
@@ -332,7 +336,11 @@ export class AuthService {
     }
 
     const user = session.user;
-    const roles = user.userRoles.map((ur) => ur.role.name);
+    // `Role.name` is TEXT (it also carries custom, non-system role names), but the
+    // JWT payload models the built-in role set.
+    const roles = user.userRoles.map(
+      (ur) => ur.role.name,
+    ) as SystemRole[];
     const permissions = [
       ...new Set(
         user.userRoles.flatMap((ur) =>

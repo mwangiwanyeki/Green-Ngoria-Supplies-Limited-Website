@@ -222,8 +222,8 @@ export function SiteHeader() {
                 aria-label={`${company.legalName} — home`}
               >
                 <Logo
-                  height={scrolled ? 32 : 38}
-                  onDark={transparent}
+                  height={scrolled ? 42 : 52}
+                  onDark={transparent ? true : undefined}
                   priority
                 />
               </Link>
@@ -445,7 +445,14 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
         className="animate-sheet-in absolute inset-x-0 top-0 max-h-[100dvh] overflow-y-auto overscroll-contain bg-background pb-10 shadow-panel"
       >
         <div className="flex h-20 items-center justify-between px-5 sm:px-8">
-          <span className="font-display text-sm font-bold">Menu</span>
+          <Link
+            href="/"
+            onClick={onClose}
+            aria-label={`${company.legalName} — home`}
+            className="flex shrink-0 items-center"
+          >
+            <Logo height={42} />
+          </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <button
@@ -555,17 +562,17 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
 
           <p className="mt-8 text-sm text-muted-foreground">
             <a
-              href={`tel:${company.contact.phones[0].value.replace(/\s/g, '')}`}
+              href={`tel:${company.customerCare.phone.replace(/\s/g, '')}`}
               className="font-medium text-foreground underline decoration-border"
             >
-              {company.contact.phones[0].value}
+              {company.customerCare.phone}
             </a>
             <span className="mx-2 text-border">·</span>
             <a
-              href={`mailto:${company.contact.emails[0].value}`}
+              href={`mailto:${company.customerCare.email}`}
               className="underline decoration-border"
             >
-              {company.contact.emails[0].value}
+              {company.customerCare.email}
             </a>
           </p>
         </nav>

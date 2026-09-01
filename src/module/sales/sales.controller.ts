@@ -25,6 +25,10 @@ import { AuthUser } from '../auth/auth.types';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { QuerySalesDto } from './dto/query-sales.dto';
 import { VoidSaleDto } from './dto/void-sale.dto';
+import {
+  RevenueSummaryQueryDto,
+  MonthlyRevenueQueryDto,
+} from './dto/revenue-summary-query.dto';
 
 const SELL_ROLES = [
   'SUPER_ADMIN',
@@ -59,6 +63,42 @@ export class SalesController {
   ) {
     return successResponse(
       await this.service.getTodaySummary(orgId, actor.id, query),
+    );
+  }
+
+  @Get('revenue-summary')
+  @ApiOperation({
+    summary: 'Revenue totals over an arbitrary date range (default: all time)',
+  })
+  async revenueSummary(
+    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Query() query: RevenueSummaryQueryDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return successResponse(
+      await this.service.getRevenueSummary(orgId, actor.id, query),
+    );
+  }
+
+  @Get('monthly-revenue')
+  @ApiOperation({
+    summary: 'Revenue summed per calendar month (default: last 12 months)',
+  })
+  async monthlyRevenue(
+    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Query() query: MonthlyRevenueQueryDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    const months = query.months ?? 12;
+    const to = new Date();
+    const from = new Date(to);
+    from.setMonth(from.getMonth() - months);
+    return successResponse(
+      await this.service.getMonthlyRevenue(orgId, actor.id, {
+        branchId: query.branchId,
+        from,
+        to,
+      }),
     );
   }
 

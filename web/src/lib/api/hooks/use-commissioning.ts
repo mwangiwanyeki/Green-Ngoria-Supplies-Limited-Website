@@ -94,3 +94,39 @@ export function useApproveCommissioningTest(orgId: string, testId: string) {
       qc.invalidateQueries({ queryKey: ['orgs', orgId, 'commissioning'] }),
   });
 }
+
+/** Adds a test to a system chosen at call time. */
+export function useAddTestToSystem(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ systemId, data }: { systemId: string; data: unknown }) =>
+      post(
+        `/organizations/${orgId}/commissioning/systems/${systemId}/tests`,
+        data,
+      ).then((r) => r.data),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ['orgs', orgId, 'commissioning'] }),
+  });
+}
+
+/** Records a result on a test chosen at call time. */
+export function useRecordTestResultById(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      testId,
+      result,
+      findings,
+    }: {
+      testId: string;
+      result: string;
+      findings?: string;
+    }) =>
+      post(`/organizations/${orgId}/commissioning/tests/${testId}/result`, {
+        result,
+        ...(findings ? { findings } : {}),
+      }).then((r) => r.data),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ['orgs', orgId, 'commissioning'] }),
+  });
+}

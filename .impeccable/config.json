@@ -20,6 +20,15 @@
         ],
         "createdAt": "2026-08-31T15:15:29.937Z",
         "reason": "HTML email templates require web-safe system fonts (Arial); email clients do not support custom/web fonts. Not UI typography."
+      },
+      {
+        "rule": "codex-grid-background",
+        "value": "*",
+        "files": [
+          "web/src/styles/globals.css"
+        ],
+        "createdAt": "2026-08-31T19:14:29.674Z",
+        "reason": "DESIGN.md sanctions technical linework as brand identity (mining-engineering company); .linework is a hairline blueprint texture at 5.5% alpha. Correcting the path from the prior ignore, which was missing the web/ prefix and never matched."
       }
     ]
   }

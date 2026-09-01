@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { get, post, patch } from '../api-client';
+import { get, post, patch, del } from '../api-client';
 import { QK } from '../query-keys';
 
 export function useClients<T = unknown>(orgId: string, params?: object) {
@@ -40,6 +40,16 @@ export function useUpdateClient(orgId: string, id: string) {
       void qc.invalidateQueries({ queryKey: QK.clients.detail(orgId, id) });
       void qc.invalidateQueries({ queryKey: QK.clients.all(orgId) });
     },
+  });
+}
+
+/** Archives (soft-deletes) a client. */
+export function useDeleteClient(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      del(`/organizations/${orgId}/clients/${id}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: QK.clients.all(orgId) }),
   });
 }
 

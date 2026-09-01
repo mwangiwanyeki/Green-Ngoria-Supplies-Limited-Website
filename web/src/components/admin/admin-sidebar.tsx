@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -46,7 +46,11 @@ import {
   UserCheck,
   Bell,
   Cog,
+  Menu,
+  X,
+  ChevronRight,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { useLogout } from '@/lib/api/hooks/use-auth';
 import { toast } from 'sonner';
@@ -109,12 +113,26 @@ function groupIsActive(pathname: string, item: AdminNavItem) {
   return item.children.some((child) => isActive(pathname, child.href));
 }
 
-export function AdminSidebar() {
+/* ── Mobile toggle context ────────────────────────────────────────────── */
+
+let _mobileOpen = false;
+let _setMobileOpen: ((v: boolean) => void) | null = null;
+
+export function useMobileSidebar() {
+  return {
+    open: _mobileOpen,
+    toggle: () => _setMobileOpen?.(!_mobileOpen),
+    close: () => _setMobileOpen?.(false),
+  };
+}
+
+/* ── Sidebar content (shared between desktop and mobile) ─────────────── */
+
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const logout = useLogout();
   const router = useRouter();
 
-  // Groups start open when they contain the active route.
   const [open, setOpen] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     for (const item of adminNav) {
@@ -134,19 +152,20 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-border bg-card overflow-hidden">
+    <>
       {/* Brand */}
       <Link
         href="/admin"
-        className="flex items-center gap-3 px-5 py-4 border-b border-border shrink-0"
+        className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.06] shrink-0"
         aria-label="Green Ngoria — admin home"
+        onClick={onNavigate}
       >
-        <Logo height={30} />
+        <Logo height={38} />
       </Link>
 
       {/* Nav */}
       <nav
-        className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5"
+        className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 scrollbar-thin"
         role="navigation"
         aria-label="Admin navigation"
       >
@@ -158,14 +177,26 @@ export function AdminSidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onNavigate}
                 className={cn(
-                  'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  'group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
                   active
-                    ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                    ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
+                    : 'text-muted-foreground hover:bg-white/[0.06] hover:text-foreground',
                 )}
                 aria-current={active ? 'page' : undefined}
               >
+                {active && (
+                  <motion.div
+                    layoutId="sidebar-active"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-full bg-teal-500"
+                    transition={{
+                      type: 'spring',
+                      stiffness: 500,
+                      damping: 35,
+                    }}
+                  />
+                )}
                 <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span className="truncate">{item.label}</span>
               </Link>
@@ -184,76 +215,155 @@ export function AdminSidebar() {
                 }
                 aria-expanded={expanded}
                 className={cn(
-                  'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
                   active && !expanded
-                    ? 'text-brand-600 dark:text-brand-400'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                    ? 'text-teal-600 dark:text-teal-400'
+                    : 'text-muted-foreground hover:bg-white/[0.06] hover:text-foreground',
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span className="truncate flex-1 text-left">{item.label}</span>
                 <ChevronDown
                   className={cn(
-                    'h-3.5 w-3.5 shrink-0 transition-transform',
+                    'h-3.5 w-3.5 shrink-0 transition-transform duration-200',
                     expanded && 'rotate-180',
                   )}
                   aria-hidden="true"
                 />
               </button>
-              {expanded && (
-                <div className="mt-0.5 ml-3 space-y-0.5 border-l border-border pl-2">
-                  {item.children.map((child) => {
-                    const ChildIcon = iconFor(child.icon);
-                    const childActive = isActive(pathname, child.href);
-                    return (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={cn(
-                          'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors',
-                          childActive
-                            ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-medium'
-                            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                        )}
-                        aria-current={childActive ? 'page' : undefined}
-                      >
-                        <ChildIcon
-                          className="h-3.5 w-3.5 shrink-0"
-                          aria-hidden="true"
-                        />
-                        <span className="truncate flex-1">{child.label}</span>
-                        {child.badge && (
-                          <span
+              <AnimatePresence initial={false}>
+                {expanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-0.5 ml-3 space-y-0.5 border-l border-white/[0.08] pl-2">
+                      {item.children.map((child) => {
+                        const ChildIcon = iconFor(child.icon);
+                        const childActive = isActive(pathname, child.href);
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={onNavigate}
                             className={cn(
-                              'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide',
-                              child.badge === 'NEW'
-                                ? 'bg-amber-400/20 text-amber-600 dark:text-amber-400'
-                                : 'bg-sky-400/20 text-sky-600 dark:text-sky-400',
+                              'flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm transition-all duration-200',
+                              childActive
+                                ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 font-medium'
+                                : 'text-muted-foreground hover:bg-white/[0.06] hover:text-foreground',
                             )}
+                            aria-current={childActive ? 'page' : undefined}
                           >
-                            {child.badge}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
+                            <ChildIcon
+                              className="h-3.5 w-3.5 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span className="truncate flex-1">
+                              {child.label}
+                            </span>
+                            {child.badge && (
+                              <span
+                                className={cn(
+                                  'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide',
+                                  child.badge === 'NEW'
+                                    ? 'bg-teal-400/20 text-teal-600 dark:text-teal-400'
+                                    : 'bg-sky-400/20 text-sky-600 dark:text-sky-400',
+                                )}
+                              >
+                                {child.badge}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           );
         })}
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-border p-2 shrink-0">
+      <div className="border-t border-white/[0.06] p-2 shrink-0">
         <button
           onClick={() => void handleLogout()}
-          className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
         >
           <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
           Sign out
         </button>
       </div>
-    </aside>
+    </>
+  );
+}
+
+/* ── Desktop sidebar ──────────────────────────────────────────────────── */
+
+export function AdminSidebar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Register mobile state globally
+  useEffect(() => {
+    _mobileOpen = mobileOpen;
+    _setMobileOpen = setMobileOpen;
+    return () => {
+      _setMobileOpen = null;
+    };
+  }, [mobileOpen]);
+
+  return (
+    <>
+      {/* Desktop — always visible ≥ md */}
+      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-white/[0.06] bg-card/80 backdrop-blur-xl overflow-hidden">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile hamburger button */}
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        className="fixed bottom-4 left-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg shadow-teal-600/25 md:hidden transition-transform hover:scale-105 active:scale-95"
+        aria-label="Open navigation"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {/* Mobile overlay */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+              className="fixed left-0 top-0 z-50 flex h-full w-72 flex-col bg-card/95 backdrop-blur-2xl border-r border-white/[0.06] shadow-2xl md:hidden"
+            >
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="absolute right-3 top-4 z-10 rounded-lg p-1.5 text-muted-foreground hover:bg-white/10 transition-colors"
+                aria-label="Close navigation"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <SidebarContent onNavigate={() => setMobileOpen(false)} />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

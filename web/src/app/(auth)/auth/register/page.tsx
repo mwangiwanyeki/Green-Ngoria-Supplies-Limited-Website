@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useRegister } from '@/lib/api/hooks/use-auth';
+import { getApiErrorMessage } from '@/lib/api/api-error';
 
 const schema = z
   .object({
@@ -56,11 +57,7 @@ export default function RegisterPage() {
       });
       router.push('/auth/login');
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'message' in err
-          ? String(err.message)
-          : 'Registration failed';
-      toast.error(msg);
+      toast.error(getApiErrorMessage(err, 'Registration failed'));
     }
   };
 

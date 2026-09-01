@@ -435,6 +435,7 @@ model User {
   approvedPayrollRuns   PayrollRun[]         @relation("PayrollApprovedBy")
   reviewedLeaveRequests LeaveRequest[]       @relation("LeaveReviewedBy")
   registeredVisitors    Visitor[]            @relation("VisitorRegisteredBy")
+  uploadedMediaAssets   MediaAsset[]         @relation("MediaAssetUploadedBy")
 
   @@index([status])
   @@index([deletedAt])
@@ -459,12 +460,14 @@ model UserSession {
 }
 
 model Role {
-  id          String     @id @default(uuid())
-  name        SystemRole @unique
+  /// `name` holds a `SystemRole` value for built-in roles (isSystem = true) and a
+  /// free-form UPPER_SNAKE_CASE identifier for organization-defined custom roles.
+  id          String   @id @default(uuid())
+  name        String   @unique
   displayName String
   description String?
-  isSystem    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
+  isSystem    Boolean  @default(true)
+  createdAt   DateTime @default(now())
 
   userRoles       UserRole[]
   rolePermissions RolePermission[]
@@ -576,6 +579,7 @@ model Organization {
   StockMovement        StockMovement[]
   DebtPayment          DebtPayment[]
   AccountTransaction   AccountTransaction[]
+  mediaAssets          MediaAsset[]
 
   @@index([type])
   @@map("organizations")
@@ -2003,6 +2007,36 @@ model CmsArticle {
   @@index([slug])
   @@index([status])
   @@map("cms_articles")
+}
+
+// =============================================================================
+// MEDIA LIBRARY
+// =============================================================================
+
+model MediaAsset {
+  id             String    @id @default(uuid())
+  organizationId String
+  filename       String
+  storageKey     String
+  mimeType       String
+  sizeBytes      Int
+  width          Int?
+  height         Int?
+  altText        String?
+  uploadedById   String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  uploadedBy   User         @relation("MediaAssetUploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([organizationId])
+  @@index([uploadedById])
+  @@index([mimeType])
+  @@index([deletedAt])
+  @@index([organizationId, deletedAt])
+  @@map("media_assets")
 }
 
 // =============================================================================

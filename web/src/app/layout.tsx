@@ -48,9 +48,16 @@ export const metadata: Metadata = {
     images: ['/brand/green-ngoria-logo.png'],
   },
   icons: {
-    icon: '/brand/green-ngoria-mark.png',
-    shortcut: '/brand/green-ngoria-mark.png',
-    apple: '/brand/green-ngoria-mark.png',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      {
+        url: '/brand/green-ngoria-mark.png',
+        type: 'image/png',
+        sizes: '512x512',
+      },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
   robots: { index: true, follow: true },
 };
@@ -64,6 +71,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={`${display.variable} ${body.variable} ${mono.variable}`}
     >
       <body className="min-h-screen bg-background font-body antialiased">

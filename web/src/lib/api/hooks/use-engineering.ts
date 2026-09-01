@@ -99,3 +99,19 @@ export function useUploadDocumentRevision(orgId: string, id: string) {
       qc.invalidateQueries({ queryKey: QK.documents.detail(orgId, id) }),
   });
 }
+
+/**
+ * List-friendly variant of `useTransitionDocument`. Engineering documents have
+ * no DELETE endpoint — ARCHIVED/SUPERSEDED are reached via this transition.
+ */
+export function useTransitionDocumentById(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      post(`/organizations/${orgId}/engineering/documents/${id}/transition`, {
+        status,
+      }).then((r) => r.data),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: QK.documents.all(orgId) }),
+  });
+}

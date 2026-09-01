@@ -40,3 +40,30 @@ export class ApiError extends Error {
     return this.message;
   }
 }
+
+/**
+ * Normalises anything thrown by a mutation into a message that is safe and
+ * useful to show in a toast. Prefers the first server-side validation error
+ * (class-validator returns them in `errors`) over the generic status message.
+ */
+export function getApiErrorMessage(
+  error: unknown,
+  fallback = 'Something went wrong. Please try again.',
+): string {
+  if (error instanceof ApiError) {
+    if (error.isValidation && error.errors?.length) {
+      const first = error.errors[0];
+      if (typeof first === 'string') return first;
+      if (first && typeof first === 'object' && 'message' in first) {
+        const message = (first as { message?: unknown }).message;
+        if (typeof message === 'string') return message;
+        if (Array.isArray(message) && typeof message[0] === 'string') {
+          return message[0];
+        }
+      }
+    }
+    return error.displayMessage || fallback;
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}

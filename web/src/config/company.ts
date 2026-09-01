@@ -162,37 +162,54 @@ export const company = {
   leadership: [
     {
       name: 'Kenneth Madete Namboga',
-      role: 'Chairperson',
-      email: 'kennethmadete@greenngoria.com',
+      role: 'Chairperson · Director',
+      image: '/images/leadership/kenneth-madete-namboga.webp',
+      email: 'kenmadete@gmail.com',
       phone: '+256 772 419 871',
+      shares: '250 ordinary shares (25%)',
       responsibilities:
-        'Chairs the board and sets the direction of the company. His message to clients — "Making your vision become a reality" — frames how Green Ngoria approaches every engagement: customer satisfaction and service quality as the primary goal.',
+        'Responsible for strategy and for overseeing the group\'s business, setting governance standards and fostering the effectiveness of the board and of individual directors. His message to clients — "Making your vision become a reality" — frames how Green Ngoria approaches every engagement.',
     },
     {
       name: 'Davis Mragha Ngoo',
       role: 'Managing Director',
-      email: 'davisngoo@greenngoria.com',
+      image: '/images/leadership/davis-mragha-ngoo.webp',
+      email: 'davingoo83@gmail.com',
       phone: '+254 722 115 133',
+      shares: '500 ordinary shares (50%)',
       responsibilities:
-        'Leads day-to-day management of the company across its mining, construction, supply and importation divisions, and is the principal commercial contact for clients and partners.',
+        'Accountable for company operations and for giving strategic guidance and direction to the board, ensuring the company achieves its mission and objectives across mining, construction and supplies.',
     },
     {
       name: 'Raymond Nyange Ngoo',
-      role: 'Legal Officer / Director',
-      email: 'raymondngoo@greenngoria.com',
+      role: 'Legal Officer · Director',
+      image: '/images/leadership/raymond-nyange-ngoo.webp',
+      email: 'lawyerrayngoo11@gmail.com',
       phone: '+254 710 401 406',
+      shares: '250 ordinary shares (25%)',
       responsibilities:
-        'Handles the legal and contractual side of the business — company compliance, licensing, permits and the contract documentation behind projects in Kenya and the wider region.',
+        "Provides legal expertise across the organisation's structures and activities, advising management on the legal and regulatory framework and monitoring corporate governance compliance.",
     },
     {
       name: 'Chrispine Ryan Ngoo',
       role: 'Production Manager',
-      email: 'chrispinengoo@greenngoria.com',
+      image: '/images/leadership/chrispine-ryan-ngoo.webp',
+      email: 'info@greenngoriasupplies.com',
       phone: '+254 794 065 144',
+      shares: 'Executive Management',
       responsibilities:
-        'Responsible for production at the operating sites, including the gold processing plant at Bondo, and for coordinating plant and site teams against programme.',
+        'Oversees the production and processing operation, including plant throughput, recovery performance, site scheduling and adherence to operating and safety procedures.',
     },
   ],
+
+  shareholding: {
+    nominalCapital: 'KES 100,000 — 1,000 ordinary shares of KES 100 each',
+    directors: [
+      { name: 'Davis Mragha Ngoo', shares: 500, percentage: '50%' },
+      { name: 'Kenneth Madete Namboga', shares: 250, percentage: '25%' },
+      { name: 'Raymond Nyange Ngoo', shares: 250, percentage: '25%' },
+    ],
+  },
 
   certifications: [
     {
@@ -280,6 +297,7 @@ export const company = {
       country: 'Rwanda',
       scope: 'Banking hall renovation and refurbishment',
       sector: 'Banking / building works',
+      image: '/images/construction/commercial-property-nairobi.webp',
     },
     {
       title:
@@ -289,6 +307,7 @@ export const company = {
       country: 'Rwanda',
       scope: 'Aluminium windows, doors and curtain walling',
       sector: 'Institutional / building works',
+      image: '/images/construction/institutional-building-project.webp',
     },
     {
       title: 'Renovation and refurbishment of Soras Headquarters, 3rd Floor',
@@ -297,6 +316,7 @@ export const company = {
       country: 'Rwanda',
       scope: 'Headquarters floor renovation and refurbishment',
       sector: 'Insurance / building works',
+      image: '/images/construction/building-supervision-site.webp',
     },
     {
       title: 'Refurbishment of Fina Bank, Gitarama Branch',
@@ -305,6 +325,7 @@ export const company = {
       country: 'Rwanda',
       scope: 'Branch refurbishment',
       sector: 'Banking / building works',
+      image: '/images/construction/grand-park-complex.webp',
     },
     {
       title: 'Renovation of branches for Bank of Kigali',
@@ -313,6 +334,7 @@ export const company = {
       country: 'Rwanda',
       scope: 'Multi-branch renovation programme',
       sector: 'Banking / building works',
+      image: '/images/construction/multistorey-residential.webp',
     },
     {
       title:
@@ -322,6 +344,7 @@ export const company = {
       country: 'Burundi',
       scope: 'Lift shaft core design and build, and supply of a Schindler lift',
       sector: 'Hospitality / mechanical and building works',
+      image: '/images/construction/residential-villa-design-build.webp',
     },
   ],
 
@@ -334,6 +357,7 @@ export const company = {
         'Office of the County Director of Environment, Siaya County',
       description:
         'A small-scale gold processing plant approved by NEMA for the Bondo Sub-County site in Siaya County.',
+      image: '/images/projects/bondo-gold-processing-plant.webp',
     },
     miningSites: [
       {
@@ -341,21 +365,40 @@ export const company = {
         country: 'Kenya',
         commodity: 'Gold',
         detail:
-          'Gold mining operations in Bondo, Siaya County, alongside the NEMA-approved small-scale gold processing plant at Nyangoma.',
+          'Primary gold mining and CIP/CIL carbon-in-leach processing operations at Nyangoma, Bondo Sub-County, under NEMA approval Ref: NEMA/PR/SYA/002.',
+        image: '/images/projects/bondo-gold-processing-plant.webp',
+      },
+      {
+        name: 'Oyugis, Homa Bay County',
+        country: 'Kenya',
+        commodity: 'Gold',
+        detail:
+          'High-grade gold quartz vein extraction and gravity recovery operations across the productive Oyugis gold corridor in Homa Bay County.',
+        image: '/images/mining/oyugis-gold-mining-site.webp',
+      },
+      {
+        name: 'Lolgorian, Narok County',
+        country: 'Kenya',
+        commodity: 'Gold',
+        detail:
+          'Underground quartz reef shaft mining and mineral processing in the historic high-grade Lolgorian gold belt (Trans-Mara, Narok County).',
+        image: '/images/mining/lolgorian-gold-mine-shaft.webp',
       },
       {
         name: 'Taita Taveta',
         country: 'Kenya',
         commodity: 'Gold and gemstones',
         detail:
-          'Operations extended into Taita Taveta as the company grew its Kenyan mining footprint.',
+          'Precious gemstone concessions and gold mining operations in the Mozambique Metamorphic Belt in Taita Taveta (Tsavorite, Ruby, Sapphire, Gold).',
+        image: '/images/gemstones/green-tsavorite-rough.webp',
       },
       {
         name: 'Tanzania',
         country: 'Tanzania',
         commodity: 'Gold and gemstones',
         detail:
-          'Where the company first pursued mining activities, and where one of its two gemstone mines is located.',
+          'Foundation mining concessions in Tanzania where the company began, including an active company-owned Tanzanite gemstone mine.',
+        image: '/images/gemstones/cut-tanzanite-parcel.webp',
       },
     ],
   },

@@ -58,7 +58,7 @@ export function PortalSidebar() {
         className="flex items-center gap-3 px-5 py-5 border-b border-border"
         aria-label="Green Ngoria — client portal home"
       >
-        <Logo height={30} />
+        <Logo height={38} />
       </Link>
 
       {/* Nav */}

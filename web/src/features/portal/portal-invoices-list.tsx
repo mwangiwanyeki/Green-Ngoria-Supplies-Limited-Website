@@ -70,9 +70,7 @@ const columns: ColumnDef<Invoice>[] = [
 ];
 
 export function PortalInvoicesList() {
-  const { data: user } = useMe();
-  const orgId = user?.organizationId ?? '';
-  const { data, isLoading, isError, refetch } = useInvoices(orgId);
+  const { data, isLoading, isError, refetch } = useInvoices();
   const invoices = (data?.data ?? []) as Invoice[];
 
   if (isLoading) return <PageSkeleton />;

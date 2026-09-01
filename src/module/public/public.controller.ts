@@ -6,6 +6,7 @@ import { successResponse } from '../../common/response/api-response';
 import { PublicService } from './public.service';
 import { ContactDto } from './dto/contact.dto';
 import { RfqDto } from './dto/rfq.dto';
+import { PublicPlantAssessmentDto } from './dto/plant-assessment.dto';
 
 // Stricter than the global limit — a handful of submissions per minute per IP
 // to blunt spam/abuse of the unauthenticated public endpoints.
@@ -44,6 +45,36 @@ export class PublicController {
     return successResponse(
       result,
       'Thank you — your request for quotation has been received.',
+    );
+  }
+
+  @Post('plant-assessment')
+  @Public()
+  @Throttle(PUBLIC_THROTTLE)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Submit a Technical Plant Assessment & Feasibility request',
+  })
+  async plantAssessment(@Body() dto: PublicPlantAssessmentDto) {
+    const result = await this.publicService.submitPlantAssessment(dto);
+    return successResponse(
+      result,
+      'Thank you — your technical plant assessment request has been received.',
+    );
+  }
+
+  @Post('technical-assessment')
+  @Public()
+  @Throttle(PUBLIC_THROTTLE)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Alias for technical plant assessment submission',
+  })
+  async technicalAssessment(@Body() dto: PublicPlantAssessmentDto) {
+    const result = await this.publicService.submitPlantAssessment(dto);
+    return successResponse(
+      result,
+      'Thank you — your technical plant assessment request has been received.',
     );
   }
 }

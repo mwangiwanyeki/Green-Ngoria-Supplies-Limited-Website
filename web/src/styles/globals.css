@@ -145,7 +145,14 @@
   h3,
   h4 {
     @apply font-display;
-    text-wrap: balance;
+  }
+  @supports (text-wrap: balance) {
+    h1,
+    h2,
+    h3,
+    h4 {
+      text-wrap: balance;
+    }
   }
 
   /* Focus ring — brand-tinted, offset from the surface it sits on. */
@@ -160,9 +167,11 @@
   }
 
   /* Scrollbar — thin, brand-tinted, themed in both modes. */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border)) transparent;
+  @supports (scrollbar-width: thin) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: hsl(var(--border)) transparent;
+    }
   }
   ::-webkit-scrollbar {
     width: 10px;
@@ -206,6 +215,30 @@
 }
 
 @layer components {
+  /* ── Admin glassmorphism card ─────────────────────────────────────────── */
+  .glass-card {
+    @apply border border-border/60 bg-card/80 backdrop-blur-xl shadow-sm;
+    transition:
+      box-shadow 0.25s ease,
+      border-color 0.25s ease,
+      transform 0.2s ease;
+  }
+  .glass-card:hover {
+    @apply shadow-md;
+    border-color: hsl(var(--brand-500, 160 84% 40%) / 0.25);
+  }
+
+  /* Interactive card lift on hover */
+  .card-hover {
+    transition:
+      box-shadow 0.25s ease,
+      transform 0.2s ease;
+  }
+  .card-hover:hover {
+    @apply shadow-lg;
+    transform: translateY(-2px);
+  }
+
   /* Technical label — uppercase spaced engineering label. Reserved for
      table headers, dt terms and diagram callouts, never as a heading kicker. */
   .tech-label {

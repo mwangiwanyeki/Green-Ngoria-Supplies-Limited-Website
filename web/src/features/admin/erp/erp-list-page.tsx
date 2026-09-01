@@ -73,15 +73,12 @@ export function ErpListPage<T>(props: ErpListPageProps<T>) {
   const { data, isLoading, isError, refetch } = query;
   const rows = data?.data ?? [];
   const total = data?.meta?.total ?? rows.length;
-  const pageCount = data?.meta?.pages ?? Math.max(1, Math.ceil(total / perPage));
+  const pageCount =
+    data?.meta?.pages ?? Math.max(1, Math.ceil(total / perPage));
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <PageHeader
-        title={title}
-        description={description}
-        actions={actions}
-      />
+      <PageHeader title={title} description={description} actions={actions} />
 
       {kpis && kpis.length > 0 && <KpiRow items={kpis} />}
 
@@ -135,9 +132,7 @@ export function ErpListPage<T>(props: ErpListPageProps<T>) {
                       {columns.map((c) => (
                         <td
                           key={c.key}
-                          className={
-                            c.className ?? 'px-4 py-3 align-middle'
-                          }
+                          className={c.className ?? 'px-4 py-3 align-middle'}
                         >
                           {c.cell(r)}
                         </td>

@@ -59,31 +59,29 @@ export function CtaBanner({
 
           <div className="border-t border-white/10 pt-8 lg:border-l lg:border-t-0 lg:pl-16 lg:pt-0">
             <h3 className="tech-label text-[hsl(var(--on-ink-subtle))]">
-              Or reach the office directly
+              Customer care &amp; enquiries
             </h3>
             <ul className="mt-5 space-y-4">
-              {company.contact.phones.slice(0, 2).map((phone) => (
-                <li key={phone.value}>
-                  <a
-                    href={`tel:${phone.value.replace(/\s/g, '')}`}
-                    className="group flex items-center gap-3 text-[hsl(var(--on-ink))]"
-                  >
-                    <Phone
-                      className="h-4 w-4 shrink-0 text-[hsl(var(--on-ink-subtle))]"
-                      aria-hidden="true"
-                    />
-                    <span className="font-mono text-sm underline decoration-white/25 underline-offset-4 transition-colors group-hover:decoration-white">
-                      {phone.value}
-                    </span>
-                    <span className="text-xs text-[hsl(var(--on-ink-subtle))]">
-                      {phone.label}
-                    </span>
-                  </a>
-                </li>
-              ))}
               <li>
                 <a
-                  href={`mailto:${company.contact.emails[0].value}`}
+                  href={`tel:${company.customerCare.phone.replace(/\s/g, '')}`}
+                  className="group flex items-center gap-3 text-[hsl(var(--on-ink))]"
+                >
+                  <Phone
+                    className="h-4 w-4 shrink-0 text-[hsl(var(--on-ink-subtle))]"
+                    aria-hidden="true"
+                  />
+                  <span className="font-mono text-sm underline decoration-white/25 underline-offset-4 transition-colors group-hover:decoration-white">
+                    {company.customerCare.phone}
+                  </span>
+                  <span className="rounded bg-brand-500/20 px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-brand-300">
+                    Customer Care
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href={`mailto:${company.customerCare.email}`}
                   className="group flex items-center gap-3 text-[hsl(var(--on-ink))]"
                 >
                   <Mail
@@ -91,12 +89,21 @@ export function CtaBanner({
                     aria-hidden="true"
                   />
                   <span className="text-sm underline decoration-white/25 underline-offset-4 transition-colors group-hover:decoration-white">
-                    {company.contact.emails[0].value}
+                    {company.customerCare.email}
                   </span>
                 </a>
               </li>
             </ul>
-            <p className="mt-6 text-sm leading-6 text-[hsl(var(--on-ink-muted))]">
+            <p className="mt-5 text-xs text-[hsl(var(--on-ink-subtle))]">
+              Director lines &amp; emails:{' '}
+              <Link
+                href="/leadership"
+                className="font-medium text-brand-300 underline decoration-brand-300/40 hover:text-brand-200"
+              >
+                Leadership Profiles &rarr;
+              </Link>
+            </p>
+            <p className="mt-4 text-xs leading-5 text-[hsl(var(--on-ink-muted))]">
               {company.contact.addressOneLine}
             </p>
           </div>

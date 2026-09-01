@@ -1,7 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, CalendarDays, CheckCircle2, AlertTriangle, Plus, DollarSign } from 'lucide-react';
+import {
+  Users,
+  CalendarDays,
+  CheckCircle2,
+  AlertTriangle,
+  Plus,
+  DollarSign,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -11,10 +18,7 @@ import {
 } from '@/components/ui/page-header';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { ErpListPage, type ErpColumn } from './erp-list-page';
-import {
-  KpiRow,
-  formatKsh,
-} from '@/components/admin/erp-list-shell';
+import { KpiRow, formatKsh } from '@/components/admin/erp-list-shell';
 import {
   useHrStaff,
   useHrOverview,
@@ -114,7 +118,11 @@ export function AdminHrStaff() {
       title="Manage Staff"
       description="Employees and users at the active branch."
       actions={
-        <Button size="sm" variant="brand" leftIcon={<Plus className="h-4 w-4" />}>
+        <Button
+          size="sm"
+          variant="brand"
+          leftIcon={<Plus className="h-4 w-4" />}
+        >
           Add Staff
         </Button>
       }
@@ -140,7 +148,18 @@ export function AdminHrStaff() {
 }
 
 const MONTHS = [
-  'January','February','March','April','May','June','July','August','September','October','November','December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 export function AdminHrPayroll() {
@@ -148,19 +167,34 @@ export function AdminHrPayroll() {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
-  const [status, setStatus] = useState<'all' | 'draft' | 'approved' | 'paid'>('all');
+  const [status, setStatus] = useState<'all' | 'draft' | 'approved' | 'paid'>(
+    'all',
+  );
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
-  const query = useHrPayroll({ search, month, year, status, page, limit: perPage });
+  const query = useHrPayroll({
+    search,
+    month,
+    year,
+    status,
+    page,
+    limit: perPage,
+  });
 
   const columns: ErpColumn<PayrollRecord>[] = [
-    { key: 'staff', header: 'Staff', cell: (r) => <span className="font-medium">{r.staffName}</span> },
+    {
+      key: 'staff',
+      header: 'Staff',
+      cell: (r) => <span className="font-medium">{r.staffName}</span>,
+    },
     { key: 'period', header: 'Period', cell: (r) => r.period },
     {
       key: 'gross',
       header: <span className="text-right block">Gross</span>,
       cell: (r) => (
-        <span className="text-right block tabular-nums">{formatKsh(r.grossPay)}</span>
+        <span className="text-right block tabular-nums">
+          {formatKsh(r.grossPay)}
+        </span>
       ),
     },
     {
@@ -178,7 +212,11 @@ export function AdminHrPayroll() {
       cell: (r) => (
         <Badge
           variant={
-            r.status === 'paid' ? 'success' : r.status === 'approved' ? 'brand' : 'warning'
+            r.status === 'paid'
+              ? 'success'
+              : r.status === 'approved'
+                ? 'brand'
+                : 'warning'
           }
         >
           {r.status ?? 'draft'}
@@ -229,7 +267,11 @@ export function AdminHrPayroll() {
               </option>
             ))}
           </select>
-          <Button size="sm" variant="brand" leftIcon={<DollarSign className="h-4 w-4" />}>
+          <Button
+            size="sm"
+            variant="brand"
+            leftIcon={<DollarSign className="h-4 w-4" />}
+          >
             Run Payroll
           </Button>
         </>
@@ -267,17 +309,24 @@ export function AdminHrPayroll() {
 
 export function AdminHrLeave() {
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'all' | 'pending' | 'approved' | 'denied' | 'overdue'>('all');
+  const [status, setStatus] = useState<
+    'all' | 'pending' | 'approved' | 'denied' | 'overdue'
+  >('all');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
   const query = useHrLeave({ search, status, page, limit: perPage });
 
   const columns: ErpColumn<LeaveRequest>[] = [
-    { key: 'staff', header: 'Staff Member', cell: (r) => <span className="font-medium">{r.staffName}</span> },
+    {
+      key: 'staff',
+      header: 'Staff Member',
+      cell: (r) => <span className="font-medium">{r.staffName}</span>,
+    },
     {
       key: 'type',
       header: 'Type',
-      cell: (r) => r.leaveType ? <Badge variant="outline">{r.leaveType}</Badge> : '—',
+      cell: (r) =>
+        r.leaveType ? <Badge variant="outline">{r.leaveType}</Badge> : '—',
     },
     {
       key: 'period',
@@ -314,9 +363,24 @@ export function AdminHrLeave() {
       title="Leave Management"
       description="Staff leave requests and approvals."
       kpis={[
-        { label: 'Approved', value: '—', accent: 'success', icon: <CheckCircle2 className="h-4 w-4" /> },
-        { label: 'On Leave Now', value: '—', accent: 'warning', icon: <CalendarDays className="h-4 w-4" /> },
-        { label: 'Overdue', value: '—', accent: 'destructive', icon: <AlertTriangle className="h-4 w-4" /> },
+        {
+          label: 'Approved',
+          value: '—',
+          accent: 'success',
+          icon: <CheckCircle2 className="h-4 w-4" />,
+        },
+        {
+          label: 'On Leave Now',
+          value: '—',
+          accent: 'warning',
+          icon: <CalendarDays className="h-4 w-4" />,
+        },
+        {
+          label: 'Overdue',
+          value: '—',
+          accent: 'destructive',
+          icon: <AlertTriangle className="h-4 w-4" />,
+        },
       ]}
       searchPlaceholder="Search name, type or reason…"
       filterChips={[

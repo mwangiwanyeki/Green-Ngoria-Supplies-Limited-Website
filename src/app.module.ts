@@ -66,6 +66,13 @@ import { StockPilesModule } from './module/stock-piles/stock-piles.module';
 import { SiteSecurityModule } from './module/site-security/site-security.module';
 import { HrModule } from './module/hr/hr.module';
 import { VisitorsModule } from './module/visitors/visitors.module';
+import { ErpReportsModule } from './module/erp-reports/erp-reports.module';
+
+// Feature modules — Platform administration
+import { RolesModule } from './module/roles/roles.module';
+import { CmsModule } from './module/cms/cms.module';
+import { MediaModule } from './module/media/media.module';
+import { AuditLogsModule } from './module/audit/audit-logs.module';
 
 // Cross-cutting
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
@@ -202,6 +209,13 @@ interface SerializedHttpRequest {
     SiteSecurityModule,
     HrModule,
     VisitorsModule,
+    ErpReportsModule,
+
+    // Platform administration
+    RolesModule,
+    CmsModule,
+    MediaModule,
+    AuditLogsModule,
   ],
 
   controllers: [AppController],

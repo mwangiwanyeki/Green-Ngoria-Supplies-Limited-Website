@@ -17,7 +17,7 @@ export function OrganizationJsonLd() {
     slogan: company.tagline,
     url: siteConfig.url,
     description:
-      'Green Ngoria Supplies Limited is a Kenyan company providing gold and gemstone mining, building works, road construction, water projects, mechanical and electrical services, oil and petroleum supply, timber importation and general supplies across East and Central Africa.',
+      'Green Ngoria Supplies Limited is an enterprise mining and engineering company specializing in gold mining, Carbon-in-Pulp (CIP) and Carbon-in-Leach (CIL) gold processing plant construction, mining machinery and equipment installation, and multi-disciplinary engineering support across Kenya, Tanzania, and East Africa.',
     foundingDate: '2011-09-27',
     legalName: company.legalName,
     identifier: [
@@ -31,6 +31,11 @@ export function OrganizationJsonLd() {
         name: 'KRA PIN',
         value: company.registration.kraPin,
       },
+      {
+        '@type': 'PropertyValue',
+        name: 'NEMA Gold Processing Plant Permit',
+        value: 'NEMA/PR/SYA/002',
+      },
     ],
     address: {
       '@type': 'PostalAddress',
@@ -39,15 +44,24 @@ export function OrganizationJsonLd() {
       addressCountry: 'KE',
       postOfficeBoxNumber: 'P.O. Box 11350-00400',
     },
-    email: company.contact.emails[0].value,
-    telephone: company.contact.phones.map((phone) => phone.value),
-    contactPoint: company.contact.phones.map((phone) => ({
-      '@type': 'ContactPoint',
-      contactType: 'sales',
-      telephone: phone.value,
-      areaServed: phone.label === 'Uganda' ? 'UG' : 'KE',
-      email: company.contact.emails[0].value,
-    })),
+    email: company.customerCare.email,
+    telephone: company.customerCare.phone,
+    contactPoint: [
+      {
+        '@type': 'ContactPoint',
+        contactType: 'customer care',
+        telephone: company.customerCare.phone,
+        areaServed: ['KE', 'TZ', 'UG', 'RW', 'BI'],
+        email: company.customerCare.email,
+      },
+      {
+        '@type': 'ContactPoint',
+        contactType: 'sales and enquiries',
+        telephone: company.customerCare.phone,
+        areaServed: ['KE', 'TZ', 'UG', 'RW', 'BI'],
+        email: company.customerCare.generalEmail,
+      },
+    ],
     areaServed: company.regions.map((region) => ({
       '@type': 'Country',
       name: region.name,

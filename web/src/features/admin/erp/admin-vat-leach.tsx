@@ -13,7 +13,9 @@ import {
 
 export function AdminVatLeach() {
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'all' | 'active' | 'completed' | 'overdue'>('all');
+  const [status, setStatus] = useState<
+    'all' | 'active' | 'completed' | 'overdue'
+  >('all');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
   const query = useVatLeachRentals({ search, status, page, limit: perPage });
@@ -28,7 +30,9 @@ export function AdminVatLeach() {
     {
       key: 'vat',
       header: 'Vat',
-      cell: (r) => <span className="font-mono text-xs">{r.vatCode ?? '—'}</span>,
+      cell: (r) => (
+        <span className="font-mono text-xs">{r.vatCode ?? '—'}</span>
+      ),
     },
     {
       key: 'phone',
@@ -38,7 +42,8 @@ export function AdminVatLeach() {
     {
       key: 'location',
       header: 'Location',
-      cell: (r) => r.location ?? <span className="text-muted-foreground">—</span>,
+      cell: (r) =>
+        r.location ?? <span className="text-muted-foreground">—</span>,
     },
     {
       key: 'deposit',

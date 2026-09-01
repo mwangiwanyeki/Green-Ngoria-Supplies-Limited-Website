@@ -67,12 +67,12 @@ export function SiteFooter() {
               className="inline-flex"
               aria-label={`${company.legalName} — home`}
             >
-              <Logo height={46} onDark />
+              <Logo height={54} onDark />
             </Link>
             <p className="measure-tight mt-4 text-sm leading-7 text-[hsl(var(--on-ink-muted))]">
-              Gold and gemstone mining, mineral processing, building and civil
-              works, mechanical and electrical engineering, petroleum, timber
-              and general supplies — across Kenya, Tanzania, Uganda, Rwanda and
+              Gold and gemstone mining, mineral processing, CIP/CIL plant
+              engineering, mining equipment installation, and multi-disciplinary
+              engineering support across Kenya, Tanzania, Uganda, Rwanda, and
               Burundi.
             </p>
 
@@ -94,30 +94,32 @@ export function SiteFooter() {
                 </p>
               </div>
 
-              <ul className="space-y-2">
-                {company.contact.phones.map((phone) => (
-                  <li key={phone.value}>
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col gap-2">
+                  <span className="tech-label text-[hsl(var(--on-ink-subtle))]">
+                    Customer Care & Enquiries
+                  </span>
+                  <a
+                    href={`tel:${company.customerCare.phone.replace(/\s/g, '')}`}
+                    className="group inline-flex items-center gap-3 text-sm text-[hsl(var(--on-ink-muted))] transition-colors hover:text-[hsl(var(--on-ink))]"
+                  >
+                    <Phone
+                      className="h-4 w-4 shrink-0 text-[hsl(var(--on-ink-subtle))]"
+                      aria-hidden="true"
+                    />
+                    <span className="font-mono text-base font-semibold text-white underline decoration-brand-400/40 underline-offset-4 transition-colors group-hover:decoration-brand-400">
+                      {company.customerCare.phone}
+                    </span>
+                    <span className="rounded bg-brand-500/20 px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-brand-300">
+                      Customer Care
+                    </span>
+                  </a>
+                </div>
+
+                <ul className="space-y-2 pt-1">
+                  <li>
                     <a
-                      href={`tel:${phone.value.replace(/\s/g, '')}`}
-                      className="group inline-flex items-center gap-3 text-sm text-[hsl(var(--on-ink-muted))] transition-colors hover:text-[hsl(var(--on-ink))]"
-                    >
-                      <Phone
-                        className="h-4 w-4 shrink-0 text-[hsl(var(--on-ink-subtle))]"
-                        aria-hidden="true"
-                      />
-                      <span className="font-mono underline decoration-white/15 underline-offset-4 transition-colors group-hover:decoration-white/60">
-                        {phone.value}
-                      </span>
-                      <span className="text-xs text-[hsl(var(--on-ink-subtle))]">
-                        {phone.label}
-                      </span>
-                    </a>
-                  </li>
-                ))}
-                {company.contact.emails.map((email) => (
-                  <li key={email.value}>
-                    <a
-                      href={`mailto:${email.value}`}
+                      href={`mailto:${company.customerCare.email}`}
                       className="group inline-flex items-center gap-3 text-sm text-[hsl(var(--on-ink-muted))] transition-colors hover:text-[hsl(var(--on-ink))]"
                     >
                       <Mail
@@ -125,12 +127,36 @@ export function SiteFooter() {
                         aria-hidden="true"
                       />
                       <span className="underline decoration-white/15 underline-offset-4 transition-colors group-hover:decoration-white/60">
-                        {email.value}
+                        {company.customerCare.email}
                       </span>
                     </a>
                   </li>
-                ))}
-              </ul>
+                  <li>
+                    <a
+                      href={`mailto:${company.customerCare.generalEmail}`}
+                      className="group inline-flex items-center gap-3 text-sm text-[hsl(var(--on-ink-muted))] transition-colors hover:text-[hsl(var(--on-ink))]"
+                    >
+                      <Mail
+                        className="h-4 w-4 shrink-0 text-[hsl(var(--on-ink-subtle))]"
+                        aria-hidden="true"
+                      />
+                      <span className="underline decoration-white/15 underline-offset-4 transition-colors group-hover:decoration-white/60">
+                        {company.customerCare.generalEmail}
+                      </span>
+                    </a>
+                  </li>
+                </ul>
+
+                <p className="pt-2 text-xs leading-5 text-[hsl(var(--on-ink-subtle))]">
+                  Looking for individual director or departmental lines?{' '}
+                  <Link
+                    href="/leadership"
+                    className="font-medium text-brand-300 underline decoration-brand-300/40 underline-offset-2 transition-colors hover:text-brand-200 hover:decoration-brand-300"
+                  >
+                    View team & director profiles &rarr;
+                  </Link>
+                </p>
+              </div>
             </address>
           </div>
 

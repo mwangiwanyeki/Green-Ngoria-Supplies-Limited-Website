@@ -36,7 +36,15 @@ export function AuthBoundary({
     if (!hasAllowedRole) {
       router.replace('/forbidden');
     }
-  }, [accessToken, authReady, hasAllowedRole, loginPath, pathname, router, user]);
+  }, [
+    accessToken,
+    authReady,
+    hasAllowedRole,
+    loginPath,
+    pathname,
+    router,
+    user,
+  ]);
 
   if (!authReady || !accessToken || !user || !hasAllowedRole) {
     return (

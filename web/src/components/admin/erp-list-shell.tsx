@@ -214,10 +214,7 @@ export function KpiRow({
       )}
     >
       {items.map((it, i) => (
-        <div
-          key={i}
-          className="rounded-xl border border-border bg-card p-5"
-        >
+        <div key={i} className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               {it.label}

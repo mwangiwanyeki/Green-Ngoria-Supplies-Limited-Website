@@ -46,3 +46,21 @@ export function useTransitionContract(orgId: string, id: string) {
     },
   });
 }
+
+/**
+ * List-friendly variant of `useTransitionContract` — takes the contract id as a
+ * mutation variable so one instance serves every row.
+ * The contracts controller exposes no PATCH/DELETE, so status transitions are
+ * the only way to edit or retire a contract.
+ */
+export function useTransitionContractById(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      post(`/organizations/${orgId}/contracts/${id}/transition`, {
+        status,
+      }).then((r) => r.data),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ['orgs', orgId, 'contracts'] }),
+  });
+}

@@ -267,6 +267,18 @@ export class ErpCustomersService {
     };
   }
 
+  /** Live customer count for the branch. Drives the reports overview KPI. */
+  async getCount(
+    organizationId: string,
+    userId: string,
+    branchId: string,
+  ): Promise<number> {
+    await this.assertScope(organizationId, userId, branchId);
+    return this.prisma.customer.count({
+      where: branchScope(organizationId, branchId),
+    });
+  }
+
   private async assertScope(
     organizationId: string,
     userId: string,

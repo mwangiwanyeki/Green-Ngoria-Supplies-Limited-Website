@@ -37,6 +37,15 @@ export const QK = {
     pipeline: (orgId: string) => ['orgs', orgId, 'leads', 'pipeline'] as const,
   },
 
+  // Consultations (sub-resource of leads — no aggregate list endpoint exists,
+  // so the admin view derives them from lead details)
+  consultations: {
+    all: (orgId: string, params?: object) =>
+      ['orgs', orgId, 'consultations', params] as const,
+    forLead: (orgId: string, leadId: string) =>
+      ['orgs', orgId, 'leads', leadId, 'consultations'] as const,
+  },
+
   // Mining sites
   miningSites: {
     all: (params?: object) => ['mining-sites', params] as const,
@@ -116,6 +125,10 @@ export const QK = {
   },
 
   // Finance
+  finance: {
+    summary: (orgId: string) =>
+      ['orgs', orgId, 'finance', 'summary'] as const,
+  },
   invoices: {
     all: (orgId: string, params?: object) =>
       ['orgs', orgId, 'invoices', params] as const,
@@ -149,6 +162,20 @@ export const QK = {
       ['orgs', orgId, 'assets', id] as const,
   },
 
+  // Warranties (sub-resource of assets)
+  warranties: {
+    expiring: (orgId: string) =>
+      ['orgs', orgId, 'assets', 'warranties', 'expiring'] as const,
+  },
+
+  // Site operations — daily site reports
+  siteReports: {
+    all: (orgId: string, params?: object) =>
+      ['orgs', orgId, 'site-operations', 'reports', params] as const,
+    detail: (orgId: string, id: string) =>
+      ['orgs', orgId, 'site-operations', 'reports', id] as const,
+  },
+
   // Maintenance
   workOrders: {
     all: (orgId: string, params?: object) =>
@@ -172,5 +199,52 @@ export const QK = {
   analytics: {
     dashboard: (orgId: string) =>
       ['orgs', orgId, 'analytics', 'dashboard'] as const,
+  },
+
+  // Roles & permissions
+  roles: {
+    all: (orgId: string) => ['orgs', orgId, 'roles'] as const,
+    detail: (orgId: string, id: string) =>
+      ['orgs', orgId, 'roles', id] as const,
+  },
+  permissions: {
+    all: (orgId: string) => ['orgs', orgId, 'permissions'] as const,
+  },
+
+  // Media library
+  media: {
+    all: (orgId: string, params?: object) =>
+      ['orgs', orgId, 'media', params] as const,
+    detail: (orgId: string, id: string) =>
+      ['orgs', orgId, 'media', id] as const,
+  },
+
+  // Audit logs
+  auditLogs: {
+    all: (orgId: string, params?: object) =>
+      ['orgs', orgId, 'audit-logs', params] as const,
+    facets: (orgId: string) => ['orgs', orgId, 'audit-logs', 'facets'] as const,
+  },
+
+  // CMS
+  cms: {
+    all: (orgId: string, type: string, params?: object) =>
+      ['orgs', orgId, 'cms', type, params] as const,
+    detail: (orgId: string, type: string, id: string) =>
+      ['orgs', orgId, 'cms', type, id] as const,
+  },
+
+  // ERP Sales
+  sales: {
+    all: (orgId: string, branchId: string, params?: object) =>
+      ['erp', orgId, branchId, 'erp/sales', params] as const,
+    detail: (orgId: string, branchId: string, id: string) =>
+      ['erp', orgId, branchId, 'erp/sales', id] as const,
+    todaySummary: (orgId: string, branchId: string) =>
+      ['erp', orgId, branchId, 'erp/sales/today-summary', 'one', {}] as const,
+    revenueSummary: (orgId: string, branchId: string, params?: object) =>
+      ['erp', orgId, branchId, 'erp/sales/revenue-summary', params] as const,
+    monthlyRevenue: (orgId: string, branchId: string, params?: object) =>
+      ['erp', orgId, branchId, 'erp/sales/monthly-revenue', params] as const,
   },
 } as const;

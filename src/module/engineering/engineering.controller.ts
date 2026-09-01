@@ -13,6 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { MULTER_FILE_LIMITS } from '../../common/constants/upload.constants';
 import {
   ApiBearerAuth,
   ApiConsumes,
@@ -44,7 +45,7 @@ export class EngineeringController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', MULTER_FILE_LIMITS))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Upload a new controlled engineering document',
@@ -145,7 +146,7 @@ export class EngineeringController {
     'ELECTRICAL_ENGINEER',
   )
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', MULTER_FILE_LIMITS))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Upload a new revision of a controlled document',

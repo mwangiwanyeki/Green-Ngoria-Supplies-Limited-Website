@@ -16,6 +16,7 @@ export interface AnalyticsDashboard {
   };
   hse: { openIncidents: number };
   support: { openTickets: number };
+  assessments?: { total: number; pending: number; completionRate: number };
 }
 
 export function useAnalyticsDashboard(orgId: string) {
