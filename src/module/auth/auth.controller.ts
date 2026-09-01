@@ -261,23 +261,38 @@ export class AuthController {
   }
 
   private setRefreshCookie(response: Response, refreshToken: string): void {
-    response.cookie('gng_refresh', refreshToken, {
-      httpOnly: true,
-      secure: this.config.get<string>('nodeEnv') === 'production',
-      sameSite: 'strict',
-      signed: true,
-      path: '/api/v1/auth',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    response.cookie('gng_refresh', refreshToken, this.refreshCookieOptions());
   }
 
   private clearRefreshCookie(response: Response): void {
-    response.clearCookie('gng_refresh', {
+    const { maxAge: _maxAge, ...options } = this.refreshCookieOptions();
+    response.clearCookie('gng_refresh', options);
+  }
+
+  /**
+   * Cookie options shared by set/clear so they always match (a mismatch
+   * silently prevents clearCookie from working).
+   *
+   * `domain` is set from COOKIE_DOMAIN (e.g. `.greenngoria.com`) in
+   * production so the single cookie is shared across every subdomain — the
+   * frontend edge middleware on greenngoria.com/portal./admin. must be able
+   * to read it, and the API on api. must receive it. `path: '/'` (not
+   * `/api/v1/auth`) is required for that same cross-surface visibility.
+   * `sameSite: 'lax'` is safe here because all surfaces share the
+   * `greenngoria.com` registrable domain (same-site requests). In local
+   * dev COOKIE_DOMAIN is unset, so the cookie is host-only as before.
+   */
+  private refreshCookieOptions() {
+    const isProd = this.config.get<string>('nodeEnv') === 'production';
+    const cookieDomain = this.config.get<string>('auth.cookieDomain');
+    return {
       httpOnly: true,
-      secure: this.config.get<string>('nodeEnv') === 'production',
-      sameSite: 'strict',
+      secure: isProd,
+      sameSite: 'lax' as const,
       signed: true,
-      path: '/api/v1/auth',
-    });
+      path: '/',
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    };
   }
 }

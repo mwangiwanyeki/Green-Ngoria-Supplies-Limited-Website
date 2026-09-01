@@ -28,6 +28,7 @@ export default () => ({
     jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
     jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
     sessionSecret: process.env.SESSION_SECRET,
+    cookieDomain: process.env.COOKIE_DOMAIN,
     mfaIssuer: process.env.MFA_ISSUER ?? 'GreenNgoria',
     maxFailedAttempts: parseInt(
       process.env.AUTH_MAX_FAILED_ATTEMPTS ?? '5',
