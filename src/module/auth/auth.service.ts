@@ -109,6 +109,27 @@ export class AuthService {
       throw err;
     }
 
+    // Give the fresh account a real role so authorization checks work — the
+    // portal AuthBoundary gates on CLIENT_ADMIN / CLIENT_USER, so without a
+    // role assignment the user landed on /forbidden immediately after email
+    // verification. Public self-service registration is always a client user;
+    // admins and staff are provisioned separately by an existing admin.
+    const clientUserRole = await this.prisma.role.findUnique({
+      where: { name: 'CLIENT_USER' },
+      select: { id: true },
+    });
+    if (clientUserRole) {
+      await this.prisma.userRole.create({
+        data: { userId: user.id, roleId: clientUserRole.id },
+      });
+    } else {
+      // Non-fatal: the account is still created, but log so we notice the
+      // seed drift rather than silently creating role-less accounts.
+      this.logger.warn(
+        'CLIENT_USER role missing — new registration has no role assigned',
+      );
+    }
+
     // Send verification email (fire-and-forget — never block registration)
     const verificationUrl = `${this.config.get('urls.frontend')}/auth/verify-email?token=${emailVerificationToken}`;
     this.mailService
