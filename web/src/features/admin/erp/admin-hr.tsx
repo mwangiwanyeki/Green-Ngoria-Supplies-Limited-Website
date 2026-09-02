@@ -30,10 +30,8 @@ import { PageSkeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ErpListPage, type ErpColumn } from './erp-list-page';
@@ -432,150 +430,249 @@ function AddStaffDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Add staff member</DialogTitle>
-          <DialogDescription>
-            {branchId
-              ? 'They will be added to the active branch as an ACTIVE employee.'
-              : 'Select a branch first from the branch switcher.'}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-4 sm:grid-cols-2 p-6 pt-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="firstName">First name *</Label>
-            <Input
-              id="firstName"
-              value={form.firstName}
-              onChange={(e) => setField('firstName', e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="lastName">Last name *</Label>
-            <Input
-              id="lastName"
-              value={form.lastName}
-              onChange={(e) => setField('lastName', e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setField('email', e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              value={form.phone}
-              onChange={(e) => setField('phone', e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="position">Position</Label>
-            <Input
-              id="position"
-              value={form.position}
-              onChange={(e) => setField('position', e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="department">Department</Label>
-            <Input
-              id="department"
-              value={form.department}
-              onChange={(e) => setField('department', e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="employmentType">Employment type</Label>
-            <div className="relative">
-              <select
-                id="employmentType"
-                value={form.employmentType}
-                onChange={(e) =>
-                  setField('employmentType', e.target.value as EmploymentType)
-                }
-                className="flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              >
-                {EMPLOYMENT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t.replace('_', ' ')}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
-                <ChevronDown className="h-4 w-4 opacity-60" />
-              </div>
+      <DialogContent className="max-w-2xl overflow-hidden p-0 sm:max-w-2xl">
+        {/* Pinned Header */}
+        <div className="border-b border-border/80 bg-muted/30 p-6 pb-5">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
+              <UserRound className="h-5 w-5" />
             </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="paymentTerms">Payment terms</Label>
-            <div className="relative">
-              <select
-                id="paymentTerms"
-                value={form.paymentTerms}
-                onChange={(e) =>
-                  setField('paymentTerms', e.target.value as StaffPaymentTerms)
-                }
-                className="flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              >
-                {PAYMENT_TERMS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
-                <ChevronDown className="h-4 w-4 opacity-60" />
-              </div>
+            <div>
+              <DialogTitle className="text-lg font-semibold text-foreground">
+                Add Staff Member
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-xs text-muted-foreground">
+                {branchId
+                  ? 'They will be added to the active branch as an ACTIVE employee.'
+                  : 'Select a branch first from the branch switcher.'}
+              </DialogDescription>
             </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="baseSalary">Base salary (KES)</Label>
-            <Input
-              id="baseSalary"
-              type="number"
-              min={0}
-              value={form.baseSalary}
-              onChange={(e) => setField('baseSalary', e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="hireDate">Hire date</Label>
-            <Input
-              id="hireDate"
-              type="date"
-              value={form.hireDate}
-              onChange={(e) => setField('hireDate', e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="idNumber">ID number</Label>
-            <Input
-              id="idNumber"
-              value={form.idNumber}
-              onChange={(e) => setField('idNumber', e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              rows={3}
-              value={form.notes}
-              onChange={(e) => setField('notes', e.target.value)}
-            />
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={pending}>
+        {/* Scrollable Form Body */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="firstName"
+                className="text-xs font-semibold text-foreground"
+              >
+                First name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="firstName"
+                placeholder="e.g. John"
+                value={form.firstName}
+                onChange={(e) => setField('firstName', e.target.value)}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="lastName"
+                className="text-xs font-semibold text-foreground"
+              >
+                Last name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="lastName"
+                placeholder="e.g. Doe"
+                value={form.lastName}
+                onChange={(e) => setField('lastName', e.target.value)}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="email"
+                className="text-xs font-semibold text-foreground"
+              >
+                Email address
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="e.g. john.doe@greenngoria.com"
+                value={form.email}
+                onChange={(e) => setField('email', e.target.value)}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="phone"
+                className="text-xs font-semibold text-foreground"
+              >
+                Phone number
+              </Label>
+              <Input
+                id="phone"
+                placeholder="e.g. +254 712 345 678"
+                value={form.phone}
+                onChange={(e) => setField('phone', e.target.value)}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="position"
+                className="text-xs font-semibold text-foreground"
+              >
+                Position / Job title
+              </Label>
+              <Input
+                id="position"
+                placeholder="e.g. Plant Metallurgist"
+                value={form.position}
+                onChange={(e) => setField('position', e.target.value)}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="department"
+                className="text-xs font-semibold text-foreground"
+              >
+                Department
+              </Label>
+              <Input
+                id="department"
+                placeholder="e.g. Mineral Processing & Engineering"
+                value={form.department}
+                onChange={(e) => setField('department', e.target.value)}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="employmentType"
+                className="text-xs font-semibold text-foreground"
+              >
+                Employment type
+              </Label>
+              <div className="relative">
+                <select
+                  id="employmentType"
+                  value={form.employmentType}
+                  onChange={(e) =>
+                    setField('employmentType', e.target.value as EmploymentType)
+                  }
+                  className="flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                >
+                  {EMPLOYMENT_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
+                  <ChevronDown className="h-4 w-4 opacity-60" />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="paymentTerms"
+                className="text-xs font-semibold text-foreground"
+              >
+                Payment terms
+              </Label>
+              <div className="relative">
+                <select
+                  id="paymentTerms"
+                  value={form.paymentTerms}
+                  onChange={(e) =>
+                    setField(
+                      'paymentTerms',
+                      e.target.value as StaffPaymentTerms,
+                    )
+                  }
+                  className="flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                >
+                  {PAYMENT_TERMS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
+                  <ChevronDown className="h-4 w-4 opacity-60" />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="baseSalary"
+                className="text-xs font-semibold text-foreground"
+              >
+                Base salary (KES)
+              </Label>
+              <Input
+                id="baseSalary"
+                type="number"
+                min={0}
+                placeholder="e.g. 150000"
+                value={form.baseSalary}
+                onChange={(e) => setField('baseSalary', e.target.value)}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="hireDate"
+                className="text-xs font-semibold text-foreground"
+              >
+                Hire date
+              </Label>
+              <Input
+                id="hireDate"
+                type="date"
+                value={form.hireDate}
+                onChange={(e) => setField('hireDate', e.target.value)}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label
+                htmlFor="idNumber"
+                className="text-xs font-semibold text-foreground"
+              >
+                National ID / Passport number
+              </Label>
+              <Input
+                id="idNumber"
+                placeholder="e.g. 12345678"
+                value={form.idNumber}
+                onChange={(e) => setField('idNumber', e.target.value)}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label
+                htmlFor="notes"
+                className="text-xs font-semibold text-foreground"
+              >
+                Notes / Employment details{' '}
+                <span className="text-xs font-normal text-muted-foreground">
+                  (Optional)
+                </span>
+              </Label>
+              <Textarea
+                id="notes"
+                rows={3}
+                placeholder="Additional notes, certifications, emergency contact, or equipment assignments..."
+                value={form.notes}
+                onChange={(e) => setField('notes', e.target.value)}
+                className="resize-none rounded-lg text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Pinned Footer */}
+        <div className="flex items-center justify-end gap-3 border-t border-border/80 bg-muted/20 p-6 py-4">
+          <Button variant="outline" onClick={onClose} disabled={pending}>
             Cancel
           </Button>
           <Button
@@ -583,10 +680,11 @@ function AddStaffDialog({
             onClick={() => void onSave()}
             loading={pending}
             disabled={!branchId || pending}
+            leftIcon={<Plus className="h-4 w-4" />}
           >
-            Add staff
+            Add Staff Member
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -824,61 +922,92 @@ function RunPayrollDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Draft a payroll run</DialogTitle>
-          <DialogDescription>
-            Creates a DRAFT run for the selected month. It aggregates every
-            ACTIVE staff member&apos;s base salary as the seed totals — HR then
-            edits per-employee entries before approval and payment.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-4 sm:grid-cols-2 p-6 pt-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="pmonth">Month</Label>
-            <div className="relative">
-              <select
-                id="pmonth"
-                value={periodMonth}
-                onChange={(e) => setPeriodMonth(Number(e.target.value))}
-                className="flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              >
-                {MONTHS_LONG.map((m, i) => (
-                  <option key={m} value={i + 1}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
-                <ChevronDown className="h-4 w-4 opacity-60" />
-              </div>
+      <DialogContent className="max-w-lg overflow-hidden p-0 sm:max-w-xl">
+        <div className="border-b border-border/80 bg-muted/30 p-6 pb-5">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
+              <BadgeDollarSign className="h-5 w-5" />
             </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="pyear">Year</Label>
-            <Input
-              id="pyear"
-              type="number"
-              min={2000}
-              max={2100}
-              value={periodYear}
-              onChange={(e) => setPeriodYear(Number(e.target.value))}
-            />
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="pnotes">Notes (optional)</Label>
-            <Textarea
-              id="pnotes"
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
+            <div>
+              <DialogTitle className="text-lg font-semibold text-foreground">
+                Draft Payroll Run
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-xs text-muted-foreground">
+                Creates a DRAFT run for the selected month using active employee
+                base salaries.
+              </DialogDescription>
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={pending}>
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="pmonth"
+                className="text-xs font-semibold text-foreground"
+              >
+                Month
+              </Label>
+              <div className="relative">
+                <select
+                  id="pmonth"
+                  value={periodMonth}
+                  onChange={(e) => setPeriodMonth(Number(e.target.value))}
+                  className="flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                >
+                  {MONTHS_LONG.map((m, i) => (
+                    <option key={m} value={i + 1}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
+                  <ChevronDown className="h-4 w-4 opacity-60" />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="pyear"
+                className="text-xs font-semibold text-foreground"
+              >
+                Year
+              </Label>
+              <Input
+                id="pyear"
+                type="number"
+                min={2000}
+                max={2100}
+                value={periodYear}
+                onChange={(e) => setPeriodYear(Number(e.target.value))}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label
+                htmlFor="pnotes"
+                className="text-xs font-semibold text-foreground"
+              >
+                Notes{' '}
+                <span className="text-xs font-normal text-muted-foreground">
+                  (Optional)
+                </span>
+              </Label>
+              <Textarea
+                id="pnotes"
+                rows={3}
+                placeholder="Optional payroll notes, branch adjustments, or comments..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="resize-none rounded-lg text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-border/80 bg-muted/20 p-6 py-4">
+          <Button variant="outline" onClick={onClose} disabled={pending}>
             Cancel
           </Button>
           <Button
@@ -892,10 +1021,11 @@ function RunPayrollDialog({
                 notes: notes || undefined,
               })
             }
+            leftIcon={<DollarSign className="h-4 w-4" />}
           >
-            Draft run
+            Draft Run
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
