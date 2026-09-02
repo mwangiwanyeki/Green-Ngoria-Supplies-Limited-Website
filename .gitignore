@@ -13,8 +13,9 @@ web/out/
 node_modules/
 web/node_modules/
 
-# Storage
-storage/
+# Storage — local upload cache only. Anchored to repo root so it does
+# not swallow src/lib/storage/ (the StorageService module).
+/storage/
 
 # Logs
 *.log
