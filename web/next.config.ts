@@ -13,15 +13,21 @@ const apiOrigin = new URL(API_URL).origin;
 // largely static. 'unsafe-inline' is the standard, working CSP for a static
 // Next deployment; XSS is mitigated by React's default escaping, the strict
 // object-src/base-uri/form-action directives below, and input validation.
+// `vercel.live` is Vercel's own toolbar / feedback widget that they inject
+// into every deployment. Allowlist it in script-src + connect-src + frame-src
+// so the widget loads without generating console CSP violations. Blocking it
+// doesn't break the app; allowing it just quiets the noise.
+const VERCEL_LIVE = 'https://vercel.live';
 const contentSecurityPolicy = [
   "default-src 'self'",
   isProduction
-    ? "script-src 'self' 'unsafe-inline'"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    ? `script-src 'self' 'unsafe-inline' ${VERCEL_LIVE}`
+    : `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${VERCEL_LIVE}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://plus.unsplash.com",
-  "font-src 'self' data:",
-  `connect-src 'self' ${apiOrigin}${isProduction ? '' : ' ws: wss:'}`,
+  "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://plus.unsplash.com https://vercel.com https://vercel.live",
+  "font-src 'self' data: https://vercel.live https://assets.vercel.com",
+  `connect-src 'self' ${apiOrigin} ${VERCEL_LIVE} wss://ws-us3.pusher.com${isProduction ? '' : ' ws: wss:'}`,
+  `frame-src 'self' ${VERCEL_LIVE}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
