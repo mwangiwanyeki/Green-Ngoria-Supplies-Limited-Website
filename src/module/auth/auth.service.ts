@@ -11,7 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
 import * as argon2 from 'argon2';
 import { authenticator } from 'otplib';
-import { SystemRole } from '@prisma/client';
+import { Prisma, SystemRole } from '@prisma/client';
 import { PrismaService } from '../../lib/database/prisma.service';
 import { MailService } from '../../lib/mail/mail.service';
 import { AuditService } from '../../lib/audit/audit.service';
@@ -80,17 +80,34 @@ export class AuthService {
 
     const emailVerificationToken = this.createEmailVerificationToken();
 
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email.toLowerCase(),
-        passwordHash,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        phone: dto.phone,
-        emailVerificationToken,
-        status: 'PENDING_VERIFICATION',
-      },
-    });
+    // Race guard: two parallel registrations for the same email both pass the
+    // findUnique above and one loses on the DB unique index (Prisma P2002).
+    // Map it back to the same friendly ConflictException the pre-check
+    // produces, so the client sees consistent behaviour either way.
+    let user;
+    try {
+      user = await this.prisma.user.create({
+        data: {
+          email: dto.email.toLowerCase(),
+          passwordHash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          phone: dto.phone,
+          emailVerificationToken,
+          status: 'PENDING_VERIFICATION',
+        },
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'An account with this email already exists',
+        );
+      }
+      throw err;
+    }
 
     // Send verification email (fire-and-forget — never block registration)
     const verificationUrl = `${this.config.get('urls.frontend')}/auth/verify-email?token=${emailVerificationToken}`;
@@ -110,10 +127,11 @@ export class AuthService {
 
     this.logger.log(`New user registered: ${user.email}`);
 
+    // Never leak the fresh user id — it can be used as an enumeration handle
+    // before verification. Registration only needs to confirm submission.
     return {
       message:
         'Registration successful. Please check your email to verify your account.',
-      userId: user.id,
     };
   }
 
@@ -448,15 +466,40 @@ export class AuthService {
       };
     }
 
-    const token = crypto.randomUUID();
+    // Per-account cooldown — the endpoint-level IP throttle stops a burst
+    // from one attacker; this stops mail-bombing a known victim from a
+    // rotating IP pool. If the most recent reset was issued less than 60s
+    // ago, silently return the same constant response — no new mail, no new
+    // token. `passwordResetExpiry` is set to `now + 1h`, so `now - (exp - 1h)`
+    // gives the age of the last request.
+    if (user.passwordResetExpiry) {
+      const lastRequestAgeMs =
+        Date.now() - (user.passwordResetExpiry.getTime() - 60 * 60 * 1000);
+      if (lastRequestAgeMs >= 0 && lastRequestAgeMs < 60_000) {
+        return {
+          message:
+            'If that email is registered, you will receive a reset link shortly.',
+        };
+      }
+    }
+
+    // 256-bit token in the mail; only its SHA-256 hash is persisted, so a
+    // DB dump alone can't be exchanged for a reset. `randomBytes` gives real
+    // uniform entropy (crypto.randomUUID is v4 with fixed bits — ~122 bits
+    // and structured), and base64url keeps the URL safe.
+    const plainToken = crypto.randomBytes(32).toString('base64url');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(plainToken)
+      .digest('hex');
     const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { passwordResetToken: token, passwordResetExpiry: expiry },
+      data: { passwordResetToken: tokenHash, passwordResetExpiry: expiry },
     });
 
-    const resetUrl = `${this.config.get('urls.frontend')}/auth/reset-password?token=${token}`;
+    const resetUrl = `${this.config.get('urls.frontend')}/auth/reset-password?token=${plainToken}`;
 
     this.mailService
       .sendPasswordReset(user.email, {
@@ -479,14 +522,28 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string, ipAddress?: string) {
+    // Look up by the token's SHA-256 (see forgotPassword). Reject unusable
+    // states with the same message so a caller can't distinguish "no token"
+    // from "expired" from "wrong token".
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const user = await this.prisma.user.findUnique({
-      where: { passwordResetToken: token },
+      where: { passwordResetToken: tokenHash },
     });
 
     if (
       !user ||
       !user.passwordResetExpiry ||
       user.passwordResetExpiry < new Date()
+    ) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // A suspended or deleted account isn't allowed back in via a reset link;
+    // the reset flow must not become a back door to reactivate.
+    if (
+      user.deletedAt ||
+      user.status === 'SUSPENDED' ||
+      user.status === 'INACTIVE'
     ) {
       throw new BadRequestException('Invalid or expired reset token');
     }
@@ -825,9 +882,13 @@ export class AuthService {
       return false;
     }
 
-    authenticator.options = { window: 1 };
+    // Use a per-call authenticator instance rather than mutating the library
+    // singleton — the previous `authenticator.options = { window: 1 }` was a
+    // process-wide side effect that concurrent verify calls with a different
+    // intended window would race against.
+    const scoped = authenticator.create({ window: 1 });
     try {
-      return authenticator.verify({ token: code, secret });
+      return scoped.verify({ token: code, secret });
     } catch {
       return false;
     }

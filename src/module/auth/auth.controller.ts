@@ -102,9 +102,17 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
+    // Cookie-only refresh: the signed, HttpOnly `gng_refresh` cookie is the
+    // sole credential. We previously fell back to `dto.refreshToken` from the
+    // POST body to support server-to-server callers; that fallback let any XSS
+    // that could obtain the refresh token (from a rogue localStorage write,
+    // say) hit /auth/refresh from the browser, undermining the HttpOnly flag.
+    // Removed; body param kept on the DTO purely for backwards-compat wire
+    // shape but ignored here.
+    void dto;
     const signedCookies = req.signedCookies as
       Record<string, string> | undefined;
-    const refreshToken = signedCookies?.gng_refresh ?? dto.refreshToken;
+    const refreshToken = signedCookies?.gng_refresh;
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token not provided');
     }
@@ -162,6 +170,7 @@ export class AuthController {
 
   @Post('reset-password')
   @Public()
+  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password using token from email' })
   async resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {

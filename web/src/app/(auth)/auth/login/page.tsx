@@ -69,18 +69,33 @@ function LoginForm() {
       }
       toast.success('Welcome back');
       const isStaff = res.user.roles.some((r) => STAFF_ROLES.has(r));
-      // Honour a same-area redirect; otherwise route by role.
-      const target =
-        redirectParam && redirectParam.startsWith('/portal')
-          ? redirectParam
-          : isStaff
-            ? '/admin'
-            : '/portal';
+      // Route strictly by role; only honour `redirect` when it stays in the
+      // same surface the role belongs to. This prevents a staff user from
+      // being pushed into the client portal (or vice-versa) by a crafted
+      // `?redirect=…` parameter, and drops any external URL.
+      const isSafeSameOrigin =
+        !!redirectParam &&
+        redirectParam.startsWith('/') &&
+        !redirectParam.startsWith('//');
+      const target = isStaff
+        ? isSafeSameOrigin && redirectParam!.startsWith('/admin')
+          ? redirectParam!
+          : '/admin'
+        : isSafeSameOrigin && redirectParam!.startsWith('/portal')
+          ? redirectParam!
+          : '/portal';
       router.push(target);
     } catch (err: unknown) {
       const msg = getApiErrorMessage(err, 'Login failed');
       // A rejected MFA code keeps the field open and surfaces the error.
-      if (msg.toLowerCase().includes('mfa')) {
+      // Detect via the server's stable substring first; fall back to a
+      // localisation-safe substring only as a last resort.
+      const status = (err as { status?: number } | null)?.status;
+      if (
+        status === 401 &&
+        (msg.toLowerCase().includes('mfa') ||
+          msg.toLowerCase().includes('two-factor'))
+      ) {
         setNeedsMfa(true);
       }
       toast.error(msg);
