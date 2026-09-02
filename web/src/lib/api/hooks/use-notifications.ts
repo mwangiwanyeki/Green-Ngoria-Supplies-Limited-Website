@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { get, post } from '../api-client';
+import { del, get, post } from '../api-client';
 import { QK } from '../query-keys';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -32,6 +32,23 @@ export function useMarkAllNotificationsRead() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => post('/notifications/read-all').then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+}
+
+export function useDismissNotification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      del(`/notifications/${id}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+}
+
+export function useClearReadNotifications() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => del('/notifications/read/clear').then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 }

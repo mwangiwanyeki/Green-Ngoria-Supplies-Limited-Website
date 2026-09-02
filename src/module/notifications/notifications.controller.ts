@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -56,5 +57,24 @@ export class NotificationsController {
   async markAllRead(@CurrentUser() actor: AuthUser) {
     await this.service.markAllRead(actor.id);
     return successResponse(null, 'All notifications marked as read');
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Dismiss (delete) a single notification' })
+  async dismiss(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    await this.service.dismiss(id, actor.id);
+    return successResponse(null, 'Notification dismissed');
+  }
+
+  @Delete('read/clear')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Clear every already-read notification' })
+  async clearRead(@CurrentUser() actor: AuthUser) {
+    const removed = await this.service.clearRead(actor.id);
+    return successResponse({ removed }, `Cleared ${removed} read notifications`);
   }
 }

@@ -13,6 +13,8 @@ import {
 } from 'recharts';
 import {
   Download,
+  FileJson,
+  Printer,
   TrendingUp,
   Wallet,
   PiggyBank,
@@ -25,6 +27,8 @@ import {
   BarChart3,
   Receipt,
 } from 'lucide-react';
+import { Input, Label } from '@/components/ui/input';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Button } from '@/components/ui/button';
 import {
   PageHeader,
@@ -49,6 +53,7 @@ const RANGES: [ReportRange, string][] = [
   ['yesterday', 'Yesterday'],
   ['week', 'This Week'],
   ['month', 'This Month'],
+  ['custom', 'Custom…'],
 ];
 
 /** `2026-08` → `Aug 2026`, for chart axes and CSV rows. */
@@ -109,10 +114,24 @@ function buildCsvRows(report: ReportsOverview): CsvCell[][] {
   return rows;
 }
 
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function AdminReports() {
   const [range, setRange] = useState<ReportRange>('month');
+  const [customFrom, setCustomFrom] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [customTo, setCustomTo] = useState<string>(todayIso);
   const activeBranchId = useBranchStore((s) => s.activeBranchId);
-  const { data, isPending, isError, refetch } = useReportsOverview({ range });
+  const { data, isPending, isError, refetch } = useReportsOverview({
+    range,
+    from: range === 'custom' ? customFrom : undefined,
+    to: range === 'custom' ? customTo : undefined,
+  });
 
   const chartData = useMemo(
     () =>
@@ -128,7 +147,7 @@ export function AdminReports() {
   const expenseCategories = data?.expensesByCategory ?? [];
   const largestCategory = expenseCategories[0]?.total ?? 0;
 
-  const handleExport = () => {
+  const handleExportCsv = () => {
     if (!data) return;
     downloadCsv(
       `gng-reports-${data.range}-${data.to.slice(0, 10)}.csv`,
@@ -137,20 +156,112 @@ export function AdminReports() {
     toast.success('Report exported as CSV');
   };
 
+  const handleExportJson = () => {
+    if (!data) return;
+    const blob = new Blob(
+      [JSON.stringify({ generatedAt: new Date().toISOString(), ...data }, null, 2)],
+      { type: 'application/json' },
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gng-reports-${data.range}-${data.to.slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Report exported as JSON');
+  };
+
+  // Print + Save-as-PDF both hit window.print. A `.printing` class on <html>
+  // is added briefly so a scoped print stylesheet (in globals.css) can hide
+  // the sidebar/header/nav and keep only .print-area — the browser's built-in
+  // Save-as-PDF then produces a clean PDF from the same output.
+  const handlePrint = (mode: 'print' | 'pdf') => {
+    if (!data) return;
+    if (typeof document === 'undefined') return;
+    document.documentElement.classList.add('printing');
+    document.title =
+      mode === 'pdf'
+        ? `Green Ngoria Report — ${data.from} to ${data.to}`
+        : document.title;
+    try {
+      window.print();
+    } finally {
+      // Some browsers fire afterprint asynchronously; the class is also
+      // removed by the afterprint listener below just in case.
+      setTimeout(() => {
+        document.documentElement.classList.remove('printing');
+      }, 500);
+    }
+    if (mode === 'pdf') {
+      toast.info('Choose "Save as PDF" as the destination in the print dialog.');
+    }
+  };
+
+  // Cleanup: browsers fire "afterprint" when the dialog closes / prints.
+  if (typeof window !== 'undefined') {
+    window.onafterprint = () =>
+      document.documentElement.classList.remove('printing');
+  }
+
   const header = (
     <PageHeader
       title="Enterprise Reports & Financial Intelligence"
       description="Cross-module KPIs aggregated live from sales, expenses, inventory, receivables, accounts and HR for the active branch."
       actions={
-        <Button
-          size="sm"
-          variant="brand"
-          leftIcon={<Download className="h-4 w-4" />}
-          onClick={handleExport}
-          disabled={!data}
-        >
-          Export CSV
-        </Button>
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<Printer className="h-4 w-4" />}
+            onClick={() => handlePrint('print')}
+            disabled={!data}
+          >
+            Print
+          </Button>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <Button
+                variant="brand"
+                size="sm"
+                leftIcon={<Download className="h-4 w-4" />}
+                disabled={!data}
+              >
+                Download
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                align="end"
+                sideOffset={4}
+                className="z-50 min-w-[200px] rounded-md border border-border bg-popover p-1 shadow-md"
+              >
+                <DropdownMenu.Item
+                  onSelect={handleExportCsv}
+                  className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-muted"
+                >
+                  <Download className="h-4 w-4 text-brand-500" />
+                  Export CSV
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  onSelect={handleExportJson}
+                  className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-muted"
+                >
+                  <FileJson className="h-4 w-4 text-brand-500" />
+                  Export JSON (raw)
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  onSelect={() => handlePrint('pdf')}
+                  className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-muted"
+                >
+                  <Printer className="h-4 w-4 text-brand-500" />
+                  Save as PDF
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </>
       }
     />
   );
@@ -184,10 +295,10 @@ export function AdminReports() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 print-area">
       {header}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 no-print">
         {RANGES.map(([key, label]) => (
           <button
             key={key}
@@ -202,9 +313,49 @@ export function AdminReports() {
             {label}
           </button>
         ))}
+        {range === 'custom' && (
+          <>
+            <div className="flex items-center gap-1.5 ml-2">
+              <Label htmlFor="from" className="text-xs text-muted-foreground">
+                From
+              </Label>
+              <Input
+                id="from"
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="h-8 text-xs w-[140px]"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="to" className="text-xs text-muted-foreground">
+                To
+              </Label>
+              <Input
+                id="to"
+                type="date"
+                value={customTo}
+                min={customFrom}
+                max={todayIso()}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="h-8 text-xs w-[140px]"
+              />
+            </div>
+          </>
+        )}
         <span className="ml-1 text-xs text-muted-foreground">
           {formatDay(data.from)} – {formatDay(data.to)}
         </span>
+      </div>
+
+      {/* Print-only header block: shown only when printing (via a scoped
+        * @media print rule) so exported PDFs include the branding and period. */}
+      <div className="hidden print:block border-b border-hairline pb-3 mb-2">
+        <h1 className="text-2xl font-semibold">Green Ngoria Supplies Limited</h1>
+        <p className="text-sm text-muted-foreground">
+          Enterprise Reports · {formatDay(data.from)} – {formatDay(data.to)} ·
+          generated {new Date().toLocaleString('en-KE')}
+        </p>
       </div>
 
       <Tabs defaultValue="overview">
