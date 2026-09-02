@@ -73,6 +73,17 @@ function AdminLoginForm() {
         router.push('/portal');
         return;
       }
+      // Privileged staff without MFA are sent straight to enrol before they
+      // land on the dashboard. Login still succeeds so we don't lock anyone
+      // out, but the next screen is the security setup.
+      if (res.mfaEnrollmentRequired) {
+        toast.warning(
+          'Your role requires two-factor authentication. Set it up now.',
+          { duration: 6000 },
+        );
+        router.push('/admin/profile#mfa');
+        return;
+      }
       toast.success('Welcome back');
       const target =
         redirectParam && redirectParam.startsWith('/admin')

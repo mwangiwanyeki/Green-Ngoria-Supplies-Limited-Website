@@ -22,6 +22,32 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtPayload } from './auth.types';
 
+/**
+ * Roles that see money movement, personnel records, mining sites, or
+ * engineering IP. Login succeeds without MFA for these, but the response
+ * carries `mfaEnrollmentRequired: true` so the client can steer the user to
+ * `/admin/profile#mfa` before they land on the dashboard. Kept in sync with
+ * `web/src/config/navigation.ts`'s role constants.
+ */
+const PRIVILEGED_ROLES = new Set<string>([
+  'SUPER_ADMIN',
+  'ADMIN',
+  'DIRECTOR',
+  'MANAGING_DIRECTOR',
+  'PROJECT_MANAGER',
+  'PRODUCTION_MANAGER',
+  'MINING_ENGINEER',
+  'PROCESS_ENGINEER',
+  'MECHANICAL_ENGINEER',
+  'ELECTRICAL_ENGINEER',
+  'SALES_MANAGER',
+  'FINANCE_OFFICER',
+  'HR_OFFICER',
+  'HSE_OFFICER',
+  'LEGAL_OFFICER',
+  'PROCUREMENT_OFFICER',
+]);
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -287,10 +313,19 @@ export class AuthService {
 
     this.logger.log(`User logged in: ${user.email}`);
 
+    // Enrollment nudge: roles that handle money, staff data, sites, or
+    // engineering IP must have MFA. If they don't yet, tell the client so the
+    // login flow can steer them to /admin/profile#mfa on landing. Login still
+    // succeeds — enforcement without a self-service enrollment path locks
+    // people out. Once they enrol, `mfaEnabled` gates the next login normally.
+    const mfaEnrollmentRequired =
+      !user.mfaEnabled && roles.some((r) => PRIVILEGED_ROLES.has(r));
+
     return {
       accessToken,
       refreshToken,
       expiresIn: this.config.get<string>('auth.jwtExpiresIn') ?? '15m',
+      mfaEnrollmentRequired,
       user: {
         id: user.id,
         email: user.email,

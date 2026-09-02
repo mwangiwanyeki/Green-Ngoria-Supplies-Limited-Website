@@ -56,6 +56,10 @@ export interface LoginResponse {
   user?: StoredUser;
   // Present when the backend issues an MFA challenge instead of a session.
   requiresMfa?: boolean;
+  // Login succeeded but the user carries a privileged role (financial, HR,
+  // engineering, executive) and has not yet enrolled MFA. The login page uses
+  // this to steer them to /admin/profile#mfa on landing.
+  mfaEnrollmentRequired?: boolean;
   message?: string;
 }
 
