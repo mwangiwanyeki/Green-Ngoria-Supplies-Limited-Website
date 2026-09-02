@@ -66,11 +66,14 @@ export interface StaffMember {
 
 export interface PayrollRun {
   id: string;
+  reference?: string;
   periodMonth: number;
   periodYear: number;
   status: PayrollRunStatus;
   totalGross?: string | number;
   totalNet?: string | number;
+  totalDeductions?: string | number;
+  staffCount?: number;
   currency?: string;
   createdAt: string;
   _count?: { entries: number };
@@ -121,6 +124,14 @@ export interface CreateStaffPayload {
   baseSalary?: number;
   currency?: HrCurrency;
   hireDate?: string;
+  notes?: string;
+}
+
+export interface CreatePayrollRunPayload {
+  branchId: string;
+  periodMonth: number;
+  periodYear: number;
+  currency?: HrCurrency;
   notes?: string;
 }
 
@@ -180,6 +191,18 @@ export function useTerminateStaff(staffId: string, branchId: string) {
       del(
         `/organizations/${orgId}/hr/branches/${branchId}/staff/${staffId}`,
       ).then((r) => r.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['erp', orgId] });
+    },
+  });
+}
+
+export function useCreatePayrollRun() {
+  const orgId = useOrgId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreatePayrollRunPayload) =>
+      post(`/organizations/${orgId}/hr/payroll`, payload).then((r) => r.data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['erp', orgId] });
     },

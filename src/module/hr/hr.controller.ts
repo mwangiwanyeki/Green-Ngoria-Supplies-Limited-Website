@@ -24,6 +24,7 @@ import { QueryStaffDto } from './dto/query-staff.dto';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { QueryLeaveRequestsDto } from './dto/query-leave-requests.dto';
 import { QueryPayrollRunsDto } from './dto/query-payroll-runs.dto';
+import { CreatePayrollRunDto } from './dto/create-payroll-run.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -155,6 +156,27 @@ export class HrController {
   ) {
     const result = await this.service.findPayrollRuns(orgId, actor.id, query);
     return paginatedResponse(result.items, result.meta);
+  }
+
+  @Post('payroll')
+  @Roles(...HR_WRITE_ROLES)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary:
+      'Create a DRAFT payroll run for the given month/year/branch. ' +
+      'Aggregates all ACTIVE staff at the branch into staffCount and ' +
+      'seeds totalGross from their baseSalary; approval, entries and ' +
+      'payment happen through subsequent updates.',
+  })
+  async createPayrollRun(
+    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Body() dto: CreatePayrollRunDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return successResponse(
+      await this.service.createPayrollRun(orgId, dto, actor.id),
+      'Payroll run drafted',
+    );
   }
 
   // ─── Leave requests ────────────────────────────────────────────────────────
