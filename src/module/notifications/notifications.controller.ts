@@ -75,6 +75,9 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Clear every already-read notification' })
   async clearRead(@CurrentUser() actor: AuthUser) {
     const removed = await this.service.clearRead(actor.id);
-    return successResponse({ removed }, `Cleared ${removed} read notifications`);
+    return successResponse(
+      { removed },
+      `Cleared ${removed} read notifications`,
+    );
   }
 }

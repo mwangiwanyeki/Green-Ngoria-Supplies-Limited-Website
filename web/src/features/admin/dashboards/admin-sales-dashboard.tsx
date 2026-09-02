@@ -42,6 +42,8 @@ import { Button } from '@/components/ui/button';
 import { useMe } from '@/lib/api/hooks/use-auth';
 import { useQuotations } from '@/lib/api/hooks/use-quotations';
 import { useLeads } from '@/lib/api/hooks/use-leads';
+import { useAnalyticsDashboard } from '@/lib/api/hooks/use-analytics';
+import { useReportsOverview } from '@/lib/api/hooks/use-reports';
 import { formatCurrency, formatRelativeDate } from '@/lib/utils';
 import type { QuotationSummary, LeadSummary } from '@/lib/api/models';
 
@@ -79,47 +81,73 @@ export function AdminSalesDashboard() {
   const { data: user } = useMe();
   const orgId = user?.organizationId ?? '';
 
-  const { data: quotationsData } = useQuotations(orgId, { limit: 10 });
-  const { data: leadsData } = useLeads<LeadSummary>(orgId, { limit: 10 });
+  const { data: quotationsData } = useQuotations(orgId, { limit: 200 });
+  const { data: leadsData } = useLeads<LeadSummary>(orgId, { limit: 200 });
+  const { data: analytics } = useAnalyticsDashboard(orgId);
+  const { data: reports } = useReportsOverview({ range: 'month', months: 8 });
+  const { data: today } = useReportsOverview({ range: 'today' });
 
   const quotations = (quotationsData?.data as QuotationSummary[] | undefined) ?? [];
   const leads = (leadsData?.data as LeadSummary[] | undefined) ?? [];
 
-  // Monthly Sales Performance
+  // Real monthly sales trend from the branch report; no target column exists
+  // in the DB so we render actuals only rather than fabricating one.
   const monthlySalesTrend = useMemo(() => {
-    return [
-      { month: 'Jan', actual: 480000, target: 450000, pos: 95000 },
-      { month: 'Feb', actual: 520000, target: 470000, pos: 110000 },
-      { month: 'Mar', actual: 610000, target: 500000, pos: 145000 },
-      { month: 'Apr', actual: 590000, target: 520000, pos: 130000 },
-      { month: 'May', actual: 740000, target: 550000, pos: 180000 },
-      { month: 'Jun', actual: 820000, target: 600000, pos: 210000 },
-      { month: 'Jul', actual: 890000, target: 650000, pos: 235000 },
-      { month: 'Aug', actual: 950000, target: 700000, pos: 255000 },
-    ];
-  }, []);
+    if (!reports?.monthly?.length) return [];
+    return reports.monthly.map((m) => {
+      const [year, month] = m.month.split('-').map(Number);
+      const label =
+        year && month
+          ? new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('en-KE', {
+              month: 'short',
+              timeZone: 'UTC',
+            })
+          : m.month;
+      return { month: label, actual: m.revenue };
+    });
+  }, [reports?.monthly]);
 
-  // Sales Pipeline Funnel
+  // Real sales funnel derived from lead statuses.
   const pipelineFunnel = useMemo(() => {
-    return [
-      { stage: 'Prospect Leads', count: 48, value: 6800000 },
-      { stage: 'Consultation Held', count: 32, value: 5200000 },
-      { stage: 'Plant Assessment', count: 24, value: 4100000 },
-      { stage: 'RFQ Issued', count: 18, value: 3200000 },
-      { stage: 'Quotation Sent', count: 14, value: 2450000 },
-      { stage: 'Closed / Won', count: 9, value: 1850000 },
+    const stageOrder: Array<[string, string[]]> = [
+      ['Prospect Leads', ['NEW']],
+      ['Consultation Held', ['CONTACTED', 'QUALIFIED']],
+      ['Plant Assessment', ['ASSESSMENT']],
+      ['RFQ Issued', ['RFQ', 'PROPOSAL']],
+      ['Quotation Sent', ['QUOTATION', 'NEGOTIATION']],
+      ['Closed / Won', ['WON', 'CLOSED']],
     ];
-  }, []);
+    return stageOrder.map(([label, matchers]) => {
+      const bucket = leads.filter(
+        (l) => l.status && matchers.some((m) => (l.status ?? '').toUpperCase().includes(m)),
+      );
+      const value = bucket.reduce(
+        (sum, l) => sum + (Number((l as { estimatedValue?: number }).estimatedValue) || 0),
+        0,
+      );
+      return { stage: label, count: bucket.length, value };
+    });
+  }, [leads]);
+  const funnelMaxCount = Math.max(1, ...pipelineFunnel.map((s) => s.count));
 
-  // Revenue breakdown by Division
+  // Real revenue-by-currency breakdown from quotations — the DB has quotation
+  // currency but no product-division taxonomy, so this stays neutral instead
+  // of inventing "CIP/CIL / Spares / Gemstones" categories.
   const divisionRevenue = useMemo(() => {
-    return [
-      { name: 'CIP/CIL Gold Plants', value: 58 },
-      { name: 'Equipment Supply', value: 22 },
-      { name: 'Spares & Consumables', value: 12 },
-      { name: 'Gemstone & Other Minerals', value: 8 },
-    ];
-  }, []);
+    if (!quotations.length) return [];
+    const map = new Map<string, number>();
+    for (const q of quotations) {
+      const key = (q.currency ?? 'USD').toUpperCase();
+      map.set(key, (map.get(key) ?? 0) + Number(q.totalAmount ?? 0));
+    }
+    const total = Array.from(map.values()).reduce((a, b) => a + b, 0);
+    if (total === 0) return [];
+    return Array.from(map.entries()).map(([name, raw]) => ({
+      name: `${name} quotations`,
+      value: Math.round((raw / total) * 100),
+      raw,
+    }));
+  }, [quotations]);
 
   return (
     <motion.div
@@ -158,34 +186,50 @@ export function AdminSalesDashboard() {
       >
         <MetricCard
           title="Active Pipeline Value"
-          value={formatCurrency(4850000, 'USD', true)}
-          delta="+16.4%"
-          deltaPositive={true}
-          description="vs last month"
+          value={
+            analytics
+              ? formatCurrency(analytics.quotations.totalValue ?? 0, 'USD', true)
+              : '—'
+          }
+          description={
+            analytics
+              ? `${analytics.quotations.total} active quotations`
+              : 'no data'
+          }
           icon={<TrendingUp className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
         />
         <MetricCard
           title="Today's Sales (ERP + POS)"
-          value={formatCurrency(18450, 'USD')}
-          delta="+24.8%"
-          deltaPositive={true}
-          description="vs daily target"
+          value={today ? formatCurrency(Number(today.totalRevenue ?? 0), 'KES') : '—'}
+          description={
+            today
+              ? `${today.ordersCount ?? 0} transaction${today.ordersCount === 1 ? '' : 's'}`
+              : 'no branch data'
+          }
           icon={<ShoppingBag className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
         />
         <MetricCard
-          title="Quotations Win Rate"
-          value="78.5%"
-          delta="+4.2%"
-          deltaPositive={true}
-          description="last 90 days"
+          title="Quotations · won"
+          value={
+            quotations.length
+              ? String(quotations.filter((q) => (q.status ?? '').toUpperCase().includes('WON') || (q.status ?? '').toUpperCase() === 'APPROVED').length)
+              : '—'
+          }
+          description={
+            quotations.length
+              ? `${quotations.length} total tracked`
+              : 'no quotations yet'
+          }
           icon={<FileCheck className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
         />
         <MetricCard
           title="Active Client Leads"
-          value="28"
-          delta="+8"
-          deltaPositive={true}
-          description="new this week"
+          value={leads.length ? String(leads.length) : '—'}
+          description={
+            leads.length
+              ? `${leads.filter((l) => (l.status ?? '').toUpperCase() === 'NEW').length} new · ${leads.filter((l) => ['WON', 'CLOSED', 'LOST'].includes((l.status ?? '').toUpperCase())).length} closed`
+              : 'no leads yet'
+          }
           icon={<Users className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
         />
       </motion.div>
@@ -284,27 +328,32 @@ export function AdminSalesDashboard() {
           </div>
 
           <div className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlySalesTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0d9488" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#0d9488" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                <YAxis
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => formatCurrency(val, 'USD')} />
-                <Area type="monotone" dataKey="actual" name="Closed Revenue" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" />
-                <Area type="monotone" dataKey="target" name="Target" stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" fill="transparent" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {monthlySalesTrend.length === 0 || monthlySalesTrend.every((m) => !m.actual) ? (
+              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                No recorded sales in the trailing months.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={monthlySalesTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0d9488" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#0d9488" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `KES ${(v / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => formatCurrency(val, 'KES')} />
+                  <Area type="monotone" dataKey="actual" name="Closed Revenue" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </motion.div>
 
@@ -319,36 +368,46 @@ export function AdminSalesDashboard() {
           </div>
 
           <div className="h-[200px] my-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={divisionRevenue}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={78}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {divisionRevenue.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => `${val}%`} />
-              </PieChart>
-            </ResponsiveContainer>
+            {divisionRevenue.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                No quotation revenue tracked yet.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={divisionRevenue}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={78}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {divisionRevenue.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => `${val}%`} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           <div className="space-y-2 border-t border-hairline pt-3">
-            {divisionRevenue.map((d, i) => (
-              <div key={d.name} className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                  {d.name}
-                </span>
-                <span className="font-semibold text-foreground">{d.value}%</span>
-              </div>
-            ))}
+            {divisionRevenue.length === 0 ? (
+              <div className="py-2 text-center text-xs text-muted-foreground">—</div>
+            ) : (
+              divisionRevenue.map((d, i) => (
+                <div key={d.name} className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                    {d.name}
+                  </span>
+                  <span className="font-semibold text-foreground">{d.value}%</span>
+                </div>
+              ))
+            )}
           </div>
         </motion.div>
       </div>
@@ -371,26 +430,36 @@ export function AdminSalesDashboard() {
           </div>
 
           <div className="space-y-3 mt-4">
-            {pipelineFunnel.map((stage, idx) => {
-              const pct = Math.round((stage.count / 48) * 100);
-              return (
-                <div key={stage.stage} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-foreground">{stage.stage}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-muted-foreground">{stage.count} deals</span>
-                      <span className="font-mono font-bold text-foreground">{formatCurrency(stage.value, 'USD', true)}</span>
+            {leads.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                No leads recorded yet.
+              </div>
+            ) : (
+              pipelineFunnel.map((stage, idx) => {
+                const pct = Math.round((stage.count / funnelMaxCount) * 100);
+                return (
+                  <div key={stage.stage} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-foreground">{stage.stage}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-muted-foreground">
+                          {stage.count} deal{stage.count === 1 ? '' : 's'}
+                        </span>
+                        <span className="font-mono font-bold text-foreground">
+                          {stage.value ? formatCurrency(stage.value, 'USD', true) : '—'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-surface-sunken">
+                      <div
+                        className="h-full rounded-full bg-teal-600 transition-all duration-500"
+                        style={{ width: `${pct}%`, opacity: 0.4 + idx * 0.12 }}
+                      />
                     </div>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-surface-sunken">
-                    <div
-                      className="h-full rounded-full bg-teal-600 transition-all duration-500"
-                      style={{ width: `${pct}%`, opacity: 0.4 + idx * 0.12 }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </motion.div>
 

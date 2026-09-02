@@ -93,7 +93,8 @@ export class StockPilesService {
           if (!site) throw new NotFoundException('Mining site not found');
         }
 
-        const code = dto.code ?? (await generateStockPileCode(tx, dto.branchId));
+        const code =
+          dto.code ?? (await generateStockPileCode(tx, dto.branchId));
 
         const created = await tx.stockPile.create({
           data: {

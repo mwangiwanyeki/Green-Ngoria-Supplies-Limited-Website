@@ -25,17 +25,26 @@ export class CreateSecurityLogDto {
   @IsUUID()
   miningSiteId?: string;
 
-  @ApiPropertyOptional({ enum: SecurityLogType, default: SecurityLogType.INCIDENT })
+  @ApiPropertyOptional({
+    enum: SecurityLogType,
+    default: SecurityLogType.INCIDENT,
+  })
   @IsOptional()
   @IsEnum(SecurityLogType)
   type?: SecurityLogType;
 
-  @ApiPropertyOptional({ enum: SecuritySeverity, default: SecuritySeverity.LOW })
+  @ApiPropertyOptional({
+    enum: SecuritySeverity,
+    default: SecuritySeverity.LOW,
+  })
   @IsOptional()
   @IsEnum(SecuritySeverity)
   severity?: SecuritySeverity;
 
-  @ApiPropertyOptional({ enum: SecurityLogStatus, default: SecurityLogStatus.OPEN })
+  @ApiPropertyOptional({
+    enum: SecurityLogStatus,
+    default: SecurityLogStatus.OPEN,
+  })
   @IsOptional()
   @IsEnum(SecurityLogStatus)
   status?: SecurityLogStatus;
@@ -64,7 +73,9 @@ export class CreateSecurityLogDto {
   @MaxLength(200)
   guardName?: string;
 
-  @ApiPropertyOptional({ description: 'Shift label, e.g. NIGHT or 18:00-06:00' })
+  @ApiPropertyOptional({
+    description: 'Shift label, e.g. NIGHT or 18:00-06:00',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(64)

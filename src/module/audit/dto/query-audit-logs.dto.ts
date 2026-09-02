@@ -1,6 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsDate,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 export class QueryAuditLogsDto extends PaginationDto {

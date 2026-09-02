@@ -186,7 +186,10 @@ export async function generateVatLeachRentalReference(
   branchId: string,
 ): Promise<string> {
   const year = currentYear();
-  const seq = await nextSequenceValue(db, `vat-leach-rental-${branchId}-${year}`);
+  const seq = await nextSequenceValue(
+    db,
+    `vat-leach-rental-${branchId}-${year}`,
+  );
   return `VLR-${year}-${pad(seq, 5)}`;
 }
 

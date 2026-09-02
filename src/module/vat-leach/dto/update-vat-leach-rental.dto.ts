@@ -16,7 +16,9 @@ export class UpdateVatLeachRentalDto extends PartialType(
   @IsEnum(VatLeachRentalStatus)
   status?: VatLeachRentalStatus;
 
-  @ApiPropertyOptional({ description: 'Deposit has been refunded to the renter' })
+  @ApiPropertyOptional({
+    description: 'Deposit has been refunded to the renter',
+  })
   @IsOptional()
   @IsBoolean()
   depositRefunded?: boolean;

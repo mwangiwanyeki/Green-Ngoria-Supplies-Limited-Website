@@ -303,9 +303,7 @@ export class AuthService {
     // Extract roles and permissions
     // `Role.name` is TEXT (it also carries custom, non-system role names), but the
     // JWT payload models the built-in role set.
-    const roles = user.userRoles.map(
-      (ur) => ur.role.name,
-    ) as SystemRole[];
+    const roles = user.userRoles.map((ur) => ur.role.name) as SystemRole[];
     const permissions = [
       ...new Set(
         user.userRoles.flatMap((ur) =>
@@ -411,9 +409,7 @@ export class AuthService {
     const user = session.user;
     // `Role.name` is TEXT (it also carries custom, non-system role names), but the
     // JWT payload models the built-in role set.
-    const roles = user.userRoles.map(
-      (ur) => ur.role.name,
-    ) as SystemRole[];
+    const roles = user.userRoles.map((ur) => ur.role.name) as SystemRole[];
     const permissions = [
       ...new Set(
         user.userRoles.flatMap((ur) =>
@@ -836,9 +832,7 @@ export class AuthService {
 
   private fromBase64Url(value: string): string {
     const padLength = value.length % 4 === 0 ? 0 : 4 - (value.length % 4);
-    return (
-      value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(padLength)
-    );
+    return value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(padLength);
   }
 
   private hashRefreshToken(token: string): string {

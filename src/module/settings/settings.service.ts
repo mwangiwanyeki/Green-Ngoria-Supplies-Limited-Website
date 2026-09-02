@@ -250,7 +250,8 @@ export class SettingsService {
       security: {
         ...defaults.security,
         autoLogoutEnabled:
-          defaultBranch?.autoLogoutEnabled ?? defaults.security.autoLogoutEnabled,
+          defaultBranch?.autoLogoutEnabled ??
+          defaults.security.autoLogoutEnabled,
         idleTimeoutMinutes:
           defaultBranch?.idleTimeoutMinutes ??
           defaults.security.idleTimeoutMinutes,

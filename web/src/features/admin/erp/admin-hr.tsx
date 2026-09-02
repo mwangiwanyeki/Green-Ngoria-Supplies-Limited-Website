@@ -6,6 +6,7 @@ import {
   BadgeDollarSign,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   DollarSign,
   MoreHorizontal,
   Plus,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input, Label, Textarea } from '@/components/ui/input';
@@ -61,12 +63,32 @@ import { useBranchStore } from '@/stores/branch-store';
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 const MONTH_LABELS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 const MONTHS_LONG = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 // ── Overview ────────────────────────────────────────────────────────────────
@@ -139,7 +161,10 @@ export function AdminHrOverview() {
       )}
 
       {data && Object.keys(data.byDepartment ?? {}).length > 0 && (
-        <BreakdownCard title="Headcount by department" data={data.byDepartment} />
+        <BreakdownCard
+          title="Headcount by department"
+          data={data.byDepartment}
+        />
       )}
       {data && Object.keys(data.byEmploymentType ?? {}).length > 0 && (
         <BreakdownCard
@@ -164,10 +189,7 @@ function BreakdownCard({
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       <ul className="space-y-2">
         {rows.map(([k, v]) => (
-          <li
-            key={k}
-            className="flex items-center justify-between text-sm"
-          >
+          <li key={k} className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">{k}</span>
             <span className="font-mono font-semibold tabular-nums">{v}</span>
           </li>
@@ -188,7 +210,9 @@ export function AdminHrStaff() {
   const query = useHrStaff({ search: debouncedSearch, page, limit: perPage });
 
   const [showAdd, setShowAdd] = useState(false);
-  const [terminateTarget, setTerminateTarget] = useState<StaffMember | null>(null);
+  const [terminateTarget, setTerminateTarget] = useState<StaffMember | null>(
+    null,
+  );
 
   const createStaff = useCreateStaff();
   const terminate = useTerminateStaff(terminateTarget?.id ?? '', branchId);
@@ -357,7 +381,10 @@ function AddStaffDialog({
   branchId: string;
   onClose: () => void;
   submit: (
-    payload: Omit<Parameters<ReturnType<typeof useCreateStaff>['mutateAsync']>[0], 'branchId'>,
+    payload: Omit<
+      Parameters<ReturnType<typeof useCreateStaff>['mutateAsync']>[0],
+      'branchId'
+    >,
   ) => Promise<void>;
   pending: boolean;
 }) {
@@ -394,9 +421,7 @@ function AddStaffDialog({
         department: form.department || undefined,
         employmentType: form.employmentType,
         paymentTerms: form.paymentTerms,
-        baseSalary: form.baseSalary
-          ? Number(form.baseSalary)
-          : undefined,
+        baseSalary: form.baseSalary ? Number(form.baseSalary) : undefined,
         hireDate: form.hireDate || undefined,
         notes: form.notes || undefined,
       });
@@ -417,7 +442,7 @@ function AddStaffDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 p-6 pt-2">
           <div className="space-y-1.5">
             <Label htmlFor="firstName">First name *</Label>
             <Input
@@ -469,29 +494,47 @@ function AddStaffDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="employmentType">Employment type</Label>
-            <select
-              id="employmentType"
-              value={form.employmentType}
-              onChange={(e) => setField('employmentType', e.target.value as EmploymentType)}
-              className="h-10 w-full rounded-md border border-border bg-background px-2 text-sm"
-            >
-              {EMPLOYMENT_TYPES.map((t) => (
-                <option key={t} value={t}>{t.replace('_', ' ')}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="employmentType"
+                value={form.employmentType}
+                onChange={(e) =>
+                  setField('employmentType', e.target.value as EmploymentType)
+                }
+                className="flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              >
+                {EMPLOYMENT_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t.replace('_', ' ')}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              </div>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="paymentTerms">Payment terms</Label>
-            <select
-              id="paymentTerms"
-              value={form.paymentTerms}
-              onChange={(e) => setField('paymentTerms', e.target.value as StaffPaymentTerms)}
-              className="h-10 w-full rounded-md border border-border bg-background px-2 text-sm"
-            >
-              {PAYMENT_TERMS.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="paymentTerms"
+                value={form.paymentTerms}
+                onChange={(e) =>
+                  setField('paymentTerms', e.target.value as StaffPaymentTerms)
+                }
+                className="flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              >
+                {PAYMENT_TERMS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              </div>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="baseSalary">Base salary (KES)</Label>
@@ -556,9 +599,9 @@ export function AdminHrPayroll() {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
-  const [status, setStatus] = useState<
-    'all' | 'DRAFT' | 'APPROVED' | 'PAID'
-  >('all');
+  const [status, setStatus] = useState<'all' | 'DRAFT' | 'APPROVED' | 'PAID'>(
+    'all',
+  );
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
   const [search, setSearch] = useState('');
@@ -677,7 +720,9 @@ export function AdminHrPayroll() {
               className="h-9 rounded-md border border-border bg-background px-2 text-sm"
             >
               {MONTHS_LONG.map((m, i) => (
-                <option key={m} value={i + 1}>{m}</option>
+                <option key={m} value={i + 1}>
+                  {m}
+                </option>
               ))}
             </select>
             <select
@@ -689,7 +734,9 @@ export function AdminHrPayroll() {
               className="h-9 rounded-md border border-border bg-background px-2 text-sm"
             >
               {[year - 1, year, year + 1].map((y) => (
-                <option key={y} value={y}>{y}</option>
+                <option key={y} value={y}>
+                  {y}
+                </option>
               ))}
             </select>
           </>
@@ -765,7 +812,11 @@ function RunPayrollDialog({
   defaultYear: number;
   pending: boolean;
   onClose: () => void;
-  submit: (v: { periodMonth: number; periodYear: number; notes?: string }) => Promise<void>;
+  submit: (v: {
+    periodMonth: number;
+    periodYear: number;
+    notes?: string;
+  }) => Promise<void>;
 }) {
   const [periodMonth, setPeriodMonth] = useState(defaultMonth);
   const [periodYear, setPeriodYear] = useState(defaultYear);
@@ -783,19 +834,26 @@ function RunPayrollDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 p-6 pt-2">
           <div className="space-y-1.5">
             <Label htmlFor="pmonth">Month</Label>
-            <select
-              id="pmonth"
-              value={periodMonth}
-              onChange={(e) => setPeriodMonth(Number(e.target.value))}
-              className="h-10 w-full rounded-md border border-border bg-background px-2 text-sm"
-            >
-              {MONTHS_LONG.map((m, i) => (
-                <option key={m} value={i + 1}>{m}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="pmonth"
+                value={periodMonth}
+                onChange={(e) => setPeriodMonth(Number(e.target.value))}
+                className="flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              >
+                {MONTHS_LONG.map((m, i) => (
+                  <option key={m} value={i + 1}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              </div>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="pyear">Year</Label>
@@ -857,7 +915,8 @@ export function AdminHrLeave() {
 
   const query = useHrLeave({
     search: debouncedSearch,
-    status: status === 'all' ? undefined : status === 'OVERDUE' ? undefined : status,
+    status:
+      status === 'all' ? undefined : status === 'OVERDUE' ? undefined : status,
     overdue: status === 'OVERDUE' ? true : undefined,
     page,
     limit: perPage,
@@ -876,7 +935,9 @@ export function AdminHrLeave() {
     );
   }).length;
   const overdueCount = items.filter(
-    (r) => r.status === 'OVERDUE' || (r.status === 'APPROVED' && new Date(r.endDate).getTime() < Date.now()),
+    (r) =>
+      r.status === 'OVERDUE' ||
+      (r.status === 'APPROVED' && new Date(r.endDate).getTime() < Date.now()),
   ).length;
 
   const [showAdd, setShowAdd] = useState(false);
@@ -902,8 +963,7 @@ export function AdminHrLeave() {
     {
       key: 'type',
       header: 'Type',
-      cell: (r) =>
-        r.type ? <Badge variant="outline">{r.type}</Badge> : '—',
+      cell: (r) => (r.type ? <Badge variant="outline">{r.type}</Badge> : '—'),
     },
     {
       key: 'period',
@@ -959,14 +1019,18 @@ export function AdminHrLeave() {
                   className="z-50 min-w-[160px] rounded-md border border-border bg-popover p-1 shadow-md"
                 >
                   <DropdownMenu.Item
-                    onSelect={() => setReviewTarget({ leave: r, verdict: 'APPROVED' })}
+                    onSelect={() =>
+                      setReviewTarget({ leave: r, verdict: 'APPROVED' })
+                    }
                     className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-muted"
                   >
                     <CheckCircle2 className="h-4 w-4 text-success" />
                     Approve
                   </DropdownMenu.Item>
                   <DropdownMenu.Item
-                    onSelect={() => setReviewTarget({ leave: r, verdict: 'DENIED' })}
+                    onSelect={() =>
+                      setReviewTarget({ leave: r, verdict: 'DENIED' })
+                    }
                     className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive outline-none hover:bg-muted"
                   >
                     <XCircle className="h-4 w-4" />
@@ -976,9 +1040,7 @@ export function AdminHrLeave() {
               </DropdownMenu.Portal>
             </DropdownMenu.Root>
           ) : (
-            <span className="text-xs text-muted-foreground pr-2">
-              —
-            </span>
+            <span className="text-xs text-muted-foreground pr-2">—</span>
           )}
         </div>
       ),
@@ -1097,6 +1159,17 @@ export function AdminHrLeave() {
   );
 }
 
+const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
+  ANNUAL: 'Annual Leave',
+  SICK: 'Sick Leave',
+  MATERNITY: 'Maternity Leave',
+  PATERNITY: 'Paternity Leave',
+  COMPASSIONATE: 'Compassionate Leave',
+  UNPAID: 'Unpaid Leave',
+  STUDY: 'Study Leave',
+  OTHER: 'Other / Special Leave',
+};
+
 function AddLeaveDialog({
   branchId,
   pending,
@@ -1123,9 +1196,27 @@ function AddLeaveDialog({
   const staffQuery = useHrStaff({ limit: 200 });
   const staffList = staffQuery.data?.data ?? [];
 
+  const calculatedDays = useMemo(() => {
+    if (!startDate || !endDate) return null;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+    const diffTime = end.getTime() - start.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays > 0 ? diffDays : null;
+  }, [startDate, endDate]);
+
   const onSave = () => {
-    if (!staffId || !startDate || !endDate) {
-      toast.error('Staff member, start and end dates are required');
+    if (!staffId) {
+      toast.error('Please select a staff member');
+      return;
+    }
+    if (!startDate || !endDate) {
+      toast.error('Start date and end date are required');
+      return;
+    }
+    if (new Date(endDate) < new Date(startDate)) {
+      toast.error('End date cannot be earlier than start date');
       return;
     }
     void submit({
@@ -1133,88 +1224,177 @@ function AddLeaveDialog({
       type,
       startDate,
       endDate,
-      reason: reason || undefined,
+      reason: reason.trim() || undefined,
     });
   };
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Request leave</DialogTitle>
-          <DialogDescription>
-            {branchId
-              ? 'The request lands in the queue as PENDING until reviewed.'
-              : 'Select a branch first from the branch switcher.'}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-lg overflow-hidden p-0 sm:max-w-xl">
+        {/* Header with Icon & Context */}
+        <div className="border-b border-border/80 bg-muted/30 p-6 pb-5">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
+              <CalendarDays className="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-semibold text-foreground">
+                Request Leave
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-xs text-muted-foreground">
+                {branchId
+                  ? 'Submit a staff leave application for administrative review and approval.'
+                  : 'Select a branch first from the branch switcher.'}
+              </DialogDescription>
+            </div>
+          </div>
+        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="lstaff">Staff member *</Label>
-            <select
-              id="lstaff"
-              value={staffId}
-              onChange={(e) => setStaffId(e.target.value)}
-              className="h-10 w-full rounded-md border border-border bg-background px-2 text-sm"
-              disabled={staffQuery.isPending}
+        {/* Notice & Duration banner */}
+        <div className="mx-6 mt-4 flex items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-800 dark:text-amber-300">
+          <span className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            Queue status: <strong className="font-semibold">
+              PENDING
+            </strong>{' '}
+            approval
+          </span>
+          {calculatedDays !== null && (
+            <Badge variant="mineral" className="font-mono text-xs">
+              {calculatedDays} {calculatedDays === 1 ? 'day' : 'days'}
+            </Badge>
+          )}
+        </div>
+
+        {/* Form Body with generous spacing & clean layout */}
+        <div className="space-y-4 p-6 pt-4">
+          {/* Staff Member Field */}
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="lstaff"
+              className="text-xs font-semibold text-foreground"
             >
-              <option value="">
-                {staffQuery.isPending ? 'Loading…' : 'Select staff…'}
-              </option>
-              {staffList.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.fullName ?? `${s.firstName} ${s.lastName}`}
-                  {s.position ? ` — ${s.position}` : ''}
+              Staff member <span className="text-destructive">*</span>
+            </Label>
+            <div className="relative">
+              <select
+                id="lstaff"
+                value={staffId}
+                onChange={(e) => setStaffId(e.target.value)}
+                className="flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={staffQuery.isPending}
+              >
+                <option value="">
+                  {staffQuery.isPending
+                    ? 'Loading staff roster…'
+                    : 'Select staff member…'}
                 </option>
-              ))}
-            </select>
+                {staffList.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.fullName ?? `${s.firstName} ${s.lastName}`}
+                    {s.staffNumber ? ` (${s.staffNumber})` : ''}
+                    {s.position ? ` — ${s.position}` : ''}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              </div>
+            </div>
           </div>
+
+          {/* Leave Type */}
           <div className="space-y-1.5">
-            <Label htmlFor="ltype">Type</Label>
-            <select
-              id="ltype"
-              value={type}
-              onChange={(e) => setType(e.target.value as LeaveType)}
-              className="h-10 w-full rounded-md border border-border bg-background px-2 text-sm"
+            <Label
+              htmlFor="ltype"
+              className="text-xs font-semibold text-foreground"
             >
-              {LEAVE_TYPES.map((t) => (
-                <option key={t} value={t}>{t.replace('_', ' ')}</option>
-              ))}
-            </select>
+              Leave type <span className="text-destructive">*</span>
+            </Label>
+            <div className="relative">
+              <select
+                id="ltype"
+                value={type}
+                onChange={(e) => setType(e.target.value as LeaveType)}
+                className="flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm text-foreground shadow-sm transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              >
+                {LEAVE_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {LEAVE_TYPE_LABELS[t] ?? t.replace(/_/g, ' ')}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              </div>
+            </div>
           </div>
-          <div className="space-y-1.5" />
+
+          {/* Start Date & End Date side by side */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="lstart"
+                className="text-xs font-semibold text-foreground"
+              >
+                Start date <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="lstart"
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  if (endDate && e.target.value > endDate) {
+                    setEndDate(e.target.value);
+                  }
+                }}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="lend"
+                className="text-xs font-semibold text-foreground"
+              >
+                End date <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="lend"
+                type="date"
+                min={startDate || undefined}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="h-10 rounded-lg text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Reason / Notes */}
           <div className="space-y-1.5">
-            <Label htmlFor="lstart">Start date *</Label>
-            <Input
-              id="lstart"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="lend">End date *</Label>
-            <Input
-              id="lend"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="lreason">Reason</Label>
+            <Label
+              htmlFor="lreason"
+              className="text-xs font-semibold text-foreground"
+            >
+              Reason / Notes{' '}
+              <span className="text-xs font-normal text-muted-foreground">
+                (Optional)
+              </span>
+            </Label>
             <Textarea
               id="lreason"
               rows={3}
+              placeholder="Provide handover context, coverage plan, or reason for this leave request..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              className="resize-none rounded-lg text-sm"
             />
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={pending}>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 border-t border-border/80 bg-muted/20 p-6 py-4">
+          <Button variant="outline" onClick={onClose} disabled={pending}>
             Cancel
           </Button>
           <Button
@@ -1222,10 +1402,11 @@ function AddLeaveDialog({
             onClick={onSave}
             loading={pending}
             disabled={!branchId || pending}
+            leftIcon={<CalendarDays className="h-4 w-4" />}
           >
-            Submit request
+            Submit Request
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -1249,40 +1430,70 @@ function ReviewLeaveDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {approving ? 'Approve' : 'Deny'} leave request
-          </DialogTitle>
-          <DialogDescription>
-            {leave.staffName ??
-              (leave.staff
-                ? `${leave.staff.firstName} ${leave.staff.lastName}`
-                : 'Staff')}
-            {' · '}
-            {leave.type} · {leave.startDate} → {leave.endDate} ({leave.days} days)
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="rcomments">
-            Comments {approving ? '(optional)' : '(reason for denial)'}
-          </Label>
-          <Textarea
-            id="rcomments"
-            rows={4}
-            value={comments}
-            onChange={(e) => setComments(e.target.value)}
-            placeholder={
-              approving
-                ? 'e.g. Ensure handover to Peter before you leave.'
-                : 'e.g. Overlaps with quarter-end close — please reschedule.'
-            }
-          />
+      <DialogContent className="max-w-lg overflow-hidden p-0 sm:max-w-xl">
+        <div className="border-b border-border/80 bg-muted/30 p-6 pb-5">
+          <div className="flex items-start gap-3.5">
+            <div
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                approving
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-destructive/10 text-destructive',
+              )}
+            >
+              {approving ? (
+                <CheckCircle2 className="h-5 w-5" />
+              ) : (
+                <XCircle className="h-5 w-5" />
+              )}
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-semibold text-foreground">
+                {approving ? 'Approve' : 'Deny'} Leave Request
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-xs text-muted-foreground">
+                {leave.staffName ??
+                  (leave.staff
+                    ? `${leave.staff.firstName} ${leave.staff.lastName}`
+                    : 'Staff')}
+                {' · '}
+                {leave.type
+                  ? (LEAVE_TYPE_LABELS[leave.type] ?? leave.type)
+                  : 'Leave'}
+                {' · '}
+                {leave.startDate} → {leave.endDate} ({leave.days ?? '—'} days)
+              </DialogDescription>
+            </div>
+          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={pending}>
+        <div className="space-y-4 p-6">
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="rcomments"
+              className="text-xs font-semibold text-foreground"
+            >
+              {approving
+                ? 'Approval comments (optional)'
+                : 'Reason for denial *'}
+            </Label>
+            <Textarea
+              id="rcomments"
+              rows={4}
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              placeholder={
+                approving
+                  ? 'e.g. Approved. Ensure full handover to the team before departure.'
+                  : 'e.g. Overlaps with scheduled plant maintenance window. Please reschedule.'
+              }
+              className="resize-none rounded-lg text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-border/80 bg-muted/20 p-6 py-4">
+          <Button variant="outline" onClick={onClose} disabled={pending}>
             Cancel
           </Button>
           <Button
@@ -1298,9 +1509,9 @@ function ReviewLeaveDialog({
             disabled={pending || (!approving && comments.trim().length === 0)}
             onClick={() => void submit(comments || undefined)}
           >
-            {approving ? 'Approve' : 'Deny'}
+            {approving ? 'Approve Leave' : 'Deny Leave'}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

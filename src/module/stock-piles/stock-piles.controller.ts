@@ -11,7 +11,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { StockPilesService } from './stock-piles.service';
 import { CreateStockPileDto } from './dto/create-stock-pile.dto';
 import { UpdateStockPileDto } from './dto/update-stock-pile.dto';
@@ -154,12 +159,7 @@ export class StockPilesController {
     @Query() query: QueryStockPileMovementsDto,
     @CurrentUser() actor: AuthUser,
   ) {
-    const result = await this.service.findMovements(
-      orgId,
-      id,
-      actor.id,
-      query,
-    );
+    const result = await this.service.findMovements(orgId, id, actor.id, query);
     return paginatedResponse(result.items, result.meta);
   }
 }

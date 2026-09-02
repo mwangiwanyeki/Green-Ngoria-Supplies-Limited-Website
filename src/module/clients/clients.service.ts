@@ -17,7 +17,6 @@ import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { CreateContactDto } from './dto/create-contact.dto';
 
-
 @Injectable()
 export class ClientsService {
   private readonly logger = new Logger(ClientsService.name);

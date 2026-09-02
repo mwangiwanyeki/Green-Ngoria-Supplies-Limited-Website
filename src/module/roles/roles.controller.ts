@@ -89,7 +89,8 @@ export class RolesController {
   @Patch('roles/:id')
   @Roles('SUPER_ADMIN')
   @ApiOperation({
-    summary: "Update a custom role's display name, description or permissions (Super Admin only)",
+    summary:
+      "Update a custom role's display name, description or permissions (Super Admin only)",
   })
   async update(
     @Param('orgId', ParseUUIDPipe) orgId: string,
@@ -104,7 +105,10 @@ export class RolesController {
   @Delete('roles/:id')
   @Roles('SUPER_ADMIN')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete a custom role that has no assigned users (Super Admin only)' })
+  @ApiOperation({
+    summary:
+      'Delete a custom role that has no assigned users (Super Admin only)',
+  })
   async remove(
     @Param('orgId', ParseUUIDPipe) orgId: string,
     @Param('id', ParseUUIDPipe) id: string,

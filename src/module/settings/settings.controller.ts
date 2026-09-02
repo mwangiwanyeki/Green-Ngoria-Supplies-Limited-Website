@@ -53,7 +53,11 @@ export class SettingsController {
     @Body() dto: UpdateSystemSettingsDto,
     @CurrentUser() actor: AuthUser,
   ) {
-    const data = await this.settingsService.updateSettings(orgId, dto, actor.id);
+    const data = await this.settingsService.updateSettings(
+      orgId,
+      dto,
+      actor.id,
+    );
     return successResponse(data, 'System settings updated successfully');
   }
 
@@ -91,7 +95,11 @@ export class SettingsController {
     @Param('keyId') keyId: string,
     @CurrentUser() actor: AuthUser,
   ) {
-    const result = await this.settingsService.revokeApiKey(orgId, keyId, actor.id);
+    const result = await this.settingsService.revokeApiKey(
+      orgId,
+      keyId,
+      actor.id,
+    );
     return successResponse(result, result.message);
   }
 
@@ -129,7 +137,11 @@ export class SettingsController {
     @Param('id') id: string,
     @CurrentUser() actor: AuthUser,
   ) {
-    const result = await this.settingsService.deleteWebhook(orgId, id, actor.id);
+    const result = await this.settingsService.deleteWebhook(
+      orgId,
+      id,
+      actor.id,
+    );
     return successResponse(result, result.message);
   }
 
@@ -150,25 +162,36 @@ export class SettingsController {
 
   @Get('diagnostics')
   @Roles('SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'MANAGING_DIRECTOR')
-  @ApiOperation({ summary: 'Fetch system health, database latency & storage status' })
+  @ApiOperation({
+    summary: 'Fetch system health, database latency & storage status',
+  })
   async getDiagnostics(
     @Param('orgId', ParseUUIDPipe) orgId: string,
     @CurrentUser() actor: AuthUser,
   ) {
-    const diag = await this.settingsService.getSystemDiagnostics(orgId, actor.id);
+    const diag = await this.settingsService.getSystemDiagnostics(
+      orgId,
+      actor.id,
+    );
     return successResponse(diag);
   }
 
   @Post('test-alert')
   @Roles('SUPER_ADMIN', 'ADMIN')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Send a live diagnostic test alert (Email/SMS/In-App)' })
+  @ApiOperation({
+    summary: 'Send a live diagnostic test alert (Email/SMS/In-App)',
+  })
   async sendTestAlert(
     @Param('orgId', ParseUUIDPipe) orgId: string,
     @Body() dto: SendTestAlertDto,
     @CurrentUser() actor: AuthUser,
   ) {
-    const result = await this.settingsService.sendTestAlert(orgId, dto, actor.id);
+    const result = await this.settingsService.sendTestAlert(
+      orgId,
+      dto,
+      actor.id,
+    );
     return successResponse(result, result.message);
   }
 

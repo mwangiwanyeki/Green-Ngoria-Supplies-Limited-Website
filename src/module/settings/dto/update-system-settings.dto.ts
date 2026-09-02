@@ -158,7 +158,9 @@ export class FinanceSettingsDto {
   @Max(50)
   withholdingTaxPct?: number;
 
-  @ApiPropertyOptional({ example: 'Standard Net 30 days upon milestone sign-off.' })
+  @ApiPropertyOptional({
+    example: 'Standard Net 30 days upon milestone sign-off.',
+  })
   @IsOptional()
   @IsString()
   defaultPaymentTerms?: string;
@@ -188,7 +190,9 @@ export class FinanceSettingsDto {
   @IsString()
   mpesaPaybill?: string;
 
-  @ApiPropertyOptional({ example: 'Certified compliant with KRA eTIMS invoice regulation.' })
+  @ApiPropertyOptional({
+    example: 'Certified compliant with KRA eTIMS invoice regulation.',
+  })
   @IsOptional()
   @IsString()
   etimsDisclaimer?: string;

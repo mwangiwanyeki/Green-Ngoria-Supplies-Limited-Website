@@ -11,7 +11,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { SiteSecurityService } from './site-security.service';
 import { CreateSecurityLogDto } from './dto/create-security-log.dto';
 import { UpdateSecurityLogDto } from './dto/update-security-log.dto';

@@ -68,7 +68,10 @@ export class PublicPlantAssessmentDto {
   @IsEnum(MineralType)
   mineralType?: MineralType;
 
-  @ApiPropertyOptional({ example: 25, description: 'Estimated Throughput (t/h)' })
+  @ApiPropertyOptional({
+    example: 25,
+    description: 'Estimated Throughput (t/h)',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -82,21 +85,28 @@ export class PublicPlantAssessmentDto {
   @Min(0)
   oreGrade?: number;
 
-  @ApiPropertyOptional({ example: 'High-grade quartz vein with minor pyrite sulfides' })
+  @ApiPropertyOptional({
+    example: 'High-grade quartz vein with minor pyrite sulfides',
+  })
   @IsOptional()
   @Transform(trim)
   @IsString()
   @MaxLength(500)
   oreMineralogy?: string;
 
-  @ApiPropertyOptional({ example: 'Medium-hard ore, estimated Bond Work Index 14.2 kWh/t' })
+  @ApiPropertyOptional({
+    example: 'Medium-hard ore, estimated Bond Work Index 14.2 kWh/t',
+  })
   @IsOptional()
   @Transform(trim)
   @IsString()
   @MaxLength(300)
   oreHardness?: string;
 
-  @ApiPropertyOptional({ example: 'Quartz reef orebody with coarse free gold and localized alluvial gravels' })
+  @ApiPropertyOptional({
+    example:
+      'Quartz reef orebody with coarse free gold and localized alluvial gravels',
+  })
   @IsOptional()
   @Transform(trim)
   @IsString()
@@ -109,14 +119,20 @@ export class PublicPlantAssessmentDto {
   @IsBoolean()
   hasExistingPlant?: boolean;
 
-  @ApiPropertyOptional({ example: '10 tph primary jaw crusher and single-stage ball mill with manual sluice' })
+  @ApiPropertyOptional({
+    example:
+      '10 tph primary jaw crusher and single-stage ball mill with manual sluice',
+  })
   @IsOptional()
   @Transform(trim)
   @IsString()
   @MaxLength(1000)
   existingPlantDesc?: string;
 
-  @ApiPropertyOptional({ example: 10, description: 'Existing plant capacity (t/h)' })
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Existing plant capacity (t/h)',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -144,42 +160,59 @@ export class PublicPlantAssessmentDto {
   powerData?: Record<string, unknown>;
 
   // ── Performance & Targets ──────────────────────────────────────────────────
-  @ApiPropertyOptional({ example: 62, description: 'Current Recovery Percentage (%)' })
+  @ApiPropertyOptional({
+    example: 62,
+    description: 'Current Recovery Percentage (%)',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
   currentRecovery?: number;
 
-  @ApiPropertyOptional({ example: 92, description: 'Target Recovery Percentage (%)' })
+  @ApiPropertyOptional({
+    example: 92,
+    description: 'Target Recovery Percentage (%)',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
   targetRecovery?: number;
 
-  @ApiPropertyOptional({ example: 'Excessive gold loss in tailings, high cyanide consumption, poor carbon loading' })
+  @ApiPropertyOptional({
+    example:
+      'Excessive gold loss in tailings, high cyanide consumption, poor carbon loading',
+  })
   @IsOptional()
   @Transform(trim)
   @IsString()
   @MaxLength(2000)
   operationalProblems?: string;
 
-  @ApiPropertyOptional({ example: 'Lined tailings containment required with strict cyanide detoxification' })
+  @ApiPropertyOptional({
+    example:
+      'Lined tailings containment required with strict cyanide detoxification',
+  })
   @IsOptional()
   @Transform(trim)
   @IsString()
   @MaxLength(1000)
   environmentalConstraints?: string;
 
-  @ApiPropertyOptional({ example: 'Zero-lost-time injury mandate with full PPE and gas monitoring' })
+  @ApiPropertyOptional({
+    example: 'Zero-lost-time injury mandate with full PPE and gas monitoring',
+  })
   @IsOptional()
   @Transform(trim)
   @IsString()
   @MaxLength(1000)
   hseConstraints?: string;
 
-  @ApiPropertyOptional({ example: 'Upgrade from gravity-only to turnkey 30 TPH CIL carbon circuit within 6 months' })
+  @ApiPropertyOptional({
+    example:
+      'Upgrade from gravity-only to turnkey 30 TPH CIL carbon circuit within 6 months',
+  })
   @IsOptional()
   @Transform(trim)
   @IsString()
