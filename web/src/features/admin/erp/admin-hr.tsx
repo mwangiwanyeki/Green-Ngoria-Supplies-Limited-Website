@@ -566,8 +566,10 @@ export function AdminHrPayroll() {
 
   const query = useHrPayroll({
     search: debouncedSearch,
-    month,
-    year,
+    // DTO expects periodMonth / periodYear; earlier iteration sent
+    // month / year and 400'd the page.
+    periodMonth: month,
+    periodYear: year,
     status: status === 'all' ? undefined : status,
     page,
     limit: perPage,
