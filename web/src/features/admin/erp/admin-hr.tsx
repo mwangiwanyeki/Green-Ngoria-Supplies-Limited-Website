@@ -25,10 +25,16 @@ import {
   useHrPayroll,
   useHrLeave,
   type StaffMember,
-  type PayrollRecord,
+  type PayrollRun,
   type LeaveRequest,
 } from '@/lib/api/hooks/use-hr';
+
+const MONTH_LABELS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
 import { formatRelativeDate } from '@/lib/utils';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 export function AdminHrOverview() {
   const { data, isLoading, isError, refetch } = useHrOverview();
@@ -50,19 +56,19 @@ export function AdminHrOverview() {
           },
           {
             label: 'Active',
-            value: data?.activeStaff ?? 0,
+            value: data?.byStatus?.ACTIVE ?? 0,
             icon: <CheckCircle2 className="h-4 w-4" />,
             accent: 'success',
           },
           {
             label: 'On Leave',
-            value: data?.onLeave ?? 0,
+            value: data?.onLeaveNow ?? 0,
             icon: <CalendarDays className="h-4 w-4" />,
             accent: 'warning',
           },
           {
             label: 'Users',
-            value: data?.usersCount ?? 0,
+            value: data?.linkedUsers ?? 0,
             icon: <Users className="h-4 w-4" />,
             accent: 'default',
           },
@@ -81,9 +87,11 @@ export function AdminHrOverview() {
 
 export function AdminHrStaff() {
   const [search, setSearch] = useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
-  const query = useHrStaff({ search, page, limit: perPage });
+  const query = useHrStaff({ search: debouncedSearch, page, limit: perPage });
 
   const columns: ErpColumn<StaffMember>[] = [
     {
@@ -91,7 +99,7 @@ export function AdminHrStaff() {
       header: 'Staff',
       cell: (r) => <span className="font-medium">{r.fullName}</span>,
     },
-    { key: 'role', header: 'Role', cell: (r) => r.role ?? '—' },
+    { key: 'role', header: 'Position', cell: (r) => r.position ?? '—' },
     { key: 'dept', header: 'Department', cell: (r) => r.department ?? '—' },
     { key: 'phone', header: 'Phone', cell: (r) => r.phone ?? '—' },
     {
@@ -100,9 +108,9 @@ export function AdminHrStaff() {
       cell: (r) => (
         <Badge
           variant={
-            r.status === 'active'
+            r.status === 'ACTIVE'
               ? 'success'
-              : r.status === 'on-leave'
+              : r.status === 'ON_LEAVE'
                 ? 'warning'
                 : 'mineral'
           }
@@ -164,45 +172,53 @@ const MONTHS = [
 
 export function AdminHrPayroll() {
   const [search, setSearch] = useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
-  const [status, setStatus] = useState<'all' | 'draft' | 'approved' | 'paid'>(
-    'all',
-  );
+  const [status, setStatus] = useState<
+    'all' | 'DRAFT' | 'APPROVED' | 'PAID'
+  >('all');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
-  const query = useHrPayroll({
-    search,
+  const query = useHrPayroll({ search: debouncedSearch,
     month,
     year,
     status,
     page,
-    limit: perPage,
-  });
+    limit: perPage, });
 
-  const columns: ErpColumn<PayrollRecord>[] = [
+  const columns: ErpColumn<PayrollRun>[] = [
     {
-      key: 'staff',
-      header: 'Staff',
-      cell: (r) => <span className="font-medium">{r.staffName}</span>,
+      key: 'period',
+      header: 'Period',
+      cell: (r) => (
+        <span className="font-medium">
+          {MONTH_LABELS[(r.periodMonth ?? 1) - 1]} {r.periodYear}
+        </span>
+      ),
     },
-    { key: 'period', header: 'Period', cell: (r) => r.period },
+    {
+      key: 'entries',
+      header: 'Employees',
+      cell: (r) => r._count?.entries ?? '—',
+    },
     {
       key: 'gross',
-      header: <span className="text-right block">Gross</span>,
+      header: <span className="text-right block">Total Gross</span>,
       cell: (r) => (
         <span className="text-right block tabular-nums">
-          {formatKsh(r.grossPay)}
+          {formatKsh(r.totalGross ?? 0)}
         </span>
       ),
     },
     {
       key: 'net',
-      header: <span className="text-right block">Net</span>,
+      header: <span className="text-right block">Total Net</span>,
       cell: (r) => (
         <span className="text-right block tabular-nums font-semibold">
-          {formatKsh(r.netPay)}
+          {formatKsh(r.totalNet ?? 0)}
         </span>
       ),
     },
@@ -212,14 +228,14 @@ export function AdminHrPayroll() {
       cell: (r) => (
         <Badge
           variant={
-            r.status === 'paid'
+            r.status === 'PAID'
               ? 'success'
-              : r.status === 'approved'
+              : r.status === 'APPROVED'
                 ? 'brand'
                 : 'warning'
           }
         >
-          {r.status ?? 'draft'}
+          {r.status ?? 'DRAFT'}
         </Badge>
       ),
     },
@@ -278,9 +294,9 @@ export function AdminHrPayroll() {
       }
       filterChips={[
         { key: 'all', label: 'All Status' },
-        { key: 'draft', label: 'Draft' },
-        { key: 'approved', label: 'Approved' },
-        { key: 'paid', label: 'Paid' },
+        { key: 'DRAFT', label: 'Draft' },
+        { key: 'APPROVED', label: 'Approved' },
+        { key: 'PAID', label: 'Paid' },
       ]}
       filterValue={status}
       onFilterChange={(k) => {
@@ -309,12 +325,14 @@ export function AdminHrPayroll() {
 
 export function AdminHrLeave() {
   const [search, setSearch] = useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [status, setStatus] = useState<
-    'all' | 'pending' | 'approved' | 'denied' | 'overdue'
+    'all' | 'PENDING' | 'APPROVED' | 'DENIED' | 'OVERDUE'
   >('all');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
-  const query = useHrLeave({ search, status, page, limit: perPage });
+  const query = useHrLeave({ search: debouncedSearch, status, page, limit: perPage });
 
   const columns: ErpColumn<LeaveRequest>[] = [
     {
@@ -326,7 +344,7 @@ export function AdminHrLeave() {
       key: 'type',
       header: 'Type',
       cell: (r) =>
-        r.leaveType ? <Badge variant="outline">{r.leaveType}</Badge> : '—',
+        r.type ? <Badge variant="outline">{r.type}</Badge> : '—',
     },
     {
       key: 'period',
@@ -343,16 +361,16 @@ export function AdminHrLeave() {
       cell: (r) => (
         <Badge
           variant={
-            r.status === 'approved'
+            r.status === 'APPROVED'
               ? 'success'
-              : r.status === 'denied'
+              : r.status === 'DENIED'
                 ? 'destructive'
-                : r.status === 'overdue'
+                : r.status === 'OVERDUE'
                   ? 'destructive'
                   : 'warning'
           }
         >
-          {r.status ?? 'pending'}
+          {r.status ?? 'PENDING'}
         </Badge>
       ),
     },
@@ -385,10 +403,10 @@ export function AdminHrLeave() {
       searchPlaceholder="Search name, type or reason…"
       filterChips={[
         { key: 'all', label: 'All' },
-        { key: 'pending', label: 'Pending' },
-        { key: 'approved', label: 'Approved' },
-        { key: 'denied', label: 'Denied' },
-        { key: 'overdue', label: 'Overdue' },
+        { key: 'PENDING', label: 'Pending' },
+        { key: 'APPROVED', label: 'Approved' },
+        { key: 'DENIED', label: 'Denied' },
+        { key: 'OVERDUE', label: 'Overdue' },
       ]}
       filterValue={status}
       onFilterChange={(k) => {

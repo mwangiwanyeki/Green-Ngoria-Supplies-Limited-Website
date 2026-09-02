@@ -395,7 +395,7 @@ export class HrService {
         status,
         reviewedById: reviewerId,
         reviewedAt: new Date(),
-        reviewComments: comments,
+        reviewNotes: comments,
       },
     });
   }

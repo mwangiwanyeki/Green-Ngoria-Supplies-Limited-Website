@@ -7,12 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { ErpListPage, type ErpColumn } from './erp-list-page';
 import { useVisitors, type Visitor } from '@/lib/api/hooks/use-visitors';
 import { formatRelativeDate } from '@/lib/utils';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 export function AdminVisitors() {
   const [search, setSearch] = useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
-  const query = useVisitors({ search, page, limit: perPage });
+  const query = useVisitors({ search: debouncedSearch, page, limit: perPage });
 
   const columns: ErpColumn<Visitor>[] = [
     {

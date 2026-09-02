@@ -68,6 +68,7 @@ import { useInventoryItems } from '@/lib/api/hooks/use-inventory';
 import { useBranchStore } from '@/stores/branch-store';
 import { getApiErrorMessage } from '@/lib/api/api-error';
 import { formatDate, formatRelativeDate } from '@/lib/utils';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 // ─── Status display helpers ────────────────────────────────────────────────────
 
@@ -107,6 +108,8 @@ export function AdminSales({ scope = 'all' }: AdminSalesProps) {
 
   // ── List state ──
   const [search, setSearch] = React.useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(15);
   const [statusFilter, setStatusFilter] = React.useState<SaleStatus | ''>('');
@@ -1137,10 +1140,8 @@ function NewSaleDialog({
   const createSale = useCreateSale();
   const { data: customersData } = useErpCustomers({ limit: 100 });
   const customers = customersData?.data ?? [];
-  const { data: itemsData } = useInventoryItems({
-    search: itemSearch,
-    limit: 20,
-  });
+  const { data: itemsData } = useInventoryItems({ search: itemSearch,
+    limit: 20, });
   const inventoryItems = itemsData?.data ?? [];
 
   // ── Derived totals ──

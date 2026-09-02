@@ -71,6 +71,7 @@ import { RolesModule } from './module/roles/roles.module';
 import { CmsModule } from './module/cms/cms.module';
 import { MediaModule } from './module/media/media.module';
 import { AuditLogsModule } from './module/audit/audit-logs.module';
+import { SettingsModule } from './module/settings/settings.module';
 
 // Cross-cutting
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
@@ -210,6 +211,7 @@ interface SerializedHttpRequest {
     CmsModule,
     MediaModule,
     AuditLogsModule,
+    SettingsModule,
   ],
 
   controllers: [AppController],

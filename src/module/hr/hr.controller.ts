@@ -21,6 +21,9 @@ import { HrService } from './hr.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 import { QueryStaffDto } from './dto/query-staff.dto';
+import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
+import { QueryLeaveRequestsDto } from './dto/query-leave-requests.dto';
+import { QueryPayrollRunsDto } from './dto/query-payroll-runs.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -138,6 +141,70 @@ export class HrController {
     return successResponse(
       await this.service.removeStaff(orgId, branchId, id, actor.id),
       'Staff member terminated',
+    );
+  }
+
+  // ─── Payroll runs ──────────────────────────────────────────────────────────
+
+  @Get('payroll')
+  @ApiOperation({ summary: 'List payroll runs for a branch' })
+  async findPayrollRuns(
+    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Query() query: QueryPayrollRunsDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    const result = await this.service.findPayrollRuns(orgId, actor.id, query);
+    return paginatedResponse(result.items, result.meta);
+  }
+
+  // ─── Leave requests ────────────────────────────────────────────────────────
+
+  @Get('leave')
+  @ApiOperation({ summary: 'List leave requests for a branch' })
+  async findLeaveRequests(
+    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Query() query: QueryLeaveRequestsDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    const result = await this.service.findLeaveRequests(orgId, actor.id, query);
+    return paginatedResponse(result.items, result.meta);
+  }
+
+  @Post('leave')
+  @Roles(...HR_WRITE_ROLES)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Submit a leave request for a staff member' })
+  async createLeaveRequest(
+    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Body() dto: CreateLeaveRequestDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return successResponse(
+      await this.service.createLeaveRequest(orgId, dto, actor.id),
+      'Leave request submitted',
+    );
+  }
+
+  @Post('leave/:id/review')
+  @Roles(...HR_WRITE_ROLES)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Approve or deny a leave request' })
+  async reviewLeaveRequest(
+    @Param('orgId', ParseUUIDPipe) orgId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('status') status: 'APPROVED' | 'DENIED',
+    @Body('comments') comments: string | undefined,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return successResponse(
+      await this.service.reviewLeaveRequest(
+        orgId,
+        id,
+        status,
+        actor.id,
+        comments,
+      ),
+      `Leave request ${status.toLowerCase()}`,
     );
   }
 }

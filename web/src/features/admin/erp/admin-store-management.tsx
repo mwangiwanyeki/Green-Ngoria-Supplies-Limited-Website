@@ -26,11 +26,15 @@ import {
   useDeleteStore,
   type InventoryStore,
 } from '@/lib/api/hooks/use-inventory';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 export function AdminStoreManagement() {
   const branchId = useBranchStore((s) => s.activeBranchId) ?? '';
 
   const [search, setSearch] = React.useState('');
+
+
+  const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(15);
 
@@ -40,7 +44,7 @@ export function AdminStoreManagement() {
     null,
   );
 
-  const query = useInventoryStores({ search, page, limit: perPage });
+  const query = useInventoryStores({ search: debouncedSearch, page, limit: perPage });
   const deleteMutation = useDeleteStore();
 
   const columns: ErpColumn<InventoryStore>[] = [

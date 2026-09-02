@@ -19,9 +19,12 @@ import {
   useSuppliers, useCreateSupplier, useUpdateSupplier, useApproveSupplier,
   type Supplier, type CreateSupplierPayload,
 } from '@/lib/api/hooks/use-suppliers';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 export function AdminSuppliers() {
   const [search, setSearch] = React.useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(15);
 
@@ -29,7 +32,7 @@ export function AdminSuppliers() {
   const [editSupplier, setEditSupplier] = React.useState<Supplier | null>(null);
   const [viewSupplier, setViewSupplier] = React.useState<Supplier | null>(null);
 
-  const query = useSuppliers({ search, page, limit: perPage });
+  const query = useSuppliers({ search: debouncedSearch, page, limit: perPage });
 
   const columns: ErpColumn<Supplier>[] = [
     {

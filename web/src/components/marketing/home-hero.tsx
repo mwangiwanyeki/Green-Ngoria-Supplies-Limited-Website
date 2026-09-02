@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlantSchematic } from '@/components/marketing/plant-schematic';
+import { HeroBackdrop } from '@/components/marketing/hero-backdrop';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -32,7 +33,8 @@ export function HomeHero({
 
   return (
     <section className="surface-ink on-ink texture-grain relative overflow-hidden">
-      <div className="linework pointer-events-none absolute inset-0 opacity-70" />
+      <HeroBackdrop />
+      <div className="linework pointer-events-none absolute inset-0 opacity-40" />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-40 top-[-14rem] h-[42rem] w-[42rem] rounded-full bg-brand-500/[0.14] blur-[140px]"

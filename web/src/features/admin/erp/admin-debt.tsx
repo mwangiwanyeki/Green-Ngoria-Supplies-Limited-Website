@@ -25,12 +25,15 @@ import {
   type RecordDebtPaymentPayload, type UpdateDebtAccountPayload,
 } from '@/lib/api/hooks/use-debt';
 import { format } from 'date-fns';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 type DebtFilter = 'all' | 'CURRENT' | 'OVERDUE' | 'SETTLED';
 
 export function AdminDebt() {
   const branchId = useBranchStore((s) => s.activeBranchId) ?? '';
   const [search, setSearch] = React.useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [status, setStatus] = React.useState<DebtFilter>('all');
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(15);
@@ -39,9 +42,8 @@ export function AdminDebt() {
   const [payAccount, setPayAccount] = React.useState<DebtAccount | null>(null);
   const [editAccount, setEditAccount] = React.useState<DebtAccount | null>(null);
 
-  const query = useDebtAccounts({
-    search, page, limit: perPage,
-    ...(status !== 'all' ? { status } : {}),
+  const query = useDebtAccounts({ search: debouncedSearch, page, limit: perPage,
+    ...(status !== 'all' ? { status } : { }),
   });
   const { data: stats } = useDebtStats();
 

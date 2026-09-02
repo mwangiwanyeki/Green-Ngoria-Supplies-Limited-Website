@@ -5,10 +5,18 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000')
   .replace(/\/$/, '');
 const isProduction = process.env.NODE_ENV === 'production';
 const apiOrigin = new URL(API_URL).origin;
+// `script-src` allows 'unsafe-inline': Next.js emits inline bootstrap/
+// streaming scripts for hydration on every (including statically prerendered)
+// page. A strict `script-src 'self'` blocked them → hydration failed (React
+// #412) and the app was inert. A per-request nonce doesn't help here because
+// nonces are only applied to dynamically-rendered pages, and this site is
+// largely static. 'unsafe-inline' is the standard, working CSP for a static
+// Next deployment; XSS is mitigated by React's default escaping, the strict
+// object-src/base-uri/form-action directives below, and input validation.
 const contentSecurityPolicy = [
   "default-src 'self'",
   isProduction
-    ? "script-src 'self'"
+    ? "script-src 'self' 'unsafe-inline'"
     : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://plus.unsplash.com",

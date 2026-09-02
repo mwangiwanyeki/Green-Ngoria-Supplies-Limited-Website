@@ -10,15 +10,18 @@ import {
   useVatLeachStats,
   type VatLeachRental,
 } from '@/lib/api/hooks/use-vat-leach';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 export function AdminVatLeach() {
   const [search, setSearch] = useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [status, setStatus] = useState<
     'all' | 'active' | 'completed' | 'overdue'
   >('all');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
-  const query = useVatLeachRentals({ search, status, page, limit: perPage });
+  const query = useVatLeachRentals({ search: debouncedSearch, status, page, limit: perPage });
   const { data: stats } = useVatLeachStats();
 
   const columns: ErpColumn<VatLeachRental>[] = [

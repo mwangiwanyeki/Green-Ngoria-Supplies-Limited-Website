@@ -185,15 +185,6 @@ function LoginForm() {
             Request access
           </Link>
         </p>
-        <p className="border-t border-border pt-3">
-          Staff member?{' '}
-          <Link
-            href="/auth/admin"
-            className="font-medium text-primary hover:underline"
-          >
-            Go to the admin sign-in
-          </Link>
-        </p>
       </div>
     </div>
   );

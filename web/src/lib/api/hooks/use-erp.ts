@@ -29,6 +29,9 @@ export function useErpList<T = unknown>(
         params: { branchId, ...params },
       }),
     enabled: !!accessToken && !!orgId && !!branchId,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -46,5 +49,8 @@ export function useErpResource<T = unknown>(
         params: { branchId, ...params },
       }).then((r) => r.data),
     enabled: !!accessToken && !!orgId && !!branchId,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   });
 }

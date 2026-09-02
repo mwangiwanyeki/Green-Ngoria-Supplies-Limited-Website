@@ -8,12 +8,15 @@ import {
   type ActivityLogEntry,
 } from '@/lib/api/hooks/use-activity-logs';
 import { formatRelativeDate } from '@/lib/utils';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 export function AdminActivityLogs() {
   const [search, setSearch] = useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
-  const query = useActivityLogs({ search, page, limit: perPage });
+  const query = useActivityLogs({ search: debouncedSearch, page, limit: perPage });
 
   const columns: ErpColumn<ActivityLogEntry>[] = [
     {

@@ -12,12 +12,15 @@ import {
   type StockPile,
 } from '@/lib/api/hooks/use-stock-piles';
 import { formatRelativeDate } from '@/lib/utils';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 export function AdminStockPiles() {
   const [search, setSearch] = useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
-  const query = useStockPiles({ search, page, limit: perPage });
+  const query = useStockPiles({ search: debouncedSearch, page, limit: perPage });
   const { data: stats } = useStockPileStats();
 
   const columns: ErpColumn<StockPile>[] = [

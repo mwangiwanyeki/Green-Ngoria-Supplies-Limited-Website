@@ -2,6 +2,7 @@
   "name": "Green-Ngoria-Website",
   "version": "0.0.1",
   "description": "",
+  "packageManager": "pnpm@9.15.4",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
