@@ -39,6 +39,7 @@ export const portalNav = [
   { label: 'Assets', href: '/portal/assets', icon: 'Cpu' },
   { label: 'Support', href: '/portal/support', icon: 'LifeBuoy' },
   { label: 'Notifications', href: '/portal/notifications', icon: 'Bell' },
+  { label: 'Profile', href: '/portal/profile', icon: 'UserRound' },
 ] as const;
 
 // ─── Role constants for access segmentation ───────────────────────────────────
