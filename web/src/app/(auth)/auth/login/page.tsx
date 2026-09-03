@@ -10,6 +10,7 @@ import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { Suspense, useState } from 'react';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { OtpInput } from '@/components/ui/otp-input';
 import { useLogin } from '@/lib/api/hooks/use-auth';
 import { getApiErrorMessage } from '@/lib/api/api-error';
 
@@ -52,10 +53,13 @@ function LoginForm() {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+  const mfaCode = watch('mfaCode') ?? '';
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -92,11 +96,13 @@ function LoginForm() {
       // localisation-safe substring only as a last resort.
       const status = (err as { status?: number } | null)?.status;
       if (
-        status === 401 &&
-        (msg.toLowerCase().includes('mfa') ||
-          msg.toLowerCase().includes('two-factor'))
+        needsMfa ||
+        (status === 401 &&
+          (msg.toLowerCase().includes('mfa') ||
+            msg.toLowerCase().includes('two-factor')))
       ) {
         setNeedsMfa(true);
+        setValue('mfaCode', '', { shouldValidate: false });
       }
       toast.error(msg);
     }
@@ -167,15 +173,25 @@ function LoginForm() {
         </div>
 
         {needsMfa && (
-          <div className="space-y-1.5">
-            <Label htmlFor="mfaCode">MFA Code</Label>
-            <Input
-              id="mfaCode"
-              maxLength={6}
-              placeholder="6-digit code from your authenticator"
-              {...register('mfaCode')}
-              error={errors.mfaCode?.message}
+          <div className="space-y-2">
+            <Label>Authentication code</Label>
+            <OtpInput
+              value={mfaCode}
+              onChange={(v) =>
+                setValue('mfaCode', v, { shouldValidate: false })
+              }
+              onComplete={() => {
+                if (!isSubmitting && !login.isPending) {
+                  void handleSubmit(onSubmit)();
+                }
+              }}
+              disabled={isSubmitting || login.isPending}
+              autoFocus
+              aria-label="Authentication code"
             />
+            <p className="text-xs text-muted-foreground">
+              Enter the current 6-digit code — it submits automatically.
+            </p>
           </div>
         )}
 

@@ -19,7 +19,8 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
+import { Label } from '@/components/ui/input';
+import { OtpInput } from '@/components/ui/otp-input';
 import {
   Card,
   CardContent,
@@ -48,21 +49,25 @@ function MfaEnabled() {
   const [code, setCode] = useState('');
   const [confirming, setConfirming] = useState(false);
 
-  const onDisable = () => {
-    if (!/^\d{6}$/.test(code)) {
+  const onDisable = (submitted?: string) => {
+    const value = submitted ?? code;
+    if (!/^\d{6}$/.test(value)) {
       toast.error('Enter the 6-digit code from your authenticator');
       return;
     }
-    disable.mutate(code, {
+    if (disable.isPending) return;
+    disable.mutate(value, {
       onSuccess: () => {
         toast.success('Two-factor authentication disabled');
         setCode('');
         setConfirming(false);
       },
-      onError: (err) =>
+      onError: (err) => {
+        setCode('');
         toast.error(
           err instanceof Error ? err.message : 'Could not disable MFA',
-        ),
+        );
+      },
     });
   };
 
@@ -99,24 +104,21 @@ function MfaEnabled() {
             <p className="text-sm text-muted-foreground">
               Enter a current code from your authenticator app to confirm.
             </p>
+            <OtpInput
+              value={code}
+              onChange={setCode}
+              onComplete={(v) => onDisable(v)}
+              disabled={disable.isPending}
+              error={disable.isError}
+              aria-label="MFA disable code"
+            />
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Input
-                inputMode="numeric"
-                maxLength={6}
-                autoComplete="one-time-code"
-                placeholder="123456"
-                value={code}
-                onChange={(e) =>
-                  setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
-                }
-                className="sm:max-w-[200px] tabular-nums tracking-[0.3em]"
-              />
               <div className="flex gap-2">
                 <Button
                   variant="destructive"
                   loading={disable.isPending}
                   disabled={code.length !== 6 || disable.isPending}
-                  onClick={onDisable}
+                  onClick={() => onDisable()}
                 >
                   Confirm disable
                 </Button>
@@ -172,18 +174,22 @@ function MfaSetup({ email }: { email: string }) {
     }
   };
 
-  const onEnable = () => {
-    if (!/^\d{6}$/.test(code)) {
+  const onEnable = (submitted?: string) => {
+    const value = submitted ?? code;
+    if (!/^\d{6}$/.test(value)) {
       toast.error('Enter the 6-digit code from your authenticator');
       return;
     }
-    enable.mutate(code, {
+    if (enable.isPending) return;
+    enable.mutate(value, {
       onSuccess: () => {
         toast.success('Two-factor authentication enabled');
         setCode('');
       },
-      onError: (err) =>
-        toast.error(err instanceof Error ? err.message : 'Invalid code'),
+      onError: (err) => {
+        setCode('');
+        toast.error(err instanceof Error ? err.message : 'Invalid code');
+      },
     });
   };
 
@@ -270,32 +276,27 @@ function MfaSetup({ email }: { email: string }) {
               </div>
             </div>
 
-            <div className="space-y-2 border-t border-border pt-5">
-              <Label htmlFor="mfa-enable-code">
-                2. Enter the 6-digit code to confirm
-              </Label>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Input
-                  id="mfa-enable-code"
-                  inputMode="numeric"
-                  maxLength={6}
-                  autoComplete="one-time-code"
-                  placeholder="123456"
-                  value={code}
-                  onChange={(e) =>
-                    setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
-                  }
-                  className="sm:max-w-[200px] tabular-nums tracking-[0.3em]"
-                />
-                <Button
-                  variant="brand"
-                  loading={enable.isPending}
-                  disabled={code.length !== 6 || enable.isPending}
-                  onClick={onEnable}
-                >
-                  Verify &amp; enable
-                </Button>
-              </div>
+            <div className="space-y-3 border-t border-border pt-5">
+              <Label>2. Enter the 6-digit code to confirm</Label>
+              <OtpInput
+                value={code}
+                onChange={setCode}
+                onComplete={(v) => onEnable(v)}
+                disabled={enable.isPending}
+                error={enable.isError}
+                aria-label="MFA setup code"
+              />
+              <p className="text-xs text-muted-foreground">
+                It verifies automatically once all six digits are entered.
+              </p>
+              <Button
+                variant="brand"
+                loading={enable.isPending}
+                disabled={code.length !== 6 || enable.isPending}
+                onClick={() => onEnable()}
+              >
+                Verify &amp; enable
+              </Button>
             </div>
           </div>
         )}

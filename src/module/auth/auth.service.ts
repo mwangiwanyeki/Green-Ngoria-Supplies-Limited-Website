@@ -897,14 +897,17 @@ export class AuthService {
       return false;
     }
 
-    // Use a per-call authenticator instance rather than mutating the library
-    // singleton — the previous `authenticator.options = { window: 1 }` was a
-    // process-wide side effect that concurrent verify calls with a different
-    // intended window would race against.
-    const scoped = authenticator.create({ window: 1 });
+    // Use `clone()` (NOT `create()`) to get a per-call authenticator with a
+    // ±1 step tolerance window. `create()` REPLACES all options and drops
+    // otplib's default key codecs / digest, throwing "Expecting
+    // options.keyDecoder to be a function" — which made every verify fail and
+    // silently broke MFA enrolment and the login challenge entirely.
+    // `clone()` merges the given options onto the fully-configured instance.
+    const scoped = authenticator.clone({ window: 1 });
     try {
       return scoped.verify({ token: code, secret });
-    } catch {
+    } catch (error) {
+      this.logger.error('MFA verify() threw', error);
       return false;
     }
   }
