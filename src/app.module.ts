@@ -16,6 +16,8 @@ import { AuditModule } from './lib/audit/audit.module';
 import { CacheModule } from './lib/cache/cache.module';
 import { NotificationsModule } from './lib/notifications/notifications.module';
 import { HealthModule } from './lib/health/health.module';
+import { ArcjetModule } from './lib/arcjet/arcjet.module';
+import { ArcjetGuard } from './lib/arcjet/arcjet.guard';
 
 // Feature modules — Phase 1 Foundation
 import { AuthModule } from './module/auth/auth.module';
@@ -150,6 +152,7 @@ interface SerializedHttpRequest {
     CacheModule,
     NotificationsModule,
     HealthModule,
+    ArcjetModule,
 
     // ── Feature modules ───────────────────────────────────────────────────────
     AuthModule,
@@ -217,6 +220,14 @@ interface SerializedHttpRequest {
   controllers: [AppController],
   providers: [
     AppService,
+
+    // Arcjet runs FIRST — WAF shield + bot detection + auth rate limiting
+    // reject hostile traffic before any auth/DB work happens. Fail-open if
+    // Arcjet is unreachable so it can never take the API down.
+    {
+      provide: APP_GUARD,
+      useClass: ArcjetGuard,
+    },
 
     // Authentication and authorization are secure-by-default. Routes must
     // explicitly opt out with @Public(). Guard order is significant.

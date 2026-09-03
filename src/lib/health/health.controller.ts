@@ -8,9 +8,13 @@ import {
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Public } from '../../common/decorators/public.decorator';
 import { PrismaHealthIndicator } from './prisma.health';
+import { ArcjetSkip } from '../arcjet/arcjet.guard';
 
 @ApiTags('Health')
 @Controller('health')
+// Health/liveness/readiness probes must never be rate-limited or bot-blocked —
+// uptime monitors and the platform's own health checks hit these constantly.
+@ArcjetSkip()
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,

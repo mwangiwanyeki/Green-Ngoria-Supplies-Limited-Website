@@ -33,6 +33,7 @@ import {
   successResponse,
   messageResponse,
 } from '../../common/response/api-response';
+import { ArcjetAuth } from '../../lib/arcjet/arcjet.guard';
 
 // Stricter rate limit for auth-sensitive endpoints (login, register,
 // forgot-password) — read at module-load time, matching the pattern used
@@ -46,6 +47,10 @@ const AUTH_THROTTLE = {
 
 @ApiTags('Authentication')
 @Controller('auth')
+// Every auth route gets Arcjet's sharper tier: WAF shield + strict bot policy
+// + token-bucket rate limit, layered on top of @nestjs/throttler and the
+// account lockout in AuthService.
+@ArcjetAuth()
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
