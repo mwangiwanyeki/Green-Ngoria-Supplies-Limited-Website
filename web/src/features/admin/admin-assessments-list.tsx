@@ -38,6 +38,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { siteConfig } from '@/config/site';
 import { useMe } from '@/lib/api/hooks/use-auth';
 import {
   useAssessments,
@@ -211,11 +212,18 @@ export function AdminAssessmentsList() {
             >
               Refresh
             </Button>
-            <Link href="/technical-assessment" target="_blank">
+            {/* Absolute URL to the public apex — this page lives on the
+              * marketing site, not on admin.greenngoria.com, so a relative
+              * link 404s from the admin subdomain. */}
+            <a
+              href={`${siteConfig.url}/technical-assessment`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Button size="sm" variant="brand">
                 Open Public Intake Form
               </Button>
-            </Link>
+            </a>
           </div>
         }
       />

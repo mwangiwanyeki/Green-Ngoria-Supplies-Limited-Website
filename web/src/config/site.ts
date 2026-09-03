@@ -15,8 +15,7 @@ export const siteConfig = {
   description:
     'Gold and gemstone mining, building works, road construction, water projects, mechanical and electrical services, oil and petroleum, timber importation and general supplies across East and Central Africa.',
   tagline: company.tagline,
-  url:
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.greenngoriasupplies.com',
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://greenngoria.com',
   portalUrl:
     process.env.NEXT_PUBLIC_PORTAL_URL ?? 'https://portal.greenngoria.com',
   adminUrl:
