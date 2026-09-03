@@ -66,6 +66,7 @@ import { StockPilesModule } from './module/stock-piles/stock-piles.module';
 import { SiteSecurityModule } from './module/site-security/site-security.module';
 import { HrModule } from './module/hr/hr.module';
 import { VisitorsModule } from './module/visitors/visitors.module';
+import { WebAnalyticsModule } from './module/web-analytics/web-analytics.module';
 import { ErpReportsModule } from './module/erp-reports/erp-reports.module';
 
 // Feature modules — Platform administration
@@ -207,6 +208,7 @@ interface SerializedHttpRequest {
     SiteSecurityModule,
     HrModule,
     VisitorsModule,
+    WebAnalyticsModule,
     ErpReportsModule,
 
     // Platform administration
