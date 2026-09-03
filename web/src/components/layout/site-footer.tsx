@@ -48,7 +48,6 @@ const columns: { heading: string; links: { label: string; href: string }[] }[] =
         { label: 'Request a plant assessment', href: '/technical-assessment' },
         { label: 'Equipment', href: '/equipment' },
         { label: 'Spare parts', href: '/spares' },
-        { label: 'Client portal', href: '/auth/login' },
       ],
     },
   ];
@@ -236,7 +235,6 @@ export function SiteFooter() {
             {[
               { label: 'Privacy', href: '/privacy' },
               { label: 'Terms', href: '/terms' },
-              { label: 'Client portal', href: '/auth/login' },
             ].map((link) => (
               <li key={link.href}>
                 <Link

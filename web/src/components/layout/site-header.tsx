@@ -311,14 +311,6 @@ export function SiteHeader() {
                 <div className="hidden lg:block">
                   <ThemeToggle onInk={transparent} />
                 </div>
-                <Link href="/auth/login" className="hidden lg:block">
-                  <Button
-                    variant={transparent ? 'on-ink' : 'outline'}
-                    size="sm"
-                  >
-                    Client portal
-                  </Button>
-                </Link>
                 <Link href="/request-rfq" className="hidden sm:block">
                   <Button variant="brand" size="sm">
                     Request a quotation
@@ -551,11 +543,6 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
             <Link href="/request-rfq" onClick={onClose}>
               <Button variant="brand" size="lg" className="w-full">
                 Request a quotation
-              </Button>
-            </Link>
-            <Link href="/auth/login" onClick={onClose}>
-              <Button variant="outline" size="lg" className="w-full">
-                Client portal
               </Button>
             </Link>
           </div>
