@@ -104,6 +104,25 @@ httpClient.interceptors.response.use(
         _retried?: boolean;
       };
 
+      // A 401 from an auth endpoint is a *credential rejection* (wrong
+      // password, invalid/expired MFA code, bad reset token) — NOT an expired
+      // session. Never trigger the refresh-and-retry dance for these; doing so
+      // fired a doomed /auth/refresh, then surfaced a misleading "Session
+      // expired. Please log in again." over the real "Invalid MFA code".
+      const reqUrl = originalRequest.url ?? '';
+      const isAuthEndpoint =
+        reqUrl.includes('/auth/login') ||
+        reqUrl.includes('/auth/register') ||
+        reqUrl.includes('/auth/forgot-password') ||
+        reqUrl.includes('/auth/reset-password') ||
+        reqUrl.includes('/auth/verify-email') ||
+        reqUrl.endsWith('/auth/refresh');
+      if (isAuthEndpoint) {
+        return Promise.reject(
+          new ApiError(status, message, errors, path ?? undefined),
+        );
+      }
+
       // Only retry once to avoid infinite loops
       if (
         !originalRequest._retried &&
