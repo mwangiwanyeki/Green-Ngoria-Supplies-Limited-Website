@@ -1,18 +1,48 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useMe } from '@/lib/api/hooks/use-auth';
+import { useAuthStore } from '@/stores/auth-store';
 import { getPrimaryRoleCategory, EXECUTIVE_ROLES } from '@/config/navigation';
-import { AdminSalesDashboard } from './dashboards/admin-sales-dashboard';
-import { AdminPmDashboard } from './dashboards/admin-pm-dashboard';
-import { AdminEngineeringDashboard } from './dashboards/admin-engineering-dashboard';
-import { AdminExecutiveDashboard } from './dashboards/admin-executive-dashboard';
+import { PageSkeleton } from '@/components/ui/skeleton';
 import { ShoppingBag, FolderKanban, Cpu, ShieldCheck, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const AdminSalesDashboard = dynamic(
+  () =>
+    import('./dashboards/admin-sales-dashboard').then(
+      (m) => m.AdminSalesDashboard,
+    ),
+  { loading: () => <PageSkeleton /> },
+);
+
+const AdminPmDashboard = dynamic(
+  () =>
+    import('./dashboards/admin-pm-dashboard').then((m) => m.AdminPmDashboard),
+  { loading: () => <PageSkeleton /> },
+);
+
+const AdminEngineeringDashboard = dynamic(
+  () =>
+    import('./dashboards/admin-engineering-dashboard').then(
+      (m) => m.AdminEngineeringDashboard,
+    ),
+  { loading: () => <PageSkeleton /> },
+);
+
+const AdminExecutiveDashboard = dynamic(
+  () =>
+    import('./dashboards/admin-executive-dashboard').then(
+      (m) => m.AdminExecutiveDashboard,
+    ),
+  { loading: () => <PageSkeleton /> },
+);
+
 export function AdminDashboard() {
   const { data: user } = useMe();
-  const userRoles = user?.roles ?? [];
+  const cachedUser = useAuthStore((s) => s.user);
+  const userRoles = user?.roles ?? cachedUser?.roles ?? [];
 
   // Determine user's native role category
   const nativeCategory = useMemo(() => {

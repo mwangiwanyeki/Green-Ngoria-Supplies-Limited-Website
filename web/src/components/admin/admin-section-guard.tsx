@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ShieldAlert, ArrowLeft, LayoutDashboard, Lock } from 'lucide-react';
 import { useMe } from '@/lib/api/hooks/use-auth';
+import { useAuthStore } from '@/stores/auth-store';
 import {
   getAllowedRolesForPath,
   hasRoleAccess,
@@ -22,12 +23,21 @@ export function AdminSectionGuard({
   allowedRoles: explicitAllowedRoles,
 }: AdminSectionGuardProps) {
   const pathname = usePathname();
-  const { data: user } = useMe();
-  const userRoles = user?.roles ?? [];
+  const { data: user, isLoading } = useMe();
+  const cachedUser = useAuthStore((s) => s.user);
+  const userRoles = user?.roles ?? cachedUser?.roles ?? [];
 
   // Determine allowed roles either from explicit prop or by matching navigation config
-  const allowedRoles =
-    explicitAllowedRoles ?? getAllowedRolesForPath(pathname);
+  const allowedRoles = explicitAllowedRoles ?? getAllowedRolesForPath(pathname);
+
+  // If user roles haven't loaded yet and network query is pending, show loading rather than false-forbidden
+  if (userRoles.length === 0 && isLoading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center p-8">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+      </div>
+    );
+  }
 
   // Executive roles always bypass restriction
   const isAllowed = hasRoleAccess(allowedRoles ?? undefined, userRoles);

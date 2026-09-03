@@ -7,6 +7,7 @@ import { DebtService } from '../debt/debt.service';
 import { AccountsService } from '../accounts/accounts.service';
 import { ErpCustomersService } from '../erp-customers/erp-customers.service';
 import { HrService } from '../hr/hr.service';
+import { CacheService } from '../../lib/cache/cache.service';
 import {
   QueryReportsOverviewDto,
   ReportRange,
@@ -65,12 +66,14 @@ export class ErpReportsService {
     private readonly accounts: AccountsService,
     private readonly customers: ErpCustomersService,
     private readonly hr: HrService,
+    private readonly cache: CacheService,
   ) {}
 
   /**
    * Single cross-module snapshot for the admin reports screen. Every number
    * here is aggregated live from the owning module's own service, so the
    * reports page can never drift from what the individual ERP screens show.
+   * Cached for 30s per window.
    */
   async getOverview(
     organizationId: string,
@@ -85,83 +88,99 @@ export class ErpReportsService {
     const trendMonths = query.months ?? DEFAULT_TREND_MONTHS;
     const trendFrom = startOfMonthsAgo(to, trendMonths - 1);
 
-    // Each service re-verifies org membership and branch-in-org itself, so a
-    // forged branchId is rejected before any of these reach a where clause.
-    const [
-      revenue,
-      expenseStats,
-      stock,
-      debtStats,
-      accountSummary,
-      customersCount,
-      staffCount,
-      monthlyRevenue,
-      monthlyExpenses,
-      expensesByCategory,
-    ] = await Promise.all([
-      this.sales.getRevenueSummary(organizationId, userId, scoped),
-      this.expenses.getStats(organizationId, userId, scoped),
-      this.inventory.getStats(organizationId, userId, { branchId }),
-      this.debt.getStats(organizationId, userId, { branchId }),
-      this.accounts.getSummary(organizationId, userId, { branchId }),
-      this.customers.getCount(organizationId, userId, branchId),
-      this.hr
-        .getOverview(organizationId, branchId, userId)
-        .then((o) => o.headcount)
-        .catch(() => 0),
-      this.sales.getMonthlyRevenue(organizationId, userId, {
-        branchId,
-        from: trendFrom,
-        to,
-      }),
-      this.expenses.getMonthlyTotals(organizationId, userId, {
-        branchId,
-        from: trendFrom,
-        to,
-      }),
-      this.expenses.getCategoryBreakdown(organizationId, userId, scoped),
-    ]);
-
-    const totalRevenue = new Prisma.Decimal(revenue.totalRevenue);
-    const totalExpenses = new Prisma.Decimal(expenseStats.totalExpenses);
-    const netProfit = totalRevenue.minus(totalExpenses);
-    const profitMargin = totalRevenue.isZero()
-      ? 0
-      : netProfit
-          .dividedBy(totalRevenue)
-          .times(100)
-          .toDecimalPlaces(2)
-          .toNumber();
-
-    return {
-      range,
-      from: from.toISOString(),
-      to: to.toISOString(),
+    const cacheKey = this.cache.buildKey(
+      'erp-reports',
+      organizationId,
       branchId,
-      totalRevenue: totalRevenue.toString(),
-      ordersCount: revenue.saleCount,
-      totalExpenses: totalExpenses.toString(),
-      expenseRecords: expenseStats.recordCount,
-      netProfit: netProfit.toString(),
-      profitMargin,
-      avgOrderValue: revenue.averageSale,
-      stockValue: stock.stockOnHandValue,
-      stockItems: stock.totalItems,
-      outstandingDebt: debtStats.totalOutstanding,
-      debtOverdue: debtStats.overdueCount,
-      lowStock: stock.lowStockCount,
-      outOfStock: stock.outOfStockCount,
-      cashBalance: accountSummary.totalBalance,
-      accountsCount: accountSummary.accountCount,
-      customersCount,
-      staffCount,
-      monthly: buildTrend(trendFrom, to, monthlyRevenue, monthlyExpenses),
-      expensesByCategory: expensesByCategory.map((row) => ({
-        categoryId: row.categoryId,
-        name: row.name,
-        total: Number(row.total),
-      })),
-    };
+      range,
+      from.toISOString(),
+      to.toISOString(),
+      String(trendMonths),
+    );
+
+    return this.cache.getOrSet(
+      cacheKey,
+      async () => {
+        // Each service re-verifies org membership and branch-in-org itself, so a
+        // forged branchId is rejected before any of these reach a where clause.
+        const [
+          revenue,
+          expenseStats,
+          stock,
+          debtStats,
+          accountSummary,
+          customersCount,
+          staffCount,
+          monthlyRevenue,
+          monthlyExpenses,
+          expensesByCategory,
+        ] = await Promise.all([
+          this.sales.getRevenueSummary(organizationId, userId, scoped),
+          this.expenses.getStats(organizationId, userId, scoped),
+          this.inventory.getStats(organizationId, userId, { branchId }),
+          this.debt.getStats(organizationId, userId, { branchId }),
+          this.accounts.getSummary(organizationId, userId, { branchId }),
+          this.customers.getCount(organizationId, userId, branchId),
+          this.hr
+            .getOverview(organizationId, branchId, userId)
+            .then((o) => o.headcount)
+            .catch(() => 0),
+          this.sales.getMonthlyRevenue(organizationId, userId, {
+            branchId,
+            from: trendFrom,
+            to,
+          }),
+          this.expenses.getMonthlyTotals(organizationId, userId, {
+            branchId,
+            from: trendFrom,
+            to,
+          }),
+          this.expenses.getCategoryBreakdown(organizationId, userId, scoped),
+        ]);
+
+        const totalRevenue = new Prisma.Decimal(revenue.totalRevenue);
+        const totalExpenses = new Prisma.Decimal(expenseStats.totalExpenses);
+        const netProfit = totalRevenue.minus(totalExpenses);
+        const profitMargin = totalRevenue.isZero()
+          ? 0
+          : netProfit
+              .dividedBy(totalRevenue)
+              .times(100)
+              .toDecimalPlaces(2)
+              .toNumber();
+
+        return {
+          range,
+          from: from.toISOString(),
+          to: to.toISOString(),
+          branchId,
+          totalRevenue: totalRevenue.toString(),
+          ordersCount: revenue.saleCount,
+          totalExpenses: totalExpenses.toString(),
+          expenseRecords: expenseStats.recordCount,
+          netProfit: netProfit.toString(),
+          profitMargin,
+          avgOrderValue: revenue.averageSale,
+          stockValue: stock.stockOnHandValue,
+          stockItems: stock.totalItems,
+          outstandingDebt: debtStats.totalOutstanding,
+          debtOverdue: debtStats.overdueCount,
+          lowStock: stock.lowStockCount,
+          outOfStock: stock.outOfStockCount,
+          cashBalance: accountSummary.totalBalance,
+          accountsCount: accountSummary.accountCount,
+          customersCount,
+          staffCount,
+          monthly: buildTrend(trendFrom, to, monthlyRevenue, monthlyExpenses),
+          expensesByCategory: expensesByCategory.map((row) => ({
+            categoryId: row.categoryId,
+            name: row.name,
+            total: Number(row.total),
+          })),
+        };
+      },
+      30,
+    );
   }
 }
 

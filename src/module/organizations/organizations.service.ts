@@ -18,6 +18,7 @@ import {
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { AddMemberDto } from './dto/add-member.dto';
+import { CacheService } from '../../lib/cache/cache.service';
 
 @Injectable()
 export class OrganizationsService {
@@ -26,6 +27,7 @@ export class OrganizationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly cache: CacheService,
   ) {}
 
   // ─── Slug helper ───────────────────────────────────────────────────────────
@@ -260,6 +262,7 @@ export class OrganizationsService {
       newValues: { userId: dto.userId, role: dto.role },
     });
 
+    await this.cache.del(`assertMembership:${organizationId}:${dto.userId}`);
     return { message: 'Member added' };
   }
 
@@ -284,6 +287,8 @@ export class OrganizationsService {
       where: { organizationId_userId: { organizationId, userId } },
       data: { removedAt: new Date() },
     });
+
+    await this.cache.del(`assertMembership:${organizationId}:${userId}`);
 
     await this.auditService.log({
       userId: removedById,
@@ -318,6 +323,8 @@ export class OrganizationsService {
       data: { role: newRole },
     });
 
+    await this.cache.del(`assertMembership:${organizationId}:${userId}`);
+
     await this.auditService.log({
       userId: changedById,
       organizationId,
@@ -334,12 +341,16 @@ export class OrganizationsService {
   /**
    * Tenant isolation check — verify a user is a member of an organization.
    * Throws ForbiddenException if not.
-   * Used by all feature services to scope queries.
+   * Cached for 60 seconds to eliminate repeated queries across parallel services.
    */
   async assertMembership(
     organizationId: string,
     userId: string,
   ): Promise<void> {
+    const cacheKey = `assertMembership:${organizationId}:${userId}`;
+    const cached = await this.cache.get<boolean>(cacheKey);
+    if (cached) return;
+
     // SUPER_ADMIN and ADMIN bypass org checks
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -352,7 +363,10 @@ export class OrganizationsService {
       ['SUPER_ADMIN', 'ADMIN'].includes(ur.role.name),
     );
 
-    if (isGlobalAdmin) return;
+    if (isGlobalAdmin) {
+      await this.cache.set(cacheKey, true, 60);
+      return;
+    }
 
     const membership = await this.prisma.organizationMember.findUnique({
       where: {
@@ -365,5 +379,7 @@ export class OrganizationsService {
         'You do not have access to this organization',
       );
     }
+
+    await this.cache.set(cacheKey, true, 60);
   }
 }

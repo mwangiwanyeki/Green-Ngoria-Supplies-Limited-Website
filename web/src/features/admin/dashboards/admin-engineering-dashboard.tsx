@@ -42,6 +42,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMe } from '@/lib/api/hooks/use-auth';
+import { useAuthStore } from '@/stores/auth-store';
 import { useAssessments } from '@/lib/api/hooks/use-assessments';
 import { useAnalyticsDashboard } from '@/lib/api/hooks/use-analytics';
 import { useDocuments } from '@/lib/api/hooks/use-engineering';
@@ -79,7 +80,8 @@ const fadeUp = {
 
 export function AdminEngineeringDashboard() {
   const { data: user } = useMe();
-  const orgId = user?.organizationId ?? '';
+  const cachedOrgId = useAuthStore((s) => s.user?.organizationId);
+  const orgId = user?.organizationId || cachedOrgId || '';
 
   type AssessmentRow = {
     id: string;
@@ -91,8 +93,9 @@ export function AdminEngineeringDashboard() {
     estimatedTph?: number | null;
     createdAt: string;
   };
-  const { data: assessmentsData } = useAssessments(orgId, { limit: 200 });
-  const assessments = (assessmentsData?.data as AssessmentRow[] | undefined) ?? [];
+  const { data: assessmentsData } = useAssessments(orgId, { limit: 25 });
+  const assessments =
+    (assessmentsData?.data as AssessmentRow[] | undefined) ?? [];
   const { data: analytics } = useAnalyticsDashboard(orgId);
   type EngDoc = {
     id: string;
@@ -107,7 +110,11 @@ export function AdminEngineeringDashboard() {
   // No kinetics/adsorption time-series exists in the DB — the previous
   // curve was demo. Hide the chart with an empty state until a real
   // metallurgical test-run source lands.
-  const leachingKinetics: Array<{ time: string; dissolution: number; adsorption: number }> = [];
+  const leachingKinetics: Array<{
+    time: string;
+    dissolution: number;
+    adsorption: number;
+  }> = [];
 
   // Real intake mix from live assessments' mineralType.
   const mineralIntake = useMemo(() => {
@@ -127,11 +134,17 @@ export function AdminEngineeringDashboard() {
   }, [assessments]);
 
   const pendingAssessments = assessments.filter(
-    (a) => a.status && !['COMPLETED', 'CANCELLED', 'APPROVED'].includes((a.status ?? '').toUpperCase()),
+    (a) =>
+      a.status &&
+      !['COMPLETED', 'CANCELLED', 'APPROVED'].includes(
+        (a.status ?? '').toUpperCase(),
+      ),
   ).length;
   const approvedDocsPct = engineeringDocs.length
     ? Math.round(
-        (engineeringDocs.filter((d) => (d.status ?? '').toUpperCase() === 'APPROVED').length /
+        (engineeringDocs.filter(
+          (d) => (d.status ?? '').toUpperCase() === 'APPROVED',
+        ).length /
           engineeringDocs.length) *
           100,
       )
@@ -174,15 +187,15 @@ export function AdminEngineeringDashboard() {
       >
         <MetricCard
           title="Plant Assessments in Queue"
-          value={
-            assessments.length > 0 ? String(pendingAssessments) : '—'
-          }
+          value={assessments.length > 0 ? String(pendingAssessments) : '—'}
           description={
             assessments.length > 0
               ? `${assessments.length} total tracked`
               : 'no assessments yet'
           }
-          icon={<ClipboardList className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
+          icon={
+            <ClipboardList className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          }
         />
         <MetricCard
           title="Controlled Engineering Docs"
@@ -206,13 +219,13 @@ export function AdminEngineeringDashboard() {
               ? `${analytics.assessments.total ?? 0} logged`
               : 'no data'
           }
-          icon={<CheckCircle2 className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
+          icon={
+            <CheckCircle2 className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          }
         />
         <MetricCard
           title="Open HSE incidents"
-          value={
-            analytics ? String(analytics.hse.openIncidents ?? 0) : '—'
-          }
+          value={analytics ? String(analytics.hse.openIncidents ?? 0) : '—'}
           description={
             analytics
               ? analytics.hse.openIncidents === 0
@@ -237,8 +250,12 @@ export function AdminEngineeringDashboard() {
             <ClipboardList className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Plant Assessment</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Ore kinetics &amp; flowsheets</div>
+            <div className="text-xs font-semibold text-foreground">
+              Plant Assessment
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Ore kinetics &amp; flowsheets
+            </div>
           </div>
         </Link>
 
@@ -250,8 +267,12 @@ export function AdminEngineeringDashboard() {
             <Files className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Document Control</div>
-            <div className="text-[0.6875rem] text-muted-foreground">P&amp;IDs, drawings, revisions</div>
+            <div className="text-xs font-semibold text-foreground">
+              Document Control
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              P&amp;IDs, drawings, revisions
+            </div>
           </div>
         </Link>
 
@@ -263,8 +284,12 @@ export function AdminEngineeringDashboard() {
             <MapPin className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Mining Sites</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Concessions &amp; ore bodies</div>
+            <div className="text-xs font-semibold text-foreground">
+              Mining Sites
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Concessions &amp; ore bodies
+            </div>
           </div>
         </Link>
 
@@ -276,8 +301,12 @@ export function AdminEngineeringDashboard() {
             <FlaskConical className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Vat Leach Kinetics</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Reagent dosing &amp; recovery</div>
+            <div className="text-xs font-semibold text-foreground">
+              Vat Leach Kinetics
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Reagent dosing &amp; recovery
+            </div>
           </div>
         </Link>
 
@@ -289,8 +318,12 @@ export function AdminEngineeringDashboard() {
             <Cpu className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Plant Asset Register</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Maintenance &amp; work orders</div>
+            <div className="text-xs font-semibold text-foreground">
+              Plant Asset Register
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Maintenance &amp; work orders
+            </div>
           </div>
         </Link>
       </motion.div>
@@ -304,15 +337,22 @@ export function AdminEngineeringDashboard() {
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
             <div>
-              <h3 className="text-base font-bold text-foreground">CIP/CIL Leaching &amp; Adsorption Kinetics</h3>
-              <p className="text-xs text-muted-foreground">Gold dissolution rate vs activated carbon adsorption % across 24hr residence time</p>
+              <h3 className="text-base font-bold text-foreground">
+                CIP/CIL Leaching &amp; Adsorption Kinetics
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Gold dissolution rate vs activated carbon adsorption % across
+                24hr residence time
+              </p>
             </div>
             <div className="flex items-center gap-4 text-xs font-medium">
               <span className="flex items-center gap-1.5 text-teal-600 dark:text-teal-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-teal-600" /> Dissolution %
+                <span className="h-2.5 w-2.5 rounded-full bg-teal-600" />{' '}
+                Dissolution %
               </span>
               <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Carbon Adsorption %
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />{' '}
+                Carbon Adsorption %
               </span>
             </div>
           </div>
@@ -328,19 +368,54 @@ export function AdminEngineeringDashboard() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={leachingKinetics} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="time" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                <LineChart
+                  data={leachingKinetics}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--border))"
+                  />
+                  <XAxis
+                    dataKey="time"
+                    tick={{
+                      fontSize: 11,
+                      fill: 'hsl(var(--muted-foreground))',
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <YAxis
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{
+                      fontSize: 11,
+                      fill: 'hsl(var(--muted-foreground))',
+                    }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `${v}%`}
                     domain={[0, 100]}
                   />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => `${val}%`} />
-                  <Line type="monotone" dataKey="dissolution" name="Au Dissolution" stroke="#0d9488" strokeWidth={3} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="adsorption" name="Carbon Adsorption" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4 }} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(val: number) => `${val}%`}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="dissolution"
+                    name="Au Dissolution"
+                    stroke="#0d9488"
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="adsorption"
+                    name="Carbon Adsorption"
+                    stroke="#f59e0b"
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -353,8 +428,12 @@ export function AdminEngineeringDashboard() {
           className="rounded-2xl border border-hairline bg-card p-6 shadow-sm flex flex-col justify-between"
         >
           <div>
-            <h3 className="text-base font-bold text-foreground">Ore Intake by Metallurgy</h3>
-            <p className="text-xs text-muted-foreground">Technical plant assessments by deposit type</p>
+            <h3 className="text-base font-bold text-foreground">
+              Ore Intake by Metallurgy
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Technical plant assessments by deposit type
+            </p>
           </div>
 
           <div className="h-[200px] my-2">
@@ -375,10 +454,16 @@ export function AdminEngineeringDashboard() {
                     dataKey="value"
                   >
                     {mineralIntake.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => `${val}%`} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(val: number) => `${val}%`}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -386,15 +471,27 @@ export function AdminEngineeringDashboard() {
 
           <div className="space-y-2 border-t border-hairline pt-3">
             {mineralIntake.length === 0 ? (
-              <div className="py-2 text-center text-xs text-muted-foreground">—</div>
+              <div className="py-2 text-center text-xs text-muted-foreground">
+                —
+              </div>
             ) : (
               mineralIntake.map((d, i) => (
-                <div key={d.name} className="flex items-center justify-between text-xs">
+                <div
+                  key={d.name}
+                  className="flex items-center justify-between text-xs"
+                >
                   <span className="flex items-center gap-2 text-muted-foreground truncate max-w-[180px]">
-                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                    <span
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{
+                        backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                      }}
+                    />
                     <span className="truncate">{d.name}</span>
                   </span>
-                  <span className="font-semibold text-foreground">{d.value}%</span>
+                  <span className="font-semibold text-foreground">
+                    {d.value}%
+                  </span>
                 </div>
               ))
             )}
@@ -411,10 +508,17 @@ export function AdminEngineeringDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-foreground">Technical Plant Assessments</h3>
-              <p className="text-xs text-muted-foreground">Awaiting engineering calculation &amp; flowsheet review</p>
+              <h3 className="text-base font-bold text-foreground">
+                Technical Plant Assessments
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Awaiting engineering calculation &amp; flowsheet review
+              </p>
             </div>
-            <Link href="/admin/assessments" className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1">
+            <Link
+              href="/admin/assessments"
+              className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1"
+            >
               All Assessments <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
@@ -426,19 +530,27 @@ export function AdminEngineeringDashboard() {
               </div>
             ) : (
               assessments.slice(0, 5).map((a) => (
-                <div key={a.id} className="py-3 flex items-center justify-between">
+                <div
+                  key={a.id}
+                  className="py-3 flex items-center justify-between"
+                >
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-foreground">{a.reference}</span>
+                      <span className="font-mono text-xs font-bold text-foreground">
+                        {a.reference}
+                      </span>
                       <StatusBadge status={a.status ?? 'PENDING'} />
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {a.clientName} • {a.miningLocation ?? 'East Africa'} • {a.mineralType ?? 'GOLD'}
+                      {a.clientName} • {a.miningLocation ?? 'East Africa'} •{' '}
+                      {a.mineralType ?? 'GOLD'}
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="font-mono text-xs font-bold text-foreground">
-                      {a.estimatedTph ? `${a.estimatedTph} TPH` : '30 TPH Target'}
+                      {a.estimatedTph
+                        ? `${a.estimatedTph} TPH`
+                        : '30 TPH Target'}
                     </div>
                     <div className="text-[0.6875rem] text-muted-foreground">
                       {formatRelativeDate(a.createdAt)}
@@ -457,10 +569,17 @@ export function AdminEngineeringDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-foreground">Controlled Engineering Documents</h3>
-              <p className="text-xs text-muted-foreground">P&amp;IDs, process flow diagrams, and mechanical transmittals</p>
+              <h3 className="text-base font-bold text-foreground">
+                Controlled Engineering Documents
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                P&amp;IDs, process flow diagrams, and mechanical transmittals
+              </p>
             </div>
-            <Link href="/admin/engineering" className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1">
+            <Link
+              href="/admin/engineering"
+              className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1"
+            >
               Doc Control <ArrowRight className="h-3 w-3" />
             </Link>
           </div>

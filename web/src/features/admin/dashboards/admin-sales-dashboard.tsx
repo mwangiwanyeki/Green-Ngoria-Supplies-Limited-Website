@@ -40,6 +40,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMe } from '@/lib/api/hooks/use-auth';
+import { useAuthStore } from '@/stores/auth-store';
 import { useQuotations } from '@/lib/api/hooks/use-quotations';
 import { useLeads } from '@/lib/api/hooks/use-leads';
 import { useAnalyticsDashboard } from '@/lib/api/hooks/use-analytics';
@@ -79,15 +80,17 @@ const fadeUp = {
 
 export function AdminSalesDashboard() {
   const { data: user } = useMe();
-  const orgId = user?.organizationId ?? '';
+  const cachedOrgId = useAuthStore((s) => s.user?.organizationId);
+  const orgId = user?.organizationId || cachedOrgId || '';
 
-  const { data: quotationsData } = useQuotations(orgId, { limit: 200 });
-  const { data: leadsData } = useLeads<LeadSummary>(orgId, { limit: 200 });
+  const { data: quotationsData } = useQuotations(orgId, { limit: 25 });
+  const { data: leadsData } = useLeads<LeadSummary>(orgId, { limit: 25 });
   const { data: analytics } = useAnalyticsDashboard(orgId);
   const { data: reports } = useReportsOverview({ range: 'month', months: 8 });
   const { data: today } = useReportsOverview({ range: 'today' });
 
-  const quotations = (quotationsData?.data as QuotationSummary[] | undefined) ?? [];
+  const quotations =
+    (quotationsData?.data as QuotationSummary[] | undefined) ?? [];
   const leads = (leadsData?.data as LeadSummary[] | undefined) ?? [];
 
   // Real monthly sales trend from the branch report; no target column exists
@@ -119,10 +122,14 @@ export function AdminSalesDashboard() {
     ];
     return stageOrder.map(([label, matchers]) => {
       const bucket = leads.filter(
-        (l) => l.status && matchers.some((m) => (l.status ?? '').toUpperCase().includes(m)),
+        (l) =>
+          l.status &&
+          matchers.some((m) => (l.status ?? '').toUpperCase().includes(m)),
       );
       const value = bucket.reduce(
-        (sum, l) => sum + (Number((l as { estimatedValue?: number }).estimatedValue) || 0),
+        (sum, l) =>
+          sum +
+          (Number((l as { estimatedValue?: number }).estimatedValue) || 0),
         0,
       );
       return { stage: label, count: bucket.length, value };
@@ -188,7 +195,11 @@ export function AdminSalesDashboard() {
           title="Active Pipeline Value"
           value={
             analytics
-              ? formatCurrency(analytics.quotations.totalValue ?? 0, 'USD', true)
+              ? formatCurrency(
+                  analytics.quotations.totalValue ?? 0,
+                  'USD',
+                  true,
+                )
               : '—'
           }
           description={
@@ -196,23 +207,35 @@ export function AdminSalesDashboard() {
               ? `${analytics.quotations.total} active quotations`
               : 'no data'
           }
-          icon={<TrendingUp className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
+          icon={
+            <TrendingUp className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          }
         />
         <MetricCard
           title="Today's Sales (ERP + POS)"
-          value={today ? formatCurrency(Number(today.totalRevenue ?? 0), 'KES') : '—'}
+          value={
+            today ? formatCurrency(Number(today.totalRevenue ?? 0), 'KES') : '—'
+          }
           description={
             today
               ? `${today.ordersCount ?? 0} transaction${today.ordersCount === 1 ? '' : 's'}`
               : 'no branch data'
           }
-          icon={<ShoppingBag className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
+          icon={
+            <ShoppingBag className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          }
         />
         <MetricCard
           title="Quotations · won"
           value={
             quotations.length
-              ? String(quotations.filter((q) => (q.status ?? '').toUpperCase().includes('WON') || (q.status ?? '').toUpperCase() === 'APPROVED').length)
+              ? String(
+                  quotations.filter(
+                    (q) =>
+                      (q.status ?? '').toUpperCase().includes('WON') ||
+                      (q.status ?? '').toUpperCase() === 'APPROVED',
+                  ).length,
+                )
               : '—'
           }
           description={
@@ -220,7 +243,9 @@ export function AdminSalesDashboard() {
               ? `${quotations.length} total tracked`
               : 'no quotations yet'
           }
-          icon={<FileCheck className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
+          icon={
+            <FileCheck className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          }
         />
         <MetricCard
           title="Active Client Leads"
@@ -247,8 +272,12 @@ export function AdminSalesDashboard() {
             <Users className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">New Client Lead</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Capture inquiry / operator</div>
+            <div className="text-xs font-semibold text-foreground">
+              New Client Lead
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Capture inquiry / operator
+            </div>
           </div>
         </Link>
 
@@ -260,8 +289,12 @@ export function AdminSalesDashboard() {
             <FileCheck className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Draft Quotation</div>
-            <div className="text-[0.6875rem] text-muted-foreground">B2B Mining quote / plant</div>
+            <div className="text-xs font-semibold text-foreground">
+              Draft Quotation
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              B2B Mining quote / plant
+            </div>
           </div>
         </Link>
 
@@ -273,8 +306,12 @@ export function AdminSalesDashboard() {
             <Calculator className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">POS Terminal</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Counter sales &amp; receipt</div>
+            <div className="text-xs font-semibold text-foreground">
+              POS Terminal
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Counter sales &amp; receipt
+            </div>
           </div>
         </Link>
 
@@ -286,8 +323,12 @@ export function AdminSalesDashboard() {
             <FileText className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Client RFQs</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Process incoming RFQ</div>
+            <div className="text-xs font-semibold text-foreground">
+              Client RFQs
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Process incoming RFQ
+            </div>
           </div>
         </Link>
 
@@ -299,8 +340,12 @@ export function AdminSalesDashboard() {
             <Building2 className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Customer Accounts</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Balances &amp; credit terms</div>
+            <div className="text-xs font-semibold text-foreground">
+              Customer Accounts
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Balances &amp; credit terms
+            </div>
           </div>
         </Link>
       </motion.div>
@@ -314,12 +359,17 @@ export function AdminSalesDashboard() {
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
             <div>
-              <h3 className="text-base font-bold text-foreground">Revenue Trajectory vs Target</h3>
-              <p className="text-xs text-muted-foreground">Monthly closed sales vs target pacing</p>
+              <h3 className="text-base font-bold text-foreground">
+                Revenue Trajectory vs Target
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Monthly closed sales vs target pacing
+              </p>
             </div>
             <div className="flex items-center gap-4 text-xs font-medium">
               <span className="flex items-center gap-1.5 text-teal-600 dark:text-teal-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-teal-500" /> Closed Revenue
+                <span className="h-2.5 w-2.5 rounded-full bg-teal-500" /> Closed
+                Revenue
               </span>
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <span className="h-2.5 w-2.5 rounded-full bg-border" /> Target
@@ -328,29 +378,63 @@ export function AdminSalesDashboard() {
           </div>
 
           <div className="h-[280px]">
-            {monthlySalesTrend.length === 0 || monthlySalesTrend.every((m) => !m.actual) ? (
+            {monthlySalesTrend.length === 0 ||
+            monthlySalesTrend.every((m) => !m.actual) ? (
               <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                 No recorded sales in the trailing months.
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlySalesTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <AreaChart
+                  data={monthlySalesTrend}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
                   <defs>
                     <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#0d9488" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#0d9488" stopOpacity={0.0} />
+                      <stop
+                        offset="95%"
+                        stopColor="#0d9488"
+                        stopOpacity={0.0}
+                      />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--border))"
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tick={{
+                      fontSize: 11,
+                      fill: 'hsl(var(--muted-foreground))',
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <YAxis
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{
+                      fontSize: 11,
+                      fill: 'hsl(var(--muted-foreground))',
+                    }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `KES ${(v / 1000).toFixed(0)}k`}
                   />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => formatCurrency(val, 'KES')} />
-                  <Area type="monotone" dataKey="actual" name="Closed Revenue" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(val: number) => formatCurrency(val, 'KES')}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="actual"
+                    name="Closed Revenue"
+                    stroke="#0d9488"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#salesGrad)"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -363,8 +447,12 @@ export function AdminSalesDashboard() {
           className="rounded-2xl border border-hairline bg-card p-6 shadow-sm flex flex-col justify-between"
         >
           <div>
-            <h3 className="text-base font-bold text-foreground">Revenue by Division</h3>
-            <p className="text-xs text-muted-foreground">Commercial distribution by sector</p>
+            <h3 className="text-base font-bold text-foreground">
+              Revenue by Division
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Commercial distribution by sector
+            </p>
           </div>
 
           <div className="h-[200px] my-2">
@@ -385,10 +473,16 @@ export function AdminSalesDashboard() {
                     dataKey="value"
                   >
                     {divisionRevenue.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => `${val}%`} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(val: number) => `${val}%`}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -396,15 +490,27 @@ export function AdminSalesDashboard() {
 
           <div className="space-y-2 border-t border-hairline pt-3">
             {divisionRevenue.length === 0 ? (
-              <div className="py-2 text-center text-xs text-muted-foreground">—</div>
+              <div className="py-2 text-center text-xs text-muted-foreground">
+                —
+              </div>
             ) : (
               divisionRevenue.map((d, i) => (
-                <div key={d.name} className="flex items-center justify-between text-xs">
+                <div
+                  key={d.name}
+                  className="flex items-center justify-between text-xs"
+                >
                   <span className="flex items-center gap-2 text-muted-foreground">
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{
+                        backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                      }}
+                    />
                     {d.name}
                   </span>
-                  <span className="font-semibold text-foreground">{d.value}%</span>
+                  <span className="font-semibold text-foreground">
+                    {d.value}%
+                  </span>
                 </div>
               ))
             )}
@@ -421,10 +527,17 @@ export function AdminSalesDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-foreground">Sales Funnel Velocity</h3>
-              <p className="text-xs text-muted-foreground">Conversion stages from lead to won deal</p>
+              <h3 className="text-base font-bold text-foreground">
+                Sales Funnel Velocity
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Conversion stages from lead to won deal
+              </p>
             </div>
-            <Link href="/admin/leads" className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1">
+            <Link
+              href="/admin/leads"
+              className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1"
+            >
               View CRM <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
@@ -440,13 +553,17 @@ export function AdminSalesDashboard() {
                 return (
                   <div key={stage.stage} className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-foreground">{stage.stage}</span>
+                      <span className="font-medium text-foreground">
+                        {stage.stage}
+                      </span>
                       <div className="flex items-center gap-3">
                         <span className="font-mono text-muted-foreground">
                           {stage.count} deal{stage.count === 1 ? '' : 's'}
                         </span>
                         <span className="font-mono font-bold text-foreground">
-                          {stage.value ? formatCurrency(stage.value, 'USD', true) : '—'}
+                          {stage.value
+                            ? formatCurrency(stage.value, 'USD', true)
+                            : '—'}
                         </span>
                       </div>
                     </div>
@@ -470,10 +587,17 @@ export function AdminSalesDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-foreground">High-Value Quotations</h3>
-              <p className="text-xs text-muted-foreground">Pending customer reviews &amp; approvals</p>
+              <h3 className="text-base font-bold text-foreground">
+                High-Value Quotations
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Pending customer reviews &amp; approvals
+              </p>
             </div>
-            <Link href="/admin/quotations" className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1">
+            <Link
+              href="/admin/quotations"
+              className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1"
+            >
               All Quotes <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
@@ -485,13 +609,20 @@ export function AdminSalesDashboard() {
               </div>
             ) : (
               quotations.slice(0, 5).map((q) => (
-                <div key={q.id} className="py-3 flex items-center justify-between">
+                <div
+                  key={q.id}
+                  className="py-3 flex items-center justify-between"
+                >
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-foreground">{q.quoteNumber}</span>
+                      <span className="font-mono text-xs font-bold text-foreground">
+                        {q.quoteNumber}
+                      </span>
                       <StatusBadge status={q.status} />
                     </div>
-                    <div className="text-xs text-muted-foreground">{q.client?.companyName ?? 'Internal Prospect'}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {q.client?.companyName ?? 'Internal Prospect'}
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="font-mono text-xs font-bold text-foreground">

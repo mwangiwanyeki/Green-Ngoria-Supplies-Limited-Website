@@ -48,10 +48,10 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMe } from '@/lib/api/hooks/use-auth';
+import { useAuthStore } from '@/stores/auth-store';
 import { useAnalyticsDashboard } from '@/lib/api/hooks/use-analytics';
 import { useQuotations } from '@/lib/api/hooks/use-quotations';
 import { useReportsOverview } from '@/lib/api/hooks/use-reports';
-import { useProjects } from '@/lib/api/hooks/use-projects';
 import { useActivityLogs } from '@/lib/api/hooks/use-activity-logs';
 import { formatCurrency, formatRelativeDate } from '@/lib/utils';
 import type { QuotationSummary } from '@/lib/api/models';
@@ -90,15 +90,16 @@ const fadeUp = {
 
 export function AdminExecutiveDashboard() {
   const { data: user } = useMe();
-  const orgId = user?.organizationId ?? '';
+  const cachedOrgId = useAuthStore((s) => s.user?.organizationId);
+  const orgId = user?.organizationId || cachedOrgId || '';
 
   const { data: analytics } = useAnalyticsDashboard(orgId);
   const { data: quotationsData } = useQuotations(orgId, { limit: 6 });
   const { data: reports } = useReportsOverview({ range: 'month', months: 12 });
-  const { data: projectsData } = useProjects(orgId, { limit: 200 });
   const { data: auditLogs } = useActivityLogs({ page: 1, limit: 5 });
 
-  const quotations = (quotationsData?.data as QuotationSummary[] | undefined) ?? [];
+  const quotations =
+    (quotationsData?.data as QuotationSummary[] | undefined) ?? [];
 
   // Real revenue trend from the reports overview — the monthly[] array is the
   // trailing 12 months of recorded sales, aggregated across the active branch.
@@ -119,38 +120,48 @@ export function AdminExecutiveDashboard() {
     });
   }, [reports?.monthly]);
 
-  // Real project distribution by lifecycle status — derived from the live
-  // Project rows, not a hard-coded phase table.
-  const projects = (projectsData?.data as Array<{ status?: string }> | undefined) ?? [];
+  // Real project distribution by lifecycle status — derived directly from
+  // analytics.projects.byStatus (aggregated in PostgreSQL), avoiding an extra
+  // 200-row project fetch.
+  const projectStatusMap = useMemo(
+    () => analytics?.projects?.byStatus ?? {},
+    [analytics?.projects?.byStatus],
+  );
+
   const projectPhases = useMemo(() => {
-    if (!projects.length) return [];
-    const buckets = new Map<string, number>();
-    for (const p of projects) {
-      const key = (p.status ?? 'UNKNOWN').replace(/_/g, ' ');
-      buckets.set(key, (buckets.get(key) ?? 0) + 1);
-    }
-    return Array.from(buckets.entries())
-      .map(([name, count], i) => ({
-        name,
+    const entries = Object.entries(projectStatusMap);
+    if (!entries.length) return [];
+    return entries
+      .map(([status, count], i) => ({
+        name: status.replace(/_/g, ' '),
         count,
         fill: CHART_COLORS[i % CHART_COLORS.length],
       }))
       .sort((a, b) => b.count - a.count);
-  }, [projects]);
+  }, [projectStatusMap]);
 
-  const totalProjects = projects.length;
-  const activeProjects = projects.filter(
-    (p) => p.status && !['COMPLETED', 'CANCELLED', 'ON_HOLD'].includes(p.status),
-  ).length;
+  const totalProjects = useMemo(() => {
+    return Object.values(projectStatusMap).reduce((sum, c) => sum + c, 0);
+  }, [projectStatusMap]);
+
+  const activeProjects = useMemo(() => {
+    return Object.entries(projectStatusMap)
+      .filter(
+        ([status]) => !['COMPLETED', 'CANCELLED', 'ON_HOLD'].includes(status),
+      )
+      .reduce((sum, [, c]) => sum + c, 0);
+  }, [projectStatusMap]);
 
   const auditRows =
-    (auditLogs?.data as Array<{
-      id: string;
-      action: string;
-      entity: string;
-      actorName?: string | null;
-      createdAt: string;
-    }> | undefined) ?? [];
+    (auditLogs?.data as
+      | Array<{
+          id: string;
+          action: string;
+          entity: string;
+          actorName?: string | null;
+          createdAt: string;
+        }>
+      | undefined) ?? [];
 
   return (
     <motion.div
@@ -191,15 +202,19 @@ export function AdminExecutiveDashboard() {
           title="Quotations Pipeline"
           value={
             analytics
-              ? formatCurrency(analytics.quotations.totalValue ?? 0, 'USD', true)
+              ? formatCurrency(
+                  analytics.quotations.totalValue ?? 0,
+                  'USD',
+                  true,
+                )
               : '—'
           }
           description={
-            analytics
-              ? `${analytics.quotations.total} quotations`
-              : 'no data'
+            analytics ? `${analytics.quotations.total} quotations` : 'no data'
           }
-          icon={<TrendingUp className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
+          icon={
+            <TrendingUp className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          }
         />
         <MetricCard
           title="Active Projects"
@@ -209,13 +224,19 @@ export function AdminExecutiveDashboard() {
               ? `${totalProjects} total (${activeProjects} in delivery)`
               : 'no projects yet'
           }
-          icon={<FolderKanban className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
+          icon={
+            <FolderKanban className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          }
         />
         <MetricCard
           title="Total Invoiced (finance)"
           value={
             analytics
-              ? formatCurrency(analytics.finance.totalInvoiced ?? 0, 'USD', true)
+              ? formatCurrency(
+                  analytics.finance.totalInvoiced ?? 0,
+                  'USD',
+                  true,
+                )
               : '—'
           }
           description={
@@ -223,13 +244,13 @@ export function AdminExecutiveDashboard() {
               ? `${formatCurrency(analytics.finance.totalOutstanding ?? 0, 'USD', true)} outstanding`
               : 'no data'
           }
-          icon={<DollarSign className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
+          icon={
+            <DollarSign className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          }
         />
         <MetricCard
           title="HSE Incidents"
-          value={
-            analytics ? String(analytics.hse.openIncidents ?? 0) : '—'
-          }
+          value={analytics ? String(analytics.hse.openIncidents ?? 0) : '—'}
           description={
             analytics
               ? analytics.hse.openIncidents === 0
@@ -254,8 +275,12 @@ export function AdminExecutiveDashboard() {
             <ShoppingBag className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-bold text-foreground">Commercial &amp; Sales</div>
-            <div className="text-xs text-muted-foreground">Leads, quotes, RFQs &amp; POS</div>
+            <div className="text-sm font-bold text-foreground">
+              Commercial &amp; Sales
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Leads, quotes, RFQs &amp; POS
+            </div>
           </div>
         </Link>
 
@@ -267,8 +292,12 @@ export function AdminExecutiveDashboard() {
             <FolderKanban className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-bold text-foreground">Project Delivery</div>
-            <div className="text-xs text-muted-foreground">Construction, WBS &amp; site logs</div>
+            <div className="text-sm font-bold text-foreground">
+              Project Delivery
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Construction, WBS &amp; site logs
+            </div>
           </div>
         </Link>
 
@@ -280,8 +309,12 @@ export function AdminExecutiveDashboard() {
             <Cpu className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-bold text-foreground">Mining &amp; Engineering</div>
-            <div className="text-xs text-muted-foreground">P&amp;IDs, kinetics &amp; commissioning</div>
+            <div className="text-sm font-bold text-foreground">
+              Mining &amp; Engineering
+            </div>
+            <div className="text-xs text-muted-foreground">
+              P&amp;IDs, kinetics &amp; commissioning
+            </div>
           </div>
         </Link>
 
@@ -293,8 +326,12 @@ export function AdminExecutiveDashboard() {
             <Lock className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-bold text-foreground">System Administration</div>
-            <div className="text-xs text-muted-foreground">Roles, audit logs &amp; security</div>
+            <div className="text-sm font-bold text-foreground">
+              System Administration
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Roles, audit logs &amp; security
+            </div>
           </div>
         </Link>
       </motion.div>
@@ -308,35 +345,79 @@ export function AdminExecutiveDashboard() {
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-base font-bold text-foreground">Enterprise Revenue Performance</h3>
-              <p className="text-xs text-muted-foreground">Consolidated billing &amp; collections vs corporate target</p>
+              <h3 className="text-base font-bold text-foreground">
+                Enterprise Revenue Performance
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Consolidated billing &amp; collections vs corporate target
+              </p>
             </div>
           </div>
 
           <div className="h-[280px]">
-            {monthlyRevenue.length === 0 || monthlyRevenue.every((m) => !m.revenue) ? (
+            {monthlyRevenue.length === 0 ||
+            monthlyRevenue.every((m) => !m.revenue) ? (
               <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                 No recorded sales for the trailing 12 months yet.
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyRevenue} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <AreaChart
+                  data={monthlyRevenue}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
                   <defs>
-                    <linearGradient id="execRevGrad" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="execRevGrad"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="5%" stopColor="#0d9488" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#0d9488" stopOpacity={0.0} />
+                      <stop
+                        offset="95%"
+                        stopColor="#0d9488"
+                        stopOpacity={0.0}
+                      />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--border))"
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tick={{
+                      fontSize: 11,
+                      fill: 'hsl(var(--muted-foreground))',
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <YAxis
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{
+                      fontSize: 11,
+                      fill: 'hsl(var(--muted-foreground))',
+                    }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `KES ${(v / 1000).toFixed(0)}k`}
                   />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => formatCurrency(val, 'KES')} />
-                  <Area type="monotone" dataKey="revenue" name="Recorded revenue" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#execRevGrad)" />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(val: number) => formatCurrency(val, 'KES')}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    name="Recorded revenue"
+                    stroke="#0d9488"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#execRevGrad)"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -349,8 +430,12 @@ export function AdminExecutiveDashboard() {
           className="rounded-2xl border border-hairline bg-card p-6 shadow-sm flex flex-col justify-between"
         >
           <div>
-            <h3 className="text-base font-bold text-foreground">Project Lifecycle Stage</h3>
-            <p className="text-xs text-muted-foreground">Distribution of active contracts by stage</p>
+            <h3 className="text-base font-bold text-foreground">
+              Project Lifecycle Stage
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Distribution of active contracts by stage
+            </p>
           </div>
 
           <div className="space-y-3 my-4">
@@ -367,10 +452,18 @@ export function AdminExecutiveDashboard() {
                       <span className="font-medium text-foreground capitalize">
                         {phase.name.toLowerCase()}
                       </span>
-                      <span className="font-mono font-bold text-foreground">{phase.count} projects</span>
+                      <span className="font-mono font-bold text-foreground">
+                        {phase.count} projects
+                      </span>
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-surface-sunken">
-                      <div className="h-full rounded-full" style={{ width: `${max ? (phase.count / max) * 100 : 0}%`, backgroundColor: phase.fill }} />
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${max ? (phase.count / max) * 100 : 0}%`,
+                          backgroundColor: phase.fill,
+                        }}
+                      />
                     </div>
                   </div>
                 );
@@ -379,7 +472,9 @@ export function AdminExecutiveDashboard() {
           </div>
 
           <div className="border-t border-hairline pt-3 flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Total Managed Portfolio</span>
+            <span className="text-muted-foreground">
+              Total Managed Portfolio
+            </span>
             <span className="font-mono font-bold text-foreground">
               {totalProjects
                 ? `${totalProjects} project${totalProjects === 1 ? '' : 's'}`
@@ -397,10 +492,17 @@ export function AdminExecutiveDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-foreground">Commercial Quotations</h3>
-              <p className="text-xs text-muted-foreground">Recent tender submissions and B2B quote packages</p>
+              <h3 className="text-base font-bold text-foreground">
+                Commercial Quotations
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Recent tender submissions and B2B quote packages
+              </p>
             </div>
-            <Link href="/admin/quotations" className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1">
+            <Link
+              href="/admin/quotations"
+              className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1"
+            >
               View All <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
@@ -412,13 +514,20 @@ export function AdminExecutiveDashboard() {
               </div>
             ) : (
               quotations.slice(0, 5).map((q) => (
-                <div key={q.id} className="py-3 flex items-center justify-between">
+                <div
+                  key={q.id}
+                  className="py-3 flex items-center justify-between"
+                >
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-foreground">{q.quoteNumber}</span>
+                      <span className="font-mono text-xs font-bold text-foreground">
+                        {q.quoteNumber}
+                      </span>
                       <StatusBadge status={q.status} />
                     </div>
-                    <div className="text-xs text-muted-foreground">{q.client?.companyName ?? 'Mining Prospect'}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {q.client?.companyName ?? 'Mining Prospect'}
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="font-mono text-xs font-bold text-foreground">
@@ -441,10 +550,17 @@ export function AdminExecutiveDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-foreground">System Audit Activity</h3>
-              <p className="text-xs text-muted-foreground">Real-time governance, logins, and status transitions</p>
+              <h3 className="text-base font-bold text-foreground">
+                System Audit Activity
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Real-time governance, logins, and status transitions
+              </p>
             </div>
-            <Link href="/admin/audit" className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1">
+            <Link
+              href="/admin/audit"
+              className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1"
+            >
               Audit Logs <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
@@ -463,13 +579,19 @@ export function AdminExecutiveDashboard() {
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-teal-500" />
                     <span className="text-xs font-medium text-foreground truncate">
-                      <span className="capitalize">{evt.action.replace(/_/g, ' ').toLowerCase()}</span>
+                      <span className="capitalize">
+                        {evt.action.replace(/_/g, ' ').toLowerCase()}
+                      </span>
                       {' on '}
-                      <span className="text-muted-foreground">{evt.entity}</span>
+                      <span className="text-muted-foreground">
+                        {evt.entity}
+                      </span>
                       {evt.actorName ? (
                         <>
                           {' · '}
-                          <span className="text-muted-foreground">{evt.actorName}</span>
+                          <span className="text-muted-foreground">
+                            {evt.actorName}
+                          </span>
                         </>
                       ) : null}
                     </span>

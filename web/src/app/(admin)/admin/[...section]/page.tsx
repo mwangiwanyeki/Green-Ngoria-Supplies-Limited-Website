@@ -5,59 +5,305 @@ import { ArrowRight, CircleDot, Database, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { AdminSectionGuard } from '@/components/admin/admin-section-guard';
-import { AdminEquipmentList } from '@/features/admin/admin-equipment-list';
-import { AdminFinanceList } from '@/features/admin/admin-finance-list';
-import { AdminHseList } from '@/features/admin/admin-hse-list';
-import { AdminProcurementList } from '@/features/admin/admin-procurement-list';
-import { AdminNotificationsList } from '@/features/admin/admin-notifications-list';
-import { AdminAssessmentsList } from '@/features/admin/admin-assessments-list';
-import { AdminDashboard } from '@/features/admin/admin-dashboard';
-import { AdminAssetsList } from '@/features/admin/admin-assets-list';
-import { AdminClientsList } from '@/features/admin/admin-clients-list';
-import { AdminCommissioningList } from '@/features/admin/admin-commissioning-list';
-import { AdminContractsList } from '@/features/admin/admin-contracts-list';
-import { AdminEngineeringList } from '@/features/admin/admin-engineering-list';
-import { AdminLeadsList } from '@/features/admin/admin-leads-list';
-import { AdminProjectsList } from '@/features/admin/admin-projects-list';
-import { AdminQuotationsList } from '@/features/admin/admin-quotations-list';
-import { AdminUsersList } from '@/features/admin/admin-users-list';
-import { AdminAuditList } from '@/features/admin/admin-audit-list';
-import { AdminRolesList } from '@/features/admin/admin-roles-list';
-import { AdminOrganizationsList } from '@/features/admin/admin-organizations-list';
-import { AdminConsultationsList } from '@/features/admin/admin-consultations-list';
-import { AdminMiningSitesList } from '@/features/admin/admin-mining-sites-list';
-import { AdminVendorsList } from '@/features/admin/admin-vendors-list';
-import { AdminSparesList } from '@/features/admin/admin-spares-list';
-import { AdminRfqsList } from '@/features/admin/admin-rfqs-list';
-import { AdminSiteOpsList } from '@/features/admin/admin-site-ops-list';
-import { AdminMaintenanceList } from '@/features/admin/admin-maintenance-list';
-import { AdminWarrantiesList } from '@/features/admin/admin-warranties-list';
-import { AdminSupportList } from '@/features/admin/admin-support-list';
-import { AdminCmsList } from '@/features/admin/admin-cms-list';
-import { AdminMediaList } from '@/features/admin/admin-media-list';
-import { AdminInventory } from '@/features/admin/erp/admin-inventory';
-import { AdminPos } from '@/features/admin/erp/admin-pos';
-import { AdminSales } from '@/features/admin/erp/admin-sales';
-import { AdminStoreManagement } from '@/features/admin/erp/admin-store-management';
-import { AdminCustomers } from '@/features/admin/erp/admin-customers';
-import { AdminDebt } from '@/features/admin/erp/admin-debt';
-import { AdminExpenses } from '@/features/admin/erp/admin-expenses';
-import { AdminAccounts } from '@/features/admin/erp/admin-accounts';
-import { AdminSuppliers } from '@/features/admin/erp/admin-suppliers';
-import { AdminVatLeach } from '@/features/admin/erp/admin-vat-leach';
-import { AdminStockPiles } from '@/features/admin/erp/admin-stock-piles';
-import { AdminSecurity } from '@/features/admin/erp/admin-security';
-import {
-  AdminHrOverview,
-  AdminHrStaff,
-  AdminHrPayroll,
-  AdminHrLeave,
-} from '@/features/admin/erp/admin-hr';
-import { AdminVisitors } from '@/features/admin/erp/admin-visitors';
-import { AdminReports } from '@/features/admin/erp/admin-reports';
-import { AdminActivityLogs } from '@/features/admin/erp/admin-activity-logs';
-import { AdminSettings } from '@/features/admin/erp/admin-settings';
-import { AdminProfile } from '@/features/admin/admin-profile';
+import dynamic from 'next/dynamic';
+import { PageSkeleton } from '@/components/ui/skeleton';
+
+const loader = () => <PageSkeleton />;
+
+const AdminEquipmentList = dynamic(
+  () =>
+    import('@/features/admin/admin-equipment-list').then(
+      (m) => m.AdminEquipmentList,
+    ),
+  { loading: loader },
+);
+const AdminFinanceList = dynamic(
+  () =>
+    import('@/features/admin/admin-finance-list').then(
+      (m) => m.AdminFinanceList,
+    ),
+  { loading: loader },
+);
+const AdminHseList = dynamic(
+  () => import('@/features/admin/admin-hse-list').then((m) => m.AdminHseList),
+  { loading: loader },
+);
+const AdminProcurementList = dynamic(
+  () =>
+    import('@/features/admin/admin-procurement-list').then(
+      (m) => m.AdminProcurementList,
+    ),
+  { loading: loader },
+);
+const AdminNotificationsList = dynamic(
+  () =>
+    import('@/features/admin/admin-notifications-list').then(
+      (m) => m.AdminNotificationsList,
+    ),
+  { loading: loader },
+);
+const AdminAssessmentsList = dynamic(
+  () =>
+    import('@/features/admin/admin-assessments-list').then(
+      (m) => m.AdminAssessmentsList,
+    ),
+  { loading: loader },
+);
+const AdminDashboard = dynamic(
+  () =>
+    import('@/features/admin/admin-dashboard').then((m) => m.AdminDashboard),
+  { loading: loader },
+);
+const AdminAssetsList = dynamic(
+  () =>
+    import('@/features/admin/admin-assets-list').then((m) => m.AdminAssetsList),
+  { loading: loader },
+);
+const AdminClientsList = dynamic(
+  () =>
+    import('@/features/admin/admin-clients-list').then(
+      (m) => m.AdminClientsList,
+    ),
+  { loading: loader },
+);
+const AdminCommissioningList = dynamic(
+  () =>
+    import('@/features/admin/admin-commissioning-list').then(
+      (m) => m.AdminCommissioningList,
+    ),
+  { loading: loader },
+);
+const AdminContractsList = dynamic(
+  () =>
+    import('@/features/admin/admin-contracts-list').then(
+      (m) => m.AdminContractsList,
+    ),
+  { loading: loader },
+);
+const AdminEngineeringList = dynamic(
+  () =>
+    import('@/features/admin/admin-engineering-list').then(
+      (m) => m.AdminEngineeringList,
+    ),
+  { loading: loader },
+);
+const AdminLeadsList = dynamic(
+  () =>
+    import('@/features/admin/admin-leads-list').then((m) => m.AdminLeadsList),
+  { loading: loader },
+);
+const AdminProjectsList = dynamic(
+  () =>
+    import('@/features/admin/admin-projects-list').then(
+      (m) => m.AdminProjectsList,
+    ),
+  { loading: loader },
+);
+const AdminQuotationsList = dynamic(
+  () =>
+    import('@/features/admin/admin-quotations-list').then(
+      (m) => m.AdminQuotationsList,
+    ),
+  { loading: loader },
+);
+const AdminUsersList = dynamic(
+  () =>
+    import('@/features/admin/admin-users-list').then((m) => m.AdminUsersList),
+  { loading: loader },
+);
+const AdminAuditList = dynamic(
+  () =>
+    import('@/features/admin/admin-audit-list').then((m) => m.AdminAuditList),
+  { loading: loader },
+);
+const AdminRolesList = dynamic(
+  () =>
+    import('@/features/admin/admin-roles-list').then((m) => m.AdminRolesList),
+  { loading: loader },
+);
+const AdminOrganizationsList = dynamic(
+  () =>
+    import('@/features/admin/admin-organizations-list').then(
+      (m) => m.AdminOrganizationsList,
+    ),
+  { loading: loader },
+);
+const AdminConsultationsList = dynamic(
+  () =>
+    import('@/features/admin/admin-consultations-list').then(
+      (m) => m.AdminConsultationsList,
+    ),
+  { loading: loader },
+);
+const AdminMiningSitesList = dynamic(
+  () =>
+    import('@/features/admin/admin-mining-sites-list').then(
+      (m) => m.AdminMiningSitesList,
+    ),
+  { loading: loader },
+);
+const AdminVendorsList = dynamic(
+  () =>
+    import('@/features/admin/admin-vendors-list').then(
+      (m) => m.AdminVendorsList,
+    ),
+  { loading: loader },
+);
+const AdminSparesList = dynamic(
+  () =>
+    import('@/features/admin/admin-spares-list').then((m) => m.AdminSparesList),
+  { loading: loader },
+);
+const AdminRfqsList = dynamic(
+  () => import('@/features/admin/admin-rfqs-list').then((m) => m.AdminRfqsList),
+  { loading: loader },
+);
+const AdminSiteOpsList = dynamic(
+  () =>
+    import('@/features/admin/admin-site-ops-list').then(
+      (m) => m.AdminSiteOpsList,
+    ),
+  { loading: loader },
+);
+const AdminMaintenanceList = dynamic(
+  () =>
+    import('@/features/admin/admin-maintenance-list').then(
+      (m) => m.AdminMaintenanceList,
+    ),
+  { loading: loader },
+);
+const AdminWarrantiesList = dynamic(
+  () =>
+    import('@/features/admin/admin-warranties-list').then(
+      (m) => m.AdminWarrantiesList,
+    ),
+  { loading: loader },
+);
+const AdminSupportList = dynamic(
+  () =>
+    import('@/features/admin/admin-support-list').then(
+      (m) => m.AdminSupportList,
+    ),
+  { loading: loader },
+);
+const AdminCmsList = dynamic(
+  () => import('@/features/admin/admin-cms-list').then((m) => m.AdminCmsList),
+  { loading: loader },
+);
+const AdminMediaList = dynamic(
+  () =>
+    import('@/features/admin/admin-media-list').then((m) => m.AdminMediaList),
+  { loading: loader },
+);
+const AdminInventory = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-inventory').then(
+      (m) => m.AdminInventory,
+    ),
+  { loading: loader },
+);
+const AdminPos = dynamic(
+  () => import('@/features/admin/erp/admin-pos').then((m) => m.AdminPos),
+  { loading: loader },
+);
+const AdminSales = dynamic(
+  () => import('@/features/admin/erp/admin-sales').then((m) => m.AdminSales),
+  { loading: loader },
+);
+const AdminStoreManagement = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-store-management').then(
+      (m) => m.AdminStoreManagement,
+    ),
+  { loading: loader },
+);
+const AdminCustomers = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-customers').then(
+      (m) => m.AdminCustomers,
+    ),
+  { loading: loader },
+);
+const AdminDebt = dynamic(
+  () => import('@/features/admin/erp/admin-debt').then((m) => m.AdminDebt),
+  { loading: loader },
+);
+const AdminExpenses = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-expenses').then((m) => m.AdminExpenses),
+  { loading: loader },
+);
+const AdminAccounts = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-accounts').then((m) => m.AdminAccounts),
+  { loading: loader },
+);
+const AdminSuppliers = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-suppliers').then(
+      (m) => m.AdminSuppliers,
+    ),
+  { loading: loader },
+);
+const AdminVatLeach = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-vat-leach').then((m) => m.AdminVatLeach),
+  { loading: loader },
+);
+const AdminStockPiles = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-stock-piles').then(
+      (m) => m.AdminStockPiles,
+    ),
+  { loading: loader },
+);
+const AdminSecurity = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-security').then((m) => m.AdminSecurity),
+  { loading: loader },
+);
+const AdminHrOverview = dynamic(
+  () => import('@/features/admin/erp/admin-hr').then((m) => m.AdminHrOverview),
+  { loading: loader },
+);
+const AdminHrStaff = dynamic(
+  () => import('@/features/admin/erp/admin-hr').then((m) => m.AdminHrStaff),
+  { loading: loader },
+);
+const AdminHrPayroll = dynamic(
+  () => import('@/features/admin/erp/admin-hr').then((m) => m.AdminHrPayroll),
+  { loading: loader },
+);
+const AdminHrLeave = dynamic(
+  () => import('@/features/admin/erp/admin-hr').then((m) => m.AdminHrLeave),
+  { loading: loader },
+);
+const AdminVisitors = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-visitors').then((m) => m.AdminVisitors),
+  { loading: loader },
+);
+const AdminReports = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-reports').then((m) => m.AdminReports),
+  { loading: loader },
+);
+const AdminActivityLogs = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-activity-logs').then(
+      (m) => m.AdminActivityLogs,
+    ),
+  { loading: loader },
+);
+const AdminSettings = dynamic(
+  () =>
+    import('@/features/admin/erp/admin-settings').then((m) => m.AdminSettings),
+  { loading: loader },
+);
+const AdminProfile = dynamic(
+  () => import('@/features/admin/admin-profile').then((m) => m.AdminProfile),
+  { loading: loader },
+);
 
 function AdminInvoicesModule() {
   return <AdminFinanceList initialTab="invoices" />;
@@ -767,7 +1013,8 @@ export default async function AdminModulePage({
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
             Records appear here after they are created through the connected
-            workflow. Access remains limited by role and organization membership.
+            workflow. Access remains limited by role and organization
+            membership.
           </p>
           <div className="mt-6 flex justify-center gap-3">
             <Link href="/admin">

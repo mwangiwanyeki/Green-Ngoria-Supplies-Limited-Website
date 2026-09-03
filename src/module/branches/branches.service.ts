@@ -23,6 +23,7 @@ import { QueryBranchesDto } from './dto/query-branches.dto';
 import { UpdateBusinessProfileDto } from './dto/update-business-profile.dto';
 import { UpdateGeneralSettingsDto } from './dto/update-general-settings.dto';
 import { UpdateSessionSecurityDto } from './dto/update-session-security.dto';
+import { CacheService } from '../../lib/cache/cache.service';
 
 @Injectable()
 export class BranchesService {
@@ -30,6 +31,7 @@ export class BranchesService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly orgsService: OrganizationsService,
+    private readonly cache: CacheService,
   ) {}
 
   // ─── Anti-IDOR primitive ───────────────────────────────────────────────────
@@ -60,12 +62,23 @@ export class BranchesService {
     branchId: string,
     db: ReferenceDbClient = this.prisma,
   ): Promise<Branch> {
+    const cacheKey = `assertBranchInOrg:${organizationId}:${branchId}`;
+    if (db === this.prisma) {
+      const cached = await this.cache.get<Branch>(cacheKey);
+      if (cached) return cached;
+    }
+
     const branch = await db.branch.findFirst({
       where: { id: branchId, organizationId, deletedAt: null },
     });
     if (!branch) {
       throw new NotFoundException('Branch not found');
     }
+
+    if (db === this.prisma) {
+      await this.cache.set(cacheKey, branch, 60);
+    }
+
     return branch;
   }
 
@@ -224,6 +237,8 @@ export class BranchesService {
       });
     });
 
+    await this.cache.del(`assertBranchInOrg:${organizationId}:${id}`);
+
     await this.auditService.log({
       userId,
       organizationId,
@@ -251,6 +266,8 @@ export class BranchesService {
       data: { deletedAt: new Date(), status: 'CLOSED' },
     });
 
+    await this.cache.del(`assertBranchInOrg:${organizationId}:${id}`);
+
     await this.auditService.log({
       userId,
       organizationId,
@@ -273,6 +290,8 @@ export class BranchesService {
       });
       return tx.branch.update({ where: { id }, data: { isDefault: true } });
     });
+
+    await this.cache.del(`assertBranchInOrg:${organizationId}:${id}`);
 
     await this.auditService.log({
       userId,
