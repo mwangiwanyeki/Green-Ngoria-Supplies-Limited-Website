@@ -129,7 +129,14 @@ export function HomeHero() {
         >
           <span className="inline-flex items-center gap-2 text-[0.62rem] font-semibold uppercase tracking-[0.24em]">
             Scroll
-            <ArrowDown className="h-3.5 w-3.5 animate-bounce" />
+            <motion.span
+              aria-hidden="true"
+              animate={reduced ? undefined : { y: [0, 6, 0] }}
+              transition={{ duration: 2.4, ease: EASE, repeat: Infinity }}
+              className="inline-flex"
+            >
+              <ArrowDown className="h-3.5 w-3.5" />
+            </motion.span>
           </span>
         </motion.div>
       </div>
