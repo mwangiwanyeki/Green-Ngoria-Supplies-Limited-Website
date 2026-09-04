@@ -273,9 +273,14 @@ export class WebAnalyticsService {
       byCountry: tally((r) => r.country).slice(0, 12),
       byDevice: tally((r) => r.deviceType),
       byBrowser: tally((r) => r.browser).slice(0, 8),
-      byReferrer: tally((r) =>
-        r.referrer ? new URL(r.referrer, 'http://x').host || 'Direct' : 'Direct',
-      ).slice(0, 10),
+      byReferrer: tally((r) => {
+        if (!r.referrer) return 'Direct';
+        try {
+          return new URL(r.referrer, 'http://x').host || 'Direct';
+        } catch {
+          return 'Direct';
+        }
+      }).slice(0, 10),
       recentSessions,
     };
   }
