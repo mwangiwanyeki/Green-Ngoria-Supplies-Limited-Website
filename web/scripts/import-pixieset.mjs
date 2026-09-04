@@ -12,9 +12,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
+// Note: `3e8bcf48…` is intentionally omitted — it is a visual duplicate of
+// `4474a949…` (identical dHash), so keeping it would render the same photo
+// twice on /gallery.
 const IDS = [
   '4474a949efc93da7031987299623c2f4',
-  '3e8bcf480e6ff1f71940b20e2358e466',
   '48f0a0cd45f0da651fc52ea90ab46831',
   'f390f1e86eec33ebb791b27a25f517c0',
   'cedd0724174c946dbe80b889a9c68b4c',

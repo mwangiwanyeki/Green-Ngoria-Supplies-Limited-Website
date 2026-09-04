@@ -20,12 +20,6 @@ export const galleryImages: GalleryImage[] = [
     "alt": "Green Ngoria Supplies — Photograph 1"
   },
   {
-    "src": "/images/gallery/greenngoria-02.webp",
-    "width": 1024,
-    "height": 683,
-    "alt": "Green Ngoria Supplies — Photograph 2"
-  },
-  {
     "src": "/images/gallery/greenngoria-03.webp",
     "width": 1024,
     "height": 683,
