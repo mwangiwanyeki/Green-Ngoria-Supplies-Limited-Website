@@ -179,6 +179,11 @@ export const publicSiteNav: PublicNavItem[] = [
         description: 'Delivered work across East and Central Africa',
       },
       {
+        label: 'Gallery',
+        href: '/gallery',
+        description: 'Photographs from our mines, plants and project sites',
+      },
+      {
         label: 'Insights',
         href: '/insights',
         description: 'Technical notes from the divisions',

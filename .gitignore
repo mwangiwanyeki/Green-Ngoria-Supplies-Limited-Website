@@ -48,3 +48,6 @@ coverage/
 .vercel
 .env*
 *.tsbuildinfo
+
+# Gallery source originals (converted to webp, not committed)
+web/public/images/gallery/_source/
