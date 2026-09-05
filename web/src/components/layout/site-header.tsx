@@ -100,72 +100,86 @@ function MegaPanel({
         </div>
       ))}
 
-      {/* Editorial side rail */}
-      <aside className="relative flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface-sunken">
-        <div className="relative h-40 w-full overflow-hidden">
-          <Image
-            src="/images/gallery/dji-0333.webp"
-            alt=""
-            fill
-            sizes="320px"
-            className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/0 to-black/70" />
-          <span className="absolute left-4 top-4 rounded-full bg-black/55 px-2.5 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur">
-            Green Ngoria · Bondo plant
-          </span>
-        </div>
-        <div className="flex flex-1 flex-col p-6">
-          {item.feature ? (
-            <>
-              <span className="tech-label text-brand-700 dark:text-brand-400">
-                {totalLinks} divisions · one team
-              </span>
-              <h3 className="mt-2 font-display text-base font-bold tracking-tight text-foreground">
-                {item.feature.title}
-              </h3>
-              <p className="mt-2 flex-1 text-xs leading-5 text-muted-foreground">
-                {item.feature.body}
-              </p>
-              <Link
-                href={item.feature.href}
-                onClick={onNavigate}
-                className="group/cta mt-5 inline-flex items-center gap-1.5 self-start rounded-lg bg-brand-500 px-3.5 py-2 text-xs font-semibold text-black shadow-sm transition-all duration-ui hover:-translate-y-0.5 hover:bg-brand-400 hover:shadow-md focus-visible:-translate-y-0.5"
-              >
-                {item.feature.action}
-                <ArrowUpRight
-                  aria-hidden="true"
-                  className="h-3.5 w-3.5 transition-transform duration-ui group-hover/cta:-translate-y-0.5 group-hover/cta:translate-x-0.5"
-                />
-              </Link>
-            </>
-          ) : (
-            <>
-              <span className="tech-label text-brand-700 dark:text-brand-400">
-                {totalLinks} disciplines · one team
-              </span>
-              <h3 className="mt-2 font-display text-base font-bold tracking-tight text-foreground">
-                Every division headed by a qualified engineer
-              </h3>
-              <Link
-                href="/contact"
-                onClick={onNavigate}
-                className="mt-5 inline-flex items-center gap-1.5 self-start text-xs font-semibold text-brand-700 underline decoration-brand-700/30 hover:decoration-brand-700 dark:text-brand-400 dark:decoration-brand-400/30"
-              >
-                Speak to an engineer →
-              </Link>
-            </>
-          )}
-        </div>
-      </aside>
+      <EditorialRail
+        item={item}
+        onNavigate={onNavigate}
+        eyebrowFallback={`${totalLinks} divisions · one team`}
+      />
     </div>
   );
 }
 
 /**
- * Two-column list panel for menus without full sub-columns.
- * Same visual language as the Services mega panel so the header reads
- * as one system.
+ * Shared editorial side rail: photograph + chip caption + eyebrow +
+ * title + body + brand CTA. Used by both the mega and list panels so
+ * every dropdown reads as one system.
+ */
+function EditorialRail({
+  item,
+  onNavigate,
+  eyebrowFallback,
+}: {
+  item: PublicNavItem;
+  onNavigate: () => void;
+  eyebrowFallback: string;
+}) {
+  const image = item.feature?.image ?? '/images/gallery/dji-0333.webp';
+  const caption = item.feature?.imageCaption ?? 'Green Ngoria · Bondo plant';
+  const eyebrow = item.feature?.eyebrow ?? eyebrowFallback;
+  const title =
+    item.feature?.title ??
+    'Every division headed by a qualified engineer';
+  const body = item.feature?.body;
+  const href = item.feature?.href ?? item.href;
+  const action = item.feature?.action ?? `${item.label} overview`;
+
+  return (
+    <aside className="group/rail relative flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface-sunken">
+      <div className="relative h-40 w-full overflow-hidden">
+        <Image
+          src={image}
+          alt=""
+          fill
+          sizes="320px"
+          className="object-cover transition-transform duration-[900ms] ease-out group-hover/rail:scale-[1.06]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/0 to-black/70" />
+        <span className="absolute left-4 top-4 rounded-full bg-black/55 px-2.5 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur">
+          {caption}
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col p-6">
+        <span className="tech-label text-brand-700 dark:text-brand-400">
+          {eyebrow}
+        </span>
+        <h3 className="mt-2 font-display text-base font-bold tracking-tight text-foreground">
+          {title}
+        </h3>
+        {body && (
+          <p className="mt-2 flex-1 text-xs leading-5 text-muted-foreground">
+            {body}
+          </p>
+        )}
+        <Link
+          href={href}
+          onClick={onNavigate}
+          className="group/cta mt-5 inline-flex items-center gap-1.5 self-start rounded-lg bg-brand-500 px-3.5 py-2 text-xs font-semibold text-black shadow-sm transition-all duration-ui hover:-translate-y-0.5 hover:bg-brand-400 hover:shadow-md focus-visible:-translate-y-0.5"
+        >
+          {action}
+          <ArrowUpRight
+            aria-hidden="true"
+            className="h-3.5 w-3.5 transition-transform duration-ui group-hover/cta:-translate-y-0.5 group-hover/cta:translate-x-0.5"
+          />
+        </Link>
+      </div>
+    </aside>
+  );
+}
+
+/**
+ * Two-column list panel for menus that don't have grouped sub-columns
+ * (Mining & processing, Engineering, Company). Uses the same editorial
+ * rail as the Services mega panel so every dropdown reads as one system.
  */
 function ListPanel({
   item,
@@ -175,54 +189,55 @@ function ListPanel({
   onNavigate: () => void;
 }) {
   return (
-    <div className="mx-auto max-w-4xl">
-      <ul className="grid gap-1 sm:grid-cols-2">
-        {item.children!.map((link) => (
-          <li key={link.href}>
-            <Link
-              href={link.href}
-              onClick={onNavigate}
-              className="group/link flex items-start gap-3 rounded-lg p-3 transition-all duration-ui ease-out-expo hover:-translate-y-px hover:bg-surface-sunken focus-visible:bg-surface-sunken"
-            >
-              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500/70 transition-all duration-ui group-hover/link:h-2 group-hover/link:w-2 group-hover/link:bg-brand-500" />
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-foreground transition-colors group-hover/link:text-brand-700 dark:group-hover/link:text-brand-300">
-                    {link.label}
-                  </span>
-                  <ArrowUpRight
-                    aria-hidden="true"
-                    className="h-3 w-3 shrink-0 text-brand-600/0 transition-all duration-ui group-hover/link:text-brand-600 group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5 dark:group-hover/link:text-brand-400"
-                  />
-                </span>
-                {link.description && (
-                  <span className="mt-0.5 block text-xs leading-5 text-subtle">
-                    {link.description}
-                  </span>
-                )}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-6 flex items-center justify-between border-t border-hairline pt-4">
-        <span className="text-xs text-muted-foreground">
-          {item.children!.length} pages in this section
-        </span>
-        <Link
-          href={item.href}
-          onClick={onNavigate}
-          className="group/cta inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 dark:text-brand-400"
-        >
-          <span className="border-b border-brand-700/30 pb-px transition-colors group-hover/cta:border-brand-700 dark:border-brand-400/30 dark:group-hover/cta:border-brand-400">
-            View {item.label.toLowerCase()} overview
+    <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="min-w-0">
+        <div className="flex items-baseline gap-2 border-b border-hairline pb-3">
+          <span className="font-mono text-[0.6rem] font-semibold text-brand-600/80 dark:text-brand-400/80">
+            01
           </span>
-          <ArrowUpRight
-            aria-hidden="true"
-            className="h-3.5 w-3.5 transition-transform duration-ui group-hover/cta:-translate-y-0.5 group-hover/cta:translate-x-0.5"
-          />
-        </Link>
+          <h3 className="tech-label text-foreground">
+            {item.label} · {item.children!.length} pages
+          </h3>
+        </div>
+        <ul className="mt-3 grid gap-1 sm:grid-cols-2">
+          {item.children!.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                onClick={onNavigate}
+                className="group/link relative flex items-start gap-3 rounded-lg p-2.5 transition-all duration-ui ease-out-expo hover:-translate-y-px hover:bg-surface-sunken focus-visible:bg-surface-sunken"
+              >
+                <span
+                  aria-hidden="true"
+                  className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500/70 transition-all duration-ui group-hover/link:h-2 group-hover/link:w-2 group-hover/link:bg-brand-500"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-semibold text-foreground transition-colors group-hover/link:text-brand-700 dark:group-hover/link:text-brand-300">
+                      {link.label}
+                    </span>
+                    <ArrowUpRight
+                      aria-hidden="true"
+                      className="h-3 w-3 shrink-0 text-brand-600/0 transition-all duration-ui group-hover/link:text-brand-600 group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5 dark:group-hover/link:text-brand-400"
+                    />
+                  </span>
+                  {link.description && (
+                    <span className="mt-0.5 block text-xs leading-5 text-subtle">
+                      {link.description}
+                    </span>
+                  )}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
+
+      <EditorialRail
+        item={item}
+        onNavigate={onNavigate}
+        eyebrowFallback={`${item.children!.length} pages · one section`}
+      />
     </div>
   );
 }
