@@ -23,6 +23,15 @@ import {
   GalleryPeek,
   Metrics,
 } from '@/components/marketing/home-showcase';
+import {
+  CertificationsStrip,
+  ContactStrip,
+  DeliveryFunnel,
+  LeadershipPreview,
+  Offerings,
+  ValueProps,
+  VisionPanel,
+} from '@/components/marketing/home-marketing';
 import { ProcessFlowDiagram } from '@/components/marketing/process-flow-diagram';
 import { CtaBanner } from '@/components/marketing/cta-banner';
 import { company } from '@/config/company';
@@ -120,8 +129,21 @@ export default function HomePage() {
       {/* 2 — Trust strip */}
       <TrustStrip />
 
-      {/* 3 — Capability tiles (bento) */}
-      <Section labelledBy="capabilities-heading">
+      {/* 3a — Why Green Ngoria (value proposition) */}
+      <Section labelledBy="why-heading">
+        <SectionIntro
+          id="why-heading"
+          title="Why clients choose Green Ngoria"
+          lead="Four things that make the difference on a producing mine site."
+          align="stack"
+        />
+        <div className="mt-12">
+          <ValueProps />
+        </div>
+      </Section>
+
+      {/* 3b — Capability tiles (bento) */}
+      <Section tone="sunken" rule labelledBy="capabilities-heading">
         <SectionIntro
           id="capabilities-heading"
           title="From deposit to poured bullion"
@@ -130,6 +152,28 @@ export default function HomePage() {
         />
         <div className="mt-12">
           <CapabilityTiles />
+        </div>
+      </Section>
+
+      {/* 3c — What we sell (products & services showcase) */}
+      <Section rule labelledBy="offerings-heading">
+        <SectionIntro
+          id="offerings-heading"
+          title="What we sell"
+          lead="Turnkey plants, certified equipment and independent optimisation — priced line-item, delivered as one contract."
+          action={
+            <Link href="/services">
+              <Button
+                variant="outline"
+                rightIcon={<ArrowUpRight className="h-4 w-4" />}
+              >
+                Full services catalogue
+              </Button>
+            </Link>
+          }
+        />
+        <div className="mt-12">
+          <Offerings />
         </div>
       </Section>
 
@@ -202,6 +246,19 @@ export default function HomePage() {
               { value: '7', label: 'Stage CIP/CIL circuit', hint: 'Ore to doré' },
             ]}
           />
+        </div>
+      </Section>
+
+      {/* 5b — How we deliver (4-step sales funnel) */}
+      <Section rule labelledBy="funnel-heading">
+        <SectionIntro
+          id="funnel-heading"
+          title="How we deliver"
+          lead="From first enquiry to a plant producing doré — four steps, one team."
+          align="stack"
+        />
+        <div className="mt-12">
+          <DeliveryFunnel />
         </div>
       </Section>
 
@@ -296,7 +353,58 @@ export default function HomePage() {
         </Reveal>
       </Section>
 
-      {/* 9 — CTA */}
+      {/* 8b — Leadership */}
+      <Section rule labelledBy="leadership-heading">
+        <SectionIntro
+          id="leadership-heading"
+          title="The people directing the company"
+          lead="Board and executive management — accessible, accountable, on the ground."
+          action={
+            <Link href="/leadership">
+              <Button
+                variant="outline"
+                rightIcon={<ArrowUpRight className="h-4 w-4" />}
+              >
+                Full leadership profiles
+              </Button>
+            </Link>
+          }
+        />
+        <div className="mt-12">
+          <LeadershipPreview />
+        </div>
+      </Section>
+
+      {/* 8c — Certifications strip */}
+      <Section tone="sunken" rule labelledBy="cert-heading">
+        <SectionIntro
+          id="cert-heading"
+          title="Certified, licensed, compliant"
+          lead="Prequalification-ready documentation available on request."
+          align="stack"
+        />
+        <div className="mt-12">
+          <CertificationsStrip />
+        </div>
+      </Section>
+
+      {/* 8d — Vision panel */}
+      <Section labelledBy="vision-heading">
+        <h2 id="vision-heading" className="sr-only">
+          Corporate mining vision
+        </h2>
+        <VisionPanel />
+      </Section>
+
+      {/* 8e — Direct contact strip */}
+      <Section tone="sunken" labelledBy="contact-heading">
+        <h2 id="contact-heading" className="sr-only">
+          Talk to Green Ngoria
+        </h2>
+        <ContactStrip />
+      </Section>
+
+      {/* 9 — Final CTA */}
       <CtaBanner
         title="Engineer your next plant with us"
         body="A metallurgical review, or a line-item quote for equipment and installation. We&rsquo;ll respond within 48 hours."
