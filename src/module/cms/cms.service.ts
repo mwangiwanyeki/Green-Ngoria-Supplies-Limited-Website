@@ -17,11 +17,7 @@ import {
 } from '../../common/utils/pagination.util';
 import { CreateCmsContentDto } from './dto/create-cms-content.dto';
 import { UpdateCmsContentDto } from './dto/update-cms-content.dto';
-import {
-  CMS_ENTITY_NAME,
-  CMS_LABEL,
-  type CmsContentType,
-} from './cms.types';
+import { CMS_ENTITY_NAME, CMS_LABEL, type CmsContentType } from './cms.types';
 
 /** Normalised row shape so the admin UI can render one table for all four types. */
 export interface CmsContentView {
@@ -133,7 +129,7 @@ export class CmsService {
 
   private toJson(value: unknown): Prisma.InputJsonValue {
     if (value === undefined || value === null) return {};
-    return value as Prisma.InputJsonValue;
+    return value;
   }
 
   private async assertSlugAvailable(
@@ -287,24 +283,24 @@ export class CmsService {
 
     switch (type) {
       case 'pages':
-        record = (await this.prisma.cmsPage.findFirst({
+        record = await this.prisma.cmsPage.findFirst({
           where: { id, deletedAt: null },
-        })) as CmsRecordShape | null;
+        });
         break;
       case 'services':
-        record = (await this.prisma.cmsService.findUnique({
+        record = await this.prisma.cmsService.findUnique({
           where: { id },
-        })) as CmsRecordShape | null;
+        });
         break;
       case 'case-studies':
-        record = (await this.prisma.cmsCaseStudy.findUnique({
+        record = await this.prisma.cmsCaseStudy.findUnique({
           where: { id },
-        })) as CmsRecordShape | null;
+        });
         break;
       case 'articles':
-        record = (await this.prisma.cmsArticle.findUnique({
+        record = await this.prisma.cmsArticle.findUnique({
           where: { id },
-        })) as CmsRecordShape | null;
+        });
         break;
     }
 
@@ -341,7 +337,7 @@ export class CmsService {
 
     switch (type) {
       case 'pages':
-        record = (await this.prisma.cmsPage.create({
+        record = await this.prisma.cmsPage.create({
           data: {
             title: dto.title,
             slug: dto.slug,
@@ -354,12 +350,12 @@ export class CmsService {
             publishedAt,
             authorId,
           },
-        })) as CmsRecordShape;
+        });
         break;
 
       case 'services':
         this.requireFields(dto, ['description'], type);
-        record = (await this.prisma.cmsService.create({
+        record = await this.prisma.cmsService.create({
           data: {
             title: dto.title,
             slug: dto.slug,
@@ -373,12 +369,12 @@ export class CmsService {
             seoDesc: dto.seoDesc,
             publishedAt,
           },
-        })) as CmsRecordShape;
+        });
         break;
 
       case 'case-studies':
         this.requireFields(dto, ['challenge', 'solution'], type);
-        record = (await this.prisma.cmsCaseStudy.create({
+        record = await this.prisma.cmsCaseStudy.create({
           data: {
             title: dto.title,
             slug: dto.slug,
@@ -395,11 +391,11 @@ export class CmsService {
             seoDesc: dto.seoDesc,
             publishedAt,
           },
-        })) as CmsRecordShape;
+        });
         break;
 
       case 'articles':
-        record = (await this.prisma.cmsArticle.create({
+        record = await this.prisma.cmsArticle.create({
           data: {
             title: dto.title,
             slug: dto.slug,
@@ -414,7 +410,7 @@ export class CmsService {
             publishedAt,
             authorId,
           },
-        })) as CmsRecordShape;
+        });
         break;
     }
 
@@ -457,25 +453,27 @@ export class CmsService {
       seoTitle: dto.seoTitle,
       seoDesc: dto.seoDesc,
       ...(publishedAt !== undefined ? { publishedAt } : {}),
-      ...(dto.content !== undefined ? { content: this.toJson(dto.content) } : {}),
+      ...(dto.content !== undefined
+        ? { content: this.toJson(dto.content) }
+        : {}),
     };
 
     let record: CmsRecordShape;
 
     switch (type) {
       case 'pages':
-        record = (await this.prisma.cmsPage.update({
+        record = await this.prisma.cmsPage.update({
           where: { id },
           data: {
             ...common,
             excerpt: dto.excerpt,
             featuredImageKey: dto.featuredImageKey,
           },
-        })) as CmsRecordShape;
+        });
         break;
 
       case 'services':
-        record = (await this.prisma.cmsService.update({
+        record = await this.prisma.cmsService.update({
           where: { id },
           data: {
             ...common,
@@ -484,11 +482,11 @@ export class CmsService {
             imageKey: dto.imageKey,
             sortOrder: dto.sortOrder,
           },
-        })) as CmsRecordShape;
+        });
         break;
 
       case 'case-studies':
-        record = (await this.prisma.cmsCaseStudy.update({
+        record = await this.prisma.cmsCaseStudy.update({
           where: { id },
           data: {
             ...common,
@@ -500,11 +498,11 @@ export class CmsService {
             outcome: dto.outcome,
             imageKey: dto.imageKey,
           },
-        })) as CmsRecordShape;
+        });
         break;
 
       case 'articles':
-        record = (await this.prisma.cmsArticle.update({
+        record = await this.prisma.cmsArticle.update({
           where: { id },
           data: {
             ...common,
@@ -513,7 +511,7 @@ export class CmsService {
             tags: dto.tags,
             imageKey: dto.imageKey,
           },
-        })) as CmsRecordShape;
+        });
         break;
     }
 
@@ -551,9 +549,7 @@ export class CmsService {
     const existing = await this.findRaw(organizationId, type, id, userId);
 
     if (existing.status === status) {
-      throw new BadRequestException(
-        `${CMS_LABEL[type]} is already ${status}`,
-      );
+      throw new BadRequestException(`${CMS_LABEL[type]} is already ${status}`);
     }
 
     const publishedAt = status === ContentStatus.PUBLISHED ? new Date() : null;
@@ -563,28 +559,28 @@ export class CmsService {
 
     switch (type) {
       case 'pages':
-        record = (await this.prisma.cmsPage.update({
+        record = await this.prisma.cmsPage.update({
           where: { id },
           data,
-        })) as CmsRecordShape;
+        });
         break;
       case 'services':
-        record = (await this.prisma.cmsService.update({
+        record = await this.prisma.cmsService.update({
           where: { id },
           data,
-        })) as CmsRecordShape;
+        });
         break;
       case 'case-studies':
-        record = (await this.prisma.cmsCaseStudy.update({
+        record = await this.prisma.cmsCaseStudy.update({
           where: { id },
           data,
-        })) as CmsRecordShape;
+        });
         break;
       case 'articles':
-        record = (await this.prisma.cmsArticle.update({
+        record = await this.prisma.cmsArticle.update({
           where: { id },
           data,
-        })) as CmsRecordShape;
+        });
         break;
     }
 

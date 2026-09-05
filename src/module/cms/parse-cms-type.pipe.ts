@@ -7,9 +7,7 @@ import {
 
 /** Validates the `:type` route segment against the four CMS content types. */
 @Injectable()
-export class ParseCmsTypePipe
-  implements PipeTransform<string, CmsContentType>
-{
+export class ParseCmsTypePipe implements PipeTransform<string, CmsContentType> {
   transform(value: string): CmsContentType {
     if (!isCmsContentType(value)) {
       throw new BadRequestException(

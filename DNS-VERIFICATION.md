@@ -40,3 +40,24 @@ verify directly.)
 Working `.vercel.app` fallback URLs (already fully functional):
 - Frontend: https://gng-frontend-zeta.vercel.app
 - API: https://gng-api-omega.vercel.app  (e.g. `/api/v1/health`)
+
+---
+
+## Follow-up (apex reclaim) — 2 more TXT records
+
+A concurrent session re-pointed the **apex** `greenngoria.com` to a different
+project, so to move it (and `www`) onto the build from this session it now
+needs verification too. Add these **two more** TXT records at name `_vercel`
+(alongside the three already there — a name can hold many TXT values):
+
+| Type | Name      | Value                                                     |
+|------|-----------|----------------------------------------------------------|
+| TXT  | `_vercel` | `vc-domain-verify=greenngoria.com,b728036b31d514951ea4`     |
+| TXT  | `_vercel` | `vc-domain-verify=www.greenngoria.com,38fb6aeff3125213490c` |
+
+Add them in the Vercel account that manages greenngoria.com's DNS (the same
+place the first three went), then tell me — I'll verify + redeploy so the
+apex serves this session's build (3D hero + full ERP/POS platform).
+
+Note: if the other session re-adds the domain afterwards, the apex could
+flip back — worth pausing that session or deciding which build is canonical.

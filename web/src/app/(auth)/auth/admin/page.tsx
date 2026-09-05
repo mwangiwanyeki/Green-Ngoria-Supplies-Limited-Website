@@ -10,6 +10,7 @@ import { Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { Suspense, useState } from 'react';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { OtpInput } from '@/components/ui/otp-input';
 import { useLogin } from '@/lib/api/hooks/use-auth';
 import { getApiErrorMessage } from '@/lib/api/api-error';
 
@@ -52,10 +53,13 @@ function AdminLoginForm() {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+  const mfaCode = watch('mfaCode') ?? '';
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -73,6 +77,17 @@ function AdminLoginForm() {
         router.push('/portal');
         return;
       }
+      // Privileged staff without MFA are sent straight to enrol before they
+      // land on the dashboard. Login still succeeds so we don't lock anyone
+      // out, but the next screen is the security setup.
+      if (res.mfaEnrollmentRequired) {
+        toast.warning(
+          'Your role requires two-factor authentication. Set it up now.',
+          { duration: 6000 },
+        );
+        router.push('/admin/profile#mfa');
+        return;
+      }
       toast.success('Welcome back');
       const target =
         redirectParam && redirectParam.startsWith('/admin')
@@ -82,8 +97,10 @@ function AdminLoginForm() {
     } catch (err: unknown) {
       const msg = getApiErrorMessage(err, 'Login failed');
       // A rejected MFA code keeps the field open and surfaces the error.
-      if (msg.toLowerCase().includes('mfa')) {
+      if (needsMfa || msg.toLowerCase().includes('mfa')) {
         setNeedsMfa(true);
+        // Clear the rejected code so the boxes reset for a fresh attempt.
+        setValue('mfaCode', '', { shouldValidate: false });
       }
       toast.error(msg);
     }
@@ -156,19 +173,26 @@ function AdminLoginForm() {
         </div>
 
         {needsMfa && (
-          <div className="space-y-1.5">
-            <Label htmlFor="mfaCode">Authentication code</Label>
-            <Input
-              id="mfaCode"
-              inputMode="numeric"
-              maxLength={6}
-              autoComplete="one-time-code"
-              placeholder="6-digit code from your authenticator"
-              {...register('mfaCode')}
-              error={errors.mfaCode?.message}
+          <div className="space-y-2">
+            <Label>Authentication code</Label>
+            <OtpInput
+              value={mfaCode}
+              onChange={(v) =>
+                setValue('mfaCode', v, { shouldValidate: false })
+              }
+              onComplete={() => {
+                // Auto-submit once all six digits are entered.
+                if (!isSubmitting && !login.isPending) {
+                  void handleSubmit(onSubmit)();
+                }
+              }}
+              disabled={isSubmitting || login.isPending}
+              autoFocus
+              aria-label="Authentication code"
             />
             <p className="text-xs text-muted-foreground">
-              Open your authenticator app and enter the current code.
+              Open your authenticator app and enter the current 6-digit code —
+              it submits automatically.
             </p>
           </div>
         )}

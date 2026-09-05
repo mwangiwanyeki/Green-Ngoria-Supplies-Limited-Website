@@ -1,6 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SecurityLogStatus } from '@prisma/client';
-import { IsEnum, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 const CLOSING_STATUSES = [
   SecurityLogStatus.RESOLVED,
@@ -20,6 +27,6 @@ export class ResolveSecurityLogDto {
   })
   @IsOptional()
   @IsEnum(SecurityLogStatus)
-  @IsIn(CLOSING_STATUSES as unknown as SecurityLogStatus[])
+  @IsIn(CLOSING_STATUSES)
   status?: SecurityLogStatus;
 }

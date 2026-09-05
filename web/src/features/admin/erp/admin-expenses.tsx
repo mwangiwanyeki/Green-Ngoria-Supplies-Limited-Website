@@ -26,10 +26,13 @@ import {
   type Expense, type ExpensePaymentMethod, type CreateExpensePayload,
 } from '@/lib/api/hooks/use-expenses';
 import { useAccounts, type Account } from '@/lib/api/hooks/use-accounts';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 export function AdminExpenses() {
   const branchId = useBranchStore((s) => s.activeBranchId) ?? '';
   const [search, setSearch] = React.useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(15);
 
@@ -37,7 +40,7 @@ export function AdminExpenses() {
   const [viewExpense, setViewExpense] = React.useState<Expense | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<Expense | null>(null);
 
-  const query = useExpenses({ search, page, limit: perPage });
+  const query = useExpenses({ search: debouncedSearch, page, limit: perPage });
   const { data: stats } = useExpenseStats();
   const deleteMutation = useDeleteExpense();
 

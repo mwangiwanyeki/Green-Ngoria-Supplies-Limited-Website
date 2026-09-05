@@ -19,10 +19,13 @@ import {
   useErpCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer,
   type ErpCustomer, type CreateCustomerPayload,
 } from '@/lib/api/hooks/use-erp-customers';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 export function AdminCustomers() {
   const branchId = useBranchStore((s) => s.activeBranchId) ?? '';
   const [search, setSearch] = React.useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(15);
 
@@ -31,7 +34,7 @@ export function AdminCustomers() {
   const [viewCustomer, setViewCustomer] = React.useState<ErpCustomer | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<ErpCustomer | null>(null);
 
-  const query = useErpCustomers({ search, page, limit: perPage });
+  const query = useErpCustomers({ search: debouncedSearch, page, limit: perPage });
   const deleteMutation = useDeleteCustomer();
 
   const columns: ErpColumn<ErpCustomer>[] = [

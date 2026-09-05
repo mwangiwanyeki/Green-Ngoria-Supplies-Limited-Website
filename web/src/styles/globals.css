@@ -334,4 +334,34 @@
       scroll-behavior: auto !important;
     }
   }
+
+  /* Print styles: keep only .print-area (the report body) visible when the
+   * user hits Print or Save-as-PDF from the reports page. `.printing` is
+   * added to <html> just before window.print() so the sidebar, header,
+   * toasts and any other chrome fall away. `.no-print` on a UI-only element
+   * (range picker chips, dropdown menus) hides it in the print output. */
+  html.printing body > *:not(.print-area):not([data-print-keep]) {
+    display: none !important;
+  }
+  html.printing .print-area {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  html.printing .no-print {
+    display: none !important;
+  }
+
+  @media print {
+    body {
+      background: #fff !important;
+      color: #000 !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+    .print-area {
+      padding: 0 !important;
+      max-width: none !important;
+    }
+  }
 }

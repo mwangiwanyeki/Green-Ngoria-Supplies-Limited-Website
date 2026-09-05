@@ -50,6 +50,7 @@ import { getApiErrorMessage } from '@/lib/api/api-error';
 import { SaleReceipt } from './sale-receipt';
 
 import { useErpCustomers as useCustomers } from '@/lib/api/hooks/use-erp-customers';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Cash',
@@ -78,6 +79,8 @@ interface PaymentLine {
 export function AdminPos() {
   const branchId = useBranchStore((s) => s.activeBranchId) ?? '';
   const [search, setSearch] = useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [receipt, setReceipt] = useState<{
@@ -85,7 +88,7 @@ export function AdminPos() {
     tendered: number;
   } | null>(null);
 
-  const query = useInventoryItems({ search, page: 1, limit: 60 });
+  const query = useInventoryItems({ search: debouncedSearch, page: 1, limit: 60 });
   const items = query.data?.data ?? [];
 
   const total = useMemo(

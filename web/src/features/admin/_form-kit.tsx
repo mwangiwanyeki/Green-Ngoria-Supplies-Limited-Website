@@ -301,8 +301,8 @@ export function FormDialog({
       >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        {description && <DialogDescription>{description}</DialogDescription>}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -334,7 +334,9 @@ export function FormDialog({
               variant="brand"
               disabled={pending || disabled}
               leftIcon={
-                pending ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined
+                pending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : undefined
               }
             >
               {pending ? 'Saving…' : submitLabel}

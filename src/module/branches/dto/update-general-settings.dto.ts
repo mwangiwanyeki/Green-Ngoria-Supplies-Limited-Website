@@ -33,7 +33,10 @@ export class UpdateGeneralSettingsDto {
   @Max(100)
   taxRate?: number;
 
-  @ApiPropertyOptional({ minimum: 0, description: 'Default reorder alert level' })
+  @ApiPropertyOptional({
+    minimum: 0,
+    description: 'Default reorder alert level',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

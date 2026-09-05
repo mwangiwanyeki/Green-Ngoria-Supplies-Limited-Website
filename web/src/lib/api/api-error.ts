@@ -30,8 +30,17 @@ export class ApiError extends Error {
 
   /** Human-readable message safe to show users */
   get displayMessage(): string {
-    if (this.isUnauthorized)
+    if (this.isUnauthorized) {
+      // Prefer a specific server message — login rejections such as
+      // "Invalid MFA code" or "Invalid email or password" are 401s but are
+      // NOT session-expiry. Only fall back to the generic session-expired
+      // copy when the server sent nothing useful (a bare "Unauthorized",
+      // which is what an actually-expired token guard returns).
+      if (this.message && !/^unauthorized\.?$/i.test(this.message.trim())) {
+        return this.message;
+      }
       return 'Your session has expired. Please log in again.';
+    }
     if (this.isForbidden)
       return 'You do not have permission to perform this action.';
     if (this.isNotFound) return 'The requested resource was not found.';

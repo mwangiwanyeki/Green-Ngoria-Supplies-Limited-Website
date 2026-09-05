@@ -34,11 +34,7 @@ export class AuditLogsController {
     @Query() query: QueryAuditLogsDto,
     @CurrentUser() actor: AuthUser,
   ) {
-    const result = await this.auditLogsService.findAll(
-      orgId,
-      actor.id,
-      query,
-    );
+    const result = await this.auditLogsService.findAll(orgId, actor.id, query);
     return paginatedResponse(result.items, result.meta);
   }
 
@@ -50,10 +46,7 @@ export class AuditLogsController {
     @Param('orgId', ParseUUIDPipe) orgId: string,
     @CurrentUser() actor: AuthUser,
   ) {
-    const facets = await this.auditLogsService.getFilterFacets(
-      orgId,
-      actor.id,
-    );
+    const facets = await this.auditLogsService.getFilterFacets(orgId, actor.id);
     return successResponse(facets);
   }
 }

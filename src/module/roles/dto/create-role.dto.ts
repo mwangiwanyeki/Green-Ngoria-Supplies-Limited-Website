@@ -31,7 +31,8 @@ export class CreateRoleDto {
   displayName: string;
 
   @ApiPropertyOptional({
-    example: 'Read-only access to plant assessments and commissioning evidence.',
+    example:
+      'Read-only access to plant assessments and commissioning evidence.',
   })
   @IsOptional()
   @IsString()

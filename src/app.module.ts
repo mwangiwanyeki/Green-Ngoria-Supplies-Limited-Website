@@ -16,6 +16,8 @@ import { AuditModule } from './lib/audit/audit.module';
 import { CacheModule } from './lib/cache/cache.module';
 import { NotificationsModule } from './lib/notifications/notifications.module';
 import { HealthModule } from './lib/health/health.module';
+import { ArcjetModule } from './lib/arcjet/arcjet.module';
+import { ArcjetGuard } from './lib/arcjet/arcjet.guard';
 
 // Feature modules — Phase 1 Foundation
 import { AuthModule } from './module/auth/auth.module';
@@ -64,6 +66,7 @@ import { StockPilesModule } from './module/stock-piles/stock-piles.module';
 import { SiteSecurityModule } from './module/site-security/site-security.module';
 import { HrModule } from './module/hr/hr.module';
 import { VisitorsModule } from './module/visitors/visitors.module';
+import { WebAnalyticsModule } from './module/web-analytics/web-analytics.module';
 import { ErpReportsModule } from './module/erp-reports/erp-reports.module';
 
 // Feature modules — Platform administration
@@ -71,6 +74,7 @@ import { RolesModule } from './module/roles/roles.module';
 import { CmsModule } from './module/cms/cms.module';
 import { MediaModule } from './module/media/media.module';
 import { AuditLogsModule } from './module/audit/audit-logs.module';
+import { SettingsModule } from './module/settings/settings.module';
 
 // Cross-cutting
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
@@ -149,6 +153,7 @@ interface SerializedHttpRequest {
     CacheModule,
     NotificationsModule,
     HealthModule,
+    ArcjetModule,
 
     // ── Feature modules ───────────────────────────────────────────────────────
     AuthModule,
@@ -203,6 +208,7 @@ interface SerializedHttpRequest {
     SiteSecurityModule,
     HrModule,
     VisitorsModule,
+    WebAnalyticsModule,
     ErpReportsModule,
 
     // Platform administration
@@ -210,11 +216,20 @@ interface SerializedHttpRequest {
     CmsModule,
     MediaModule,
     AuditLogsModule,
+    SettingsModule,
   ],
 
   controllers: [AppController],
   providers: [
     AppService,
+
+    // Arcjet runs FIRST — WAF shield + bot detection + auth rate limiting
+    // reject hostile traffic before any auth/DB work happens. Fail-open if
+    // Arcjet is unreachable so it can never take the API down.
+    {
+      provide: APP_GUARD,
+      useClass: ArcjetGuard,
+    },
 
     // Authentication and authorization are secure-by-default. Routes must
     // explicitly opt out with @Public(). Guard order is significant.

@@ -11,15 +11,18 @@ import {
   type SecurityLog,
 } from '@/lib/api/hooks/use-site-security';
 import { formatRelativeDate } from '@/lib/utils';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 export function AdminSecurity() {
   const [search, setSearch] = useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [status, setStatus] = useState<
     'all' | 'open' | 'resolved' | 'investigating'
   >('all');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
-  const query = useSecurityLogs({ search, status, page, limit: perPage });
+  const query = useSecurityLogs({ search: debouncedSearch, status, page, limit: perPage });
   const { data: stats } = useSecurityStats();
 
   const columns: ErpColumn<SecurityLog>[] = [

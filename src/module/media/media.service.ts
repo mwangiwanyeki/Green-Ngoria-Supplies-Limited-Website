@@ -121,9 +121,7 @@ export class MediaService {
       this.prisma.mediaAsset.count({ where }),
     ]);
 
-    const withUrls = await Promise.all(
-      items.map((item) => this.withUrl(item)),
-    );
+    const withUrls = await Promise.all(items.map((item) => this.withUrl(item)));
 
     return { items: withUrls, meta: buildPaginatedMeta(total, pagination) };
   }

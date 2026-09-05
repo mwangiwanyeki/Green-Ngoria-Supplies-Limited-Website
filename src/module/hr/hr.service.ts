@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, StaffStatus } from '@prisma/client';
 import { PrismaService } from '../../lib/database/prisma.service';
 import { AuditService } from '../../lib/audit/audit.service';
@@ -297,6 +301,70 @@ export class HrService {
     return { items, meta: buildPaginatedMeta(total, query) };
   }
 
+  /**
+   * Draft a payroll run for a given month/year on a branch. Aggregates every
+   * ACTIVE staff member's baseSalary into `totalGross` (the seed — HR then
+   * edits per-employee entries for allowances / deductions before approval).
+   * A unique (org, branch, month, year) index prevents duplicates.
+   */
+  async createPayrollRun(
+    organizationId: string,
+    dto: import('./dto/create-payroll-run.dto').CreatePayrollRunDto,
+    userId: string,
+  ) {
+    await this.assertScope(organizationId, dto.branchId, userId);
+
+    const existing = await this.prisma.payrollRun.findFirst({
+      where: {
+        organizationId,
+        branchId: dto.branchId,
+        periodMonth: dto.periodMonth,
+        periodYear: dto.periodYear,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new BadRequestException(
+        'A payroll run already exists for that month.',
+      );
+    }
+
+    const activeStaff = await this.prisma.staff.findMany({
+      where: {
+        ...branchScope(organizationId, dto.branchId),
+        status: 'ACTIVE',
+      },
+      select: { id: true, baseSalary: true },
+    });
+
+    const totalGross = activeStaff.reduce(
+      (sum, s) => sum.plus(s.baseSalary ?? 0),
+      new Prisma.Decimal(0),
+    );
+
+    const reference = `PR-${dto.periodYear}-${String(dto.periodMonth).padStart(2, '0')}-${dto.branchId.slice(0, 8).toUpperCase()}`;
+
+    return this.prisma.payrollRun.create({
+      data: {
+        organizationId,
+        branchId: dto.branchId,
+        reference,
+        periodMonth: dto.periodMonth,
+        periodYear: dto.periodYear,
+        status: 'DRAFT',
+        totalGross,
+        totalDeductions: new Prisma.Decimal(0),
+        totalNet: totalGross,
+        staffCount: activeStaff.length,
+        currency: dto.currency ?? 'KES',
+        notes: dto.notes,
+        processedById: userId,
+      },
+      include: { _count: { select: { entries: true } } },
+    });
+  }
+
   // ─── Leave requests ────────────────────────────────────────────────────────
 
   async createLeaveRequest(
@@ -395,7 +463,7 @@ export class HrService {
         status,
         reviewedById: reviewerId,
         reviewedAt: new Date(),
-        reviewComments: comments,
+        reviewNotes: comments,
       },
     });
   }

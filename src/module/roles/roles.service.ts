@@ -18,7 +18,9 @@ const ROLE_INCLUDE = {
   _count: { select: { userRoles: true } },
 } satisfies Prisma.RoleInclude;
 
-type RoleWithPermissions = Prisma.RoleGetPayload<{ include: typeof ROLE_INCLUDE }>;
+type RoleWithPermissions = Prisma.RoleGetPayload<{
+  include: typeof ROLE_INCLUDE;
+}>;
 
 export interface RoleView {
   id: string;
@@ -124,9 +126,7 @@ export class RolesService {
     });
 
     if (found !== permissionIds.length) {
-      throw new BadRequestException(
-        'One or more permission IDs do not exist',
-      );
+      throw new BadRequestException('One or more permission IDs do not exist');
     }
   }
 

@@ -85,8 +85,16 @@ async function bootstrap(): Promise<void> {
   // ── Global validation pipe ────────────────────────────────────────────────
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Strip undeclared properties
-      forbidNonWhitelisted: true, // Reject requests with undeclared properties
+      // Strip undeclared properties out of the DTO instance the controller
+      // sees; keeps unknown fields from silently entering the domain layer.
+      whitelist: true,
+      // Do NOT reject the whole request when unknown fields are present:
+      // frontend hooks often send extras (query state like page/limit even
+      // to endpoints that ignore them, or field renames done on one side
+      // but not the other). Rejecting the request 400'd whole admin pages
+      // for a typo. Stripping is enough — the field never reaches the DTO
+      // and the request goes through.
+      forbidNonWhitelisted: false,
       transform: true, // Auto-transform payloads to DTO instances
       transformOptions: {
         enableImplicitConversion: true,

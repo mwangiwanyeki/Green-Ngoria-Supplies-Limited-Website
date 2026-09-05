@@ -5,15 +5,29 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000')
   .replace(/\/$/, '');
 const isProduction = process.env.NODE_ENV === 'production';
 const apiOrigin = new URL(API_URL).origin;
+// `script-src` allows 'unsafe-inline': Next.js emits inline bootstrap/
+// streaming scripts for hydration on every (including statically prerendered)
+// page. A strict `script-src 'self'` blocked them → hydration failed (React
+// #412) and the app was inert. A per-request nonce doesn't help here because
+// nonces are only applied to dynamically-rendered pages, and this site is
+// largely static. 'unsafe-inline' is the standard, working CSP for a static
+// Next deployment; XSS is mitigated by React's default escaping, the strict
+// object-src/base-uri/form-action directives below, and input validation.
+// `vercel.live` is Vercel's own toolbar / feedback widget that they inject
+// into every deployment. Allowlist it in script-src + connect-src + frame-src
+// so the widget loads without generating console CSP violations. Blocking it
+// doesn't break the app; allowing it just quiets the noise.
+const VERCEL_LIVE = 'https://vercel.live';
 const contentSecurityPolicy = [
   "default-src 'self'",
   isProduction
-    ? "script-src 'self'"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    ? `script-src 'self' 'unsafe-inline' ${VERCEL_LIVE}`
+    : `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${VERCEL_LIVE}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://plus.unsplash.com",
-  "font-src 'self' data:",
-  `connect-src 'self' ${apiOrigin}${isProduction ? '' : ' ws: wss:'}`,
+  "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://plus.unsplash.com https://vercel.com https://vercel.live",
+  "font-src 'self' data: https://vercel.live https://assets.vercel.com",
+  `connect-src 'self' ${apiOrigin} ${VERCEL_LIVE} wss://ws-us3.pusher.com${isProduction ? '' : ' ws: wss:'}`,
+  `frame-src 'self' ${VERCEL_LIVE}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

@@ -1,9 +1,10 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronDown, Menu, Minus, Plus, X } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, Menu, Minus, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ServiceIcon } from '@/components/marketing/service-icon';
@@ -37,6 +38,14 @@ function useIsActive() {
 
 /* ── Desktop panels ─────────────────────────────────────────────── */
 
+/**
+ * Business-oriented mega menu.
+ *
+ * Layout: four grouped columns on the left, one editorial rail on the right.
+ * The rail carries a real Green Ngoria photograph, a short brand line, and
+ * the promoted action from the nav config — turning the dropdown into a
+ * miniature landing panel rather than a bare link list.
+ */
 function MegaPanel({
   item,
   onNavigate,
@@ -44,29 +53,48 @@ function MegaPanel({
   item: PublicNavItem;
   onNavigate: () => void;
 }) {
+  const totalLinks = item.columns!.reduce((n, c) => n + c.links.length, 0);
+  // Grid columns adapt to the number of link columns so a 2-column menu
+  // (Engineering, Company) reads as generously as a 4-column one (Services)
+  // without the rail floating to the far right.
+  const gridClass =
+    {
+      2: 'lg:grid-cols-[repeat(2,minmax(0,1fr))_22rem]',
+      3: 'lg:grid-cols-[repeat(3,minmax(0,1fr))_20rem]',
+      4: 'lg:grid-cols-[repeat(4,minmax(0,1fr))_20rem]',
+    }[item.columns!.length] ?? 'lg:grid-cols-[repeat(4,minmax(0,1fr))_20rem]';
   return (
-    <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[repeat(4,minmax(0,1fr))_18rem]">
-      {item.columns!.map((column) => (
-        <div key={column.heading}>
-          <h3 className="tech-label border-b border-hairline pb-3">
-            {column.heading}
-          </h3>
+    <div className={cn('grid gap-x-10 gap-y-8', gridClass)}>
+      {item.columns!.map((column, ci) => (
+        <div key={column.heading} className="min-w-0">
+          <div className="flex items-baseline gap-2 border-b border-hairline pb-3">
+            <span className="font-mono text-[0.6rem] font-semibold text-brand-600/80 dark:text-brand-400/80">
+              {String(ci + 1).padStart(2, '0')}
+            </span>
+            <h3 className="tech-label text-foreground">{column.heading}</h3>
+          </div>
           <ul className="mt-3 space-y-0.5">
             {column.links.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
                   onClick={onNavigate}
-                  className="group/link flex gap-3 rounded-md p-2.5 transition-colors duration-micro ease-out-expo hover:bg-accent focus-visible:bg-accent"
+                  className="group/link relative flex gap-3 rounded-lg p-2.5 transition-all duration-ui ease-out-expo hover:-translate-y-px hover:bg-surface-sunken focus-visible:bg-surface-sunken"
                 >
                   {link.icon && (
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-hairline bg-secondary/60 text-muted-foreground transition-colors duration-micro group-hover/link:border-brand-500/40 group-hover/link:text-brand-600 dark:group-hover/link:text-brand-400">
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-hairline bg-secondary/60 text-muted-foreground transition-colors duration-ui group-hover/link:border-brand-500/50 group-hover/link:bg-brand-500/10 group-hover/link:text-brand-600 dark:group-hover/link:text-brand-400">
                       <ServiceIcon name={link.icon} className="h-4 w-4" />
                     </span>
                   )}
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-foreground">
-                      {link.label}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate text-sm font-semibold text-foreground transition-colors group-hover/link:text-brand-700 dark:group-hover/link:text-brand-300">
+                        {link.label}
+                      </span>
+                      <ArrowUpRight
+                        aria-hidden="true"
+                        className="h-3 w-3 shrink-0 text-brand-600/0 transition-all duration-ui group-hover/link:text-brand-600 group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5 dark:group-hover/link:text-brand-400"
+                      />
                     </span>
                     {link.description && (
                       <span className="mt-0.5 block text-xs leading-5 text-subtle">
@@ -81,27 +109,87 @@ function MegaPanel({
         </div>
       ))}
 
-      {item.feature && (
-        <div className="flex flex-col rounded-lg border border-hairline bg-surface-sunken p-6">
-          <h3 className="font-display text-base font-bold">
-            {item.feature.title}
-          </h3>
-          <p className="mt-2 flex-1 text-xs leading-5 text-muted-foreground">
-            {item.feature.body}
-          </p>
-          <Link
-            href={item.feature.href}
-            onClick={onNavigate}
-            className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 underline decoration-brand-600/30 transition-colors hover:decoration-brand-600 dark:text-brand-400 dark:decoration-brand-400/30 dark:hover:decoration-brand-400"
-          >
-            {item.feature.action}
-          </Link>
-        </div>
-      )}
+      <EditorialRail
+        item={item}
+        onNavigate={onNavigate}
+        eyebrowFallback={`${totalLinks} divisions · one team`}
+      />
     </div>
   );
 }
 
+/**
+ * Shared editorial side rail: photograph + chip caption + eyebrow +
+ * title + body + brand CTA. Used by both the mega and list panels so
+ * every dropdown reads as one system.
+ */
+function EditorialRail({
+  item,
+  onNavigate,
+  eyebrowFallback,
+}: {
+  item: PublicNavItem;
+  onNavigate: () => void;
+  eyebrowFallback: string;
+}) {
+  const image = item.feature?.image ?? '/images/gallery/dji-0333.webp';
+  const caption = item.feature?.imageCaption ?? 'Green Ngoria · Bondo plant';
+  const eyebrow = item.feature?.eyebrow ?? eyebrowFallback;
+  const title =
+    item.feature?.title ??
+    'Every division headed by a qualified engineer';
+  const body = item.feature?.body;
+  const href = item.feature?.href ?? item.href;
+  const action = item.feature?.action ?? `${item.label} overview`;
+
+  return (
+    <aside className="group/rail relative flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface-sunken">
+      <div className="relative h-40 w-full overflow-hidden">
+        <Image
+          src={image}
+          alt=""
+          fill
+          sizes="320px"
+          className="object-cover transition-transform duration-[900ms] ease-out group-hover/rail:scale-[1.06]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/0 to-black/70" />
+        <span className="absolute left-4 top-4 rounded-full bg-black/55 px-2.5 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur">
+          {caption}
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col p-6">
+        <span className="tech-label text-brand-700 dark:text-brand-400">
+          {eyebrow}
+        </span>
+        <h3 className="mt-2 font-display text-base font-bold tracking-tight text-foreground">
+          {title}
+        </h3>
+        {body && (
+          <p className="mt-2 flex-1 text-xs leading-5 text-muted-foreground">
+            {body}
+          </p>
+        )}
+        <Link
+          href={href}
+          onClick={onNavigate}
+          className="group/cta mt-5 inline-flex items-center gap-1.5 self-start rounded-lg bg-brand-500 px-3.5 py-2 text-xs font-semibold text-black shadow-sm transition-all duration-ui hover:-translate-y-0.5 hover:bg-brand-400 hover:shadow-md focus-visible:-translate-y-0.5"
+        >
+          {action}
+          <ArrowUpRight
+            aria-hidden="true"
+            className="h-3.5 w-3.5 transition-transform duration-ui group-hover/cta:-translate-y-0.5 group-hover/cta:translate-x-0.5"
+          />
+        </Link>
+      </div>
+    </aside>
+  );
+}
+
+/**
+ * Two-column list panel for menus that don't have grouped sub-columns
+ * (Mining & processing, Engineering, Company). Uses the same editorial
+ * rail as the Services mega panel so every dropdown reads as one system.
+ */
 function ListPanel({
   item,
   onNavigate,
@@ -110,26 +198,56 @@ function ListPanel({
   onNavigate: () => void;
 }) {
   return (
-    <ul className="mx-auto grid max-w-3xl gap-0.5 sm:grid-cols-2">
-      {item.children!.map((link) => (
-        <li key={link.href}>
-          <Link
-            href={link.href}
-            onClick={onNavigate}
-            className="block rounded-md p-3 transition-colors duration-micro ease-out-expo hover:bg-accent focus-visible:bg-accent"
-          >
-            <span className="block text-sm font-semibold text-foreground">
-              {link.label}
-            </span>
-            {link.description && (
-              <span className="mt-0.5 block text-xs leading-5 text-subtle">
-                {link.description}
-              </span>
-            )}
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="min-w-0">
+        <div className="flex items-baseline gap-2 border-b border-hairline pb-3">
+          <span className="font-mono text-[0.6rem] font-semibold text-brand-600/80 dark:text-brand-400/80">
+            01
+          </span>
+          <h3 className="tech-label text-foreground">
+            {item.label} · {item.children!.length} pages
+          </h3>
+        </div>
+        <ul className="mt-3 grid gap-1 sm:grid-cols-2">
+          {item.children!.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                onClick={onNavigate}
+                className="group/link relative flex items-start gap-3 rounded-lg p-2.5 transition-all duration-ui ease-out-expo hover:-translate-y-px hover:bg-surface-sunken focus-visible:bg-surface-sunken"
+              >
+                <span
+                  aria-hidden="true"
+                  className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500/70 transition-all duration-ui group-hover/link:h-2 group-hover/link:w-2 group-hover/link:bg-brand-500"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-semibold text-foreground transition-colors group-hover/link:text-brand-700 dark:group-hover/link:text-brand-300">
+                      {link.label}
+                    </span>
+                    <ArrowUpRight
+                      aria-hidden="true"
+                      className="h-3 w-3 shrink-0 text-brand-600/0 transition-all duration-ui group-hover/link:text-brand-600 group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5 dark:group-hover/link:text-brand-400"
+                    />
+                  </span>
+                  {link.description && (
+                    <span className="mt-0.5 block text-xs leading-5 text-subtle">
+                      {link.description}
+                    </span>
+                  )}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <EditorialRail
+        item={item}
+        onNavigate={onNavigate}
+        eyebrowFallback={`${item.children!.length} pages · one section`}
+      />
+    </div>
   );
 }
 
@@ -311,14 +429,6 @@ export function SiteHeader() {
                 <div className="hidden lg:block">
                   <ThemeToggle onInk={transparent} />
                 </div>
-                <Link href="/auth/login" className="hidden lg:block">
-                  <Button
-                    variant={transparent ? 'on-ink' : 'outline'}
-                    size="sm"
-                  >
-                    Client portal
-                  </Button>
-                </Link>
                 <Link href="/request-rfq" className="hidden sm:block">
                   <Button variant="brand" size="sm">
                     Request a quotation
@@ -516,17 +626,39 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
                       {groups.map((group, gi) => (
                         <div key={group.heading || gi}>
                           {group.heading && (
-                            <h3 className="tech-label mb-2">{group.heading}</h3>
+                            <div className="mb-2 flex items-baseline gap-2">
+                              <span className="font-mono text-[0.6rem] font-semibold text-brand-600/80 dark:text-brand-400/80">
+                                {String(gi + 1).padStart(2, '0')}
+                              </span>
+                              <h3 className="tech-label">{group.heading}</h3>
+                            </div>
                           )}
-                          <ul className="space-y-1">
+                          <ul className="space-y-0.5">
                             {group.links.map((link) => (
                               <li key={link.href}>
                                 <Link
                                   href={link.href}
                                   onClick={onClose}
-                                  className="block rounded-md py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                                  className="flex items-start gap-3 rounded-lg p-2 transition-colors hover:bg-surface-sunken"
                                 >
-                                  {link.label}
+                                  {link.icon && (
+                                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-hairline bg-secondary/60 text-muted-foreground">
+                                      <ServiceIcon
+                                        name={link.icon}
+                                        className="h-4 w-4"
+                                      />
+                                    </span>
+                                  )}
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block text-sm font-semibold text-foreground">
+                                      {link.label}
+                                    </span>
+                                    {link.description && (
+                                      <span className="mt-0.5 block text-xs leading-5 text-subtle">
+                                        {link.description}
+                                      </span>
+                                    )}
+                                  </span>
                                 </Link>
                               </li>
                             ))}
@@ -536,9 +668,12 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
                       <Link
                         href={item.href}
                         onClick={onClose}
-                        className="inline-block text-sm font-semibold text-brand-600 underline decoration-brand-600/30 dark:text-brand-400 dark:decoration-brand-400/30"
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 dark:text-brand-400"
                       >
-                        {item.label} overview
+                        <span className="border-b border-brand-600/30 pb-px dark:border-brand-400/30">
+                          {item.label} overview
+                        </span>
+                        <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
                       </Link>
                     </div>
                   )}
@@ -551,11 +686,6 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
             <Link href="/request-rfq" onClick={onClose}>
               <Button variant="brand" size="lg" className="w-full">
                 Request a quotation
-              </Button>
-            </Link>
-            <Link href="/auth/login" onClick={onClose}>
-              <Button variant="outline" size="lg" className="w-full">
-                Client portal
               </Button>
             </Link>
           </div>

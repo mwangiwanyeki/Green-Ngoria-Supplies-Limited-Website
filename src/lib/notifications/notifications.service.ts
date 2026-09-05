@@ -103,6 +103,24 @@ export class NotificationsService {
   }
 
   /**
+   * Dismiss a single notification. Scoped by userId so a caller can only
+   * touch their own rows (server-side authz — the JWT provides userId).
+   */
+  async dismiss(id: string, userId: string): Promise<void> {
+    await this.prisma.notification.deleteMany({ where: { id, userId } });
+  }
+
+  /**
+   * Clear every read notification for a user. Unread rows are preserved.
+   */
+  async clearRead(userId: string): Promise<number> {
+    const result = await this.prisma.notification.deleteMany({
+      where: { userId, readAt: { not: null } },
+    });
+    return result.count;
+  }
+
+  /**
    * Get paginated notifications for a user.
    */
   async findForUser(

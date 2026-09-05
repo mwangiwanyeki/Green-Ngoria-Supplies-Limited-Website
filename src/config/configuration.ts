@@ -46,6 +46,21 @@ export default () => ({
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   },
 
+  // Arcjet — application-layer security (WAF shield, bot detection, rate
+  // limiting). Layered ON TOP of the existing @nestjs/throttler + custom
+  // lockout, not a replacement. Disabled automatically when no key is set,
+  // so local dev without a key still works.
+  arcjet: {
+    key: process.env.ARCJET_KEY,
+    // In dev, Arcjet runs in DRY_RUN so it logs decisions without blocking;
+    // in production it enforces (LIVE).
+    mode:
+      (process.env.ARCJET_MODE ??
+        (process.env.NODE_ENV === 'production' ? 'LIVE' : 'DRY_RUN')) as
+        | 'LIVE'
+        | 'DRY_RUN',
+  },
+
   storage: {
     provider: process.env.STORAGE_PROVIDER ?? 'local',
     bucket: process.env.STORAGE_BUCKET ?? 'greenngoria-documents',

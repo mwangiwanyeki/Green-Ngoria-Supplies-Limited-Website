@@ -36,7 +36,10 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useMe } from '@/lib/api/hooks/use-auth';
+import { useAuthStore } from '@/stores/auth-store';
 import { useProjects } from '@/lib/api/hooks/use-projects';
+import { useAnalyticsDashboard } from '@/lib/api/hooks/use-analytics';
+import { useHrOverview } from '@/lib/api/hooks/use-hr';
 import { formatRelativeDate } from '@/lib/utils';
 import type { ProjectSummary } from '@/lib/api/models';
 
@@ -63,66 +66,74 @@ const fadeUp = {
 
 export function AdminPmDashboard() {
   const { data: user } = useMe();
-  const orgId = user?.organizationId ?? '';
+  const cachedOrgId = useAuthStore((s) => s.user?.organizationId);
+  const orgId = user?.organizationId || cachedOrgId || '';
 
-  const { data: projectsData, isLoading } = useProjects(orgId, { limit: 10 });
+  const { data: projectsData } = useProjects(orgId, { limit: 25 });
+  const { data: analytics } = useAnalyticsDashboard(orgId);
+  const { data: hr } = useHrOverview();
   const projects = (projectsData?.data as ProjectSummary[] | undefined) ?? [];
 
-  // Project Progress across key sites
+  // Real per-project progress. The Project model doesn't carry per-phase
+  // percentages, so we show the top 4 active projects with any progress
+  // field present (falling back to 0). No fabricated phase splits.
   const siteProgressData = useMemo(() => {
-    return [
-      { site: 'Bondo CIP (30 TPH)', engineering: 100, construction: 82, commissioning: 45 },
-      { site: 'Siaya Leaching Exp.', engineering: 100, construction: 95, commissioning: 70 },
-      { site: 'Taita Taveta Plant', engineering: 85, construction: 40, commissioning: 10 },
-      { site: 'Migori CIL Upgrade', engineering: 60, construction: 15, commissioning: 0 },
-    ];
-  }, []);
+    if (!projects.length) return [];
+    return projects
+      .filter((p) => p.status && !['COMPLETED', 'CANCELLED'].includes(p.status))
+      .slice(0, 4)
+      .map((p) => ({
+        site:
+          p.name?.length && p.name.length > 22
+            ? `${p.name.slice(0, 22)}…`
+            : (p.name ?? '—'),
+        progress: Number((p as { progress?: number }).progress ?? 0),
+      }));
+  }, [projects]);
 
-  // Workforce and Site hours weekly trend
-  const workforceTrend = useMemo(() => {
-    return [
-      { day: 'Mon', workers: 142, hours: 1120 },
-      { day: 'Tue', workers: 148, hours: 1180 },
-      { day: 'Wed', workers: 152, hours: 1210 },
-      { day: 'Thu', workers: 146, hours: 1160 },
-      { day: 'Fri', workers: 150, hours: 1200 },
-      { day: 'Sat', workers: 98, hours: 780 },
-    ];
-  }, []);
-
-  // Upcoming Milestones
+  // Real critical path — the earliest 4 upcoming project targetEndDate rows.
+  type ProjectWithEnd = ProjectSummary & {
+    targetEndDate?: string | null;
+    expectedCompletionDate?: string | null;
+  };
   const upcomingMilestones = useMemo(() => {
-    return [
-      {
-        id: '1',
-        title: 'Elution Column Hydro-Testing',
-        project: 'Bondo CIP Expansion',
-        date: 'In 2 days',
-        status: 'ON_TRACK',
-      },
-      {
-        id: '2',
-        title: 'Primary Ball Mill Alignment Inspection',
-        project: 'Siaya Leaching Expansion',
-        date: 'In 4 days',
-        status: 'ON_TRACK',
-      },
-      {
-        id: '3',
-        title: 'Tailings Slurry Pipework Erection',
-        project: 'Taita Taveta Mining Plant',
-        date: 'In 6 days',
-        status: 'IN_PROGRESS',
-      },
-      {
-        id: '4',
-        title: 'Substation Transformer Energisation',
-        project: 'Migori CIL Upgrade',
-        date: 'In 9 days',
-        status: 'PENDING_REVIEW',
-      },
-    ];
-  }, []);
+    const now = Date.now();
+    return (projects as ProjectWithEnd[])
+      .map((p) => {
+        const end = p.targetEndDate ?? p.expectedCompletionDate;
+        return end ? { project: p, endMs: new Date(end).getTime(), end } : null;
+      })
+      .filter(
+        (row): row is { project: ProjectWithEnd; endMs: number; end: string } =>
+          !!row && row.endMs >= now,
+      )
+      .sort((a, b) => a.endMs - b.endMs)
+      .slice(0, 4)
+      .map((row) => ({
+        id: row.project.id,
+        title: row.project.name ?? '—',
+        project: row.project.client?.companyName ?? 'Internal project',
+        date: formatRelativeDate(row.end),
+        status: row.project.status ?? 'IN_PROGRESS',
+      }));
+  }, [projects]);
+
+  const totalProjects = projects.length;
+  const activeProjects = projects.filter(
+    (p) =>
+      p.status && !['COMPLETED', 'CANCELLED', 'ON_HOLD'].includes(p.status),
+  ).length;
+  const onTrackPct = activeProjects
+    ? Math.round(
+        (projects.filter((p) =>
+          ['ACTIVE', 'IN_PROGRESS', 'ON_TRACK'].includes(
+            (p.status ?? '').toUpperCase(),
+          ),
+        ).length /
+          activeProjects) *
+          100,
+      )
+    : 0;
 
   return (
     <motion.div
@@ -161,35 +172,54 @@ export function AdminPmDashboard() {
       >
         <MetricCard
           title="Active Plant Projects"
-          value={projects.length > 0 ? String(projects.length) : '8'}
-          delta="+2"
-          deltaPositive={true}
-          description="new awards"
-          icon={<FolderKanban className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
+          value={totalProjects ? String(activeProjects) : '—'}
+          description={
+            totalProjects ? `${totalProjects} total tracked` : 'no projects yet'
+          }
+          icon={
+            <FolderKanban className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          }
         />
         <MetricCard
-          title="Milestone Schedule Health"
-          value="94.2%"
-          delta="+3.1%"
-          deltaPositive={true}
-          description="on schedule"
-          icon={<CheckCircle2 className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
+          title="Projects on schedule"
+          value={activeProjects ? `${onTrackPct}%` : '—'}
+          description={
+            activeProjects
+              ? `${activeProjects} in delivery`
+              : 'no delivery data'
+          }
+          icon={
+            <CheckCircle2 className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          }
         />
         <MetricCard
           title="Active On-Site Workforce"
-          value="152"
-          delta="+14"
-          deltaPositive={true}
-          description="technicians on shift"
+          value={
+            hr
+              ? String(
+                  hr.checkedInToday ??
+                    hr.byStatus?.ACTIVE ??
+                    hr.totalStaff ??
+                    0,
+                )
+              : '—'
+          }
+          description={hr ? `${hr.totalStaff ?? 0} on headcount` : 'no HR data'}
           icon={<Users className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
         />
         <MetricCard
-          title="Open Punch List Items"
-          value="14"
-          delta="-6"
-          deltaPositive={true}
-          description="closed this week"
-          icon={<Activity className="h-5 w-5 text-teal-600 dark:text-teal-400" />}
+          title="Open HSE incidents"
+          value={analytics ? String(analytics.hse.openIncidents ?? 0) : '—'}
+          description={
+            analytics
+              ? analytics.hse.openIncidents === 0
+                ? 'zero open · well done'
+                : 'requires attention'
+              : 'no data'
+          }
+          icon={
+            <Activity className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          }
         />
       </motion.div>
 
@@ -206,8 +236,12 @@ export function AdminPmDashboard() {
             <FolderKanban className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Project Register</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Phases, WBS &amp; deliverables</div>
+            <div className="text-xs font-semibold text-foreground">
+              Project Register
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Phases, WBS &amp; deliverables
+            </div>
           </div>
         </Link>
 
@@ -219,8 +253,12 @@ export function AdminPmDashboard() {
             <Hammer className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Daily Site Logs</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Progress &amp; shift reports</div>
+            <div className="text-xs font-semibold text-foreground">
+              Daily Site Logs
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Progress &amp; shift reports
+            </div>
           </div>
         </Link>
 
@@ -232,8 +270,12 @@ export function AdminPmDashboard() {
             <FileCheck className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Commissioning</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Cold &amp; hot test sign-offs</div>
+            <div className="text-xs font-semibold text-foreground">
+              Commissioning
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Cold &amp; hot test sign-offs
+            </div>
           </div>
         </Link>
 
@@ -245,8 +287,12 @@ export function AdminPmDashboard() {
             <Truck className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">Procurement Reqs</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Equipment &amp; materials PO</div>
+            <div className="text-xs font-semibold text-foreground">
+              Procurement Reqs
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Equipment &amp; materials PO
+            </div>
           </div>
         </Link>
 
@@ -258,8 +304,12 @@ export function AdminPmDashboard() {
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">HSE Safety Logs</div>
-            <div className="text-[0.6875rem] text-muted-foreground">Toolbox talks &amp; incidents</div>
+            <div className="text-xs font-semibold text-foreground">
+              HSE Safety Logs
+            </div>
+            <div className="text-[0.6875rem] text-muted-foreground">
+              Toolbox talks &amp; incidents
+            </div>
           </div>
         </Link>
       </motion.div>
@@ -273,40 +323,63 @@ export function AdminPmDashboard() {
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-base font-bold text-foreground">Active Plant Construction &amp; Delivery</h3>
-              <p className="text-xs text-muted-foreground">Progress completion across Engineering, Construction, and Commissioning</p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-medium">
-              <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-teal-600" /> Engineering
-              </span>
-              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Construction
-              </span>
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Commissioning
-              </span>
+              <h3 className="text-base font-bold text-foreground">
+                Active Plant Delivery Progress
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Reported completion per active project
+              </p>
             </div>
           </div>
 
           <div className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={siteProgressData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="site" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                <YAxis
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${v}%`}
-                  domain={[0, 100]}
-                />
-                <Tooltip contentStyle={tooltipStyle} formatter={(val: number) => `${val}%`} />
-                <Bar dataKey="engineering" name="Engineering" fill="#0d9488" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="construction" name="Construction" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="commissioning" name="Commissioning" fill="#22c55e" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {siteProgressData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                No active projects with progress data yet.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={siteProgressData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--border))"
+                  />
+                  <XAxis
+                    dataKey="site"
+                    tick={{
+                      fontSize: 11,
+                      fill: 'hsl(var(--muted-foreground))',
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{
+                      fontSize: 11,
+                      fill: 'hsl(var(--muted-foreground))',
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `${v}%`}
+                    domain={[0, 100]}
+                  />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(val: number) => `${val}%`}
+                  />
+                  <Bar
+                    dataKey="progress"
+                    name="Completion"
+                    fill="#0d9488"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </motion.div>
 
@@ -316,25 +389,41 @@ export function AdminPmDashboard() {
           className="rounded-2xl border border-hairline bg-card p-6 shadow-sm flex flex-col justify-between"
         >
           <div>
-            <h3 className="text-base font-bold text-foreground">Site Workforce Pacing</h3>
-            <p className="text-xs text-muted-foreground">Daily deployed technicians &amp; safe man-hours</p>
+            <h3 className="text-base font-bold text-foreground">
+              Workforce Snapshot
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Live HR headcount from the active branch
+            </p>
           </div>
 
-          <div className="h-[210px] my-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={workforceTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Line type="monotone" dataKey="workers" name="Technicians" stroke="#0d9488" strokeWidth={2.5} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="flex flex-1 items-center justify-center py-6">
+            {!hr ? (
+              <div className="text-xs text-muted-foreground">Loading…</div>
+            ) : hr.totalStaff === 0 ? (
+              <div className="text-center text-xs text-muted-foreground">
+                No staff records yet.
+                <br />
+                Add staff under HR › Manage Staff.
+              </div>
+            ) : (
+              <div className="grid w-full grid-cols-2 gap-3 text-center">
+                <StatBlock label="Total staff" value={hr.totalStaff} />
+                <StatBlock label="Active" value={hr.byStatus?.ACTIVE ?? 0} />
+                <StatBlock label="On leave" value={hr.onLeaveNow ?? 0} />
+                <StatBlock
+                  label="Checked-in today"
+                  value={hr.checkedInToday ?? 0}
+                />
+              </div>
+            )}
           </div>
 
           <div className="border-t border-hairline pt-3 flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Total Safe Man-Hours (Week)</span>
-            <span className="font-mono font-bold text-foreground">6,650 hrs (0 LTI)</span>
+            <span className="text-muted-foreground">HSE open incidents</span>
+            <span className="font-mono font-bold text-foreground">
+              {analytics ? String(analytics.hse.openIncidents ?? 0) : '—'}
+            </span>
           </div>
         </motion.div>
       </div>
@@ -348,10 +437,17 @@ export function AdminPmDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-foreground">Mining Projects Under Execution</h3>
-              <p className="text-xs text-muted-foreground">Scope, client operator, and current delivery state</p>
+              <h3 className="text-base font-bold text-foreground">
+                Mining Projects Under Execution
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Scope, client operator, and current delivery state
+              </p>
             </div>
-            <Link href="/admin/projects" className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1">
+            <Link
+              href="/admin/projects"
+              className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1"
+            >
               All Projects <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
@@ -363,11 +459,18 @@ export function AdminPmDashboard() {
               </div>
             ) : (
               projects.slice(0, 5).map((p) => (
-                <div key={p.id} className="py-3 flex items-center justify-between">
+                <div
+                  key={p.id}
+                  className="py-3 flex items-center justify-between"
+                >
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-foreground">{p.projectNumber}</span>
-                      <span className="text-xs font-semibold text-foreground">{p.name}</span>
+                      <span className="font-mono text-xs font-bold text-foreground">
+                        {p.projectNumber}
+                      </span>
+                      <span className="text-xs font-semibold text-foreground">
+                        {p.name}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <MapPin className="h-3 w-3" />
@@ -392,30 +495,65 @@ export function AdminPmDashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-foreground">Critical Path Milestones</h3>
-              <p className="text-xs text-muted-foreground">Inspection, hydro-testing, and energisation gates</p>
+              <h3 className="text-base font-bold text-foreground">
+                Critical Path Milestones
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Inspection, hydro-testing, and energisation gates
+              </p>
             </div>
-            <Link href="/admin/site-ops" className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1">
+            <Link
+              href="/admin/site-ops"
+              className="text-xs font-semibold text-brand-600 hover:underline flex items-center gap-1"
+            >
               Site Logs <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
 
           <div className="space-y-3">
-            {upcomingMilestones.map((m) => (
-              <div key={m.id} className="flex items-center justify-between p-3 rounded-xl border border-hairline bg-surface-elevated">
-                <div className="space-y-0.5">
-                  <div className="text-xs font-semibold text-foreground">{m.title}</div>
-                  <div className="text-[0.6875rem] text-muted-foreground">{m.project}</div>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xs font-mono font-medium text-amber-600 dark:text-amber-400">{m.date}</span>
-                  <StatusBadge status={m.status} />
-                </div>
+            {upcomingMilestones.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                No upcoming project deadlines.
               </div>
-            ))}
+            ) : (
+              upcomingMilestones.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between p-3 rounded-xl border border-hairline bg-surface-elevated"
+                >
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="truncate text-xs font-semibold text-foreground">
+                      {m.title}
+                    </div>
+                    <div className="text-[0.6875rem] text-muted-foreground">
+                      {m.project}
+                    </div>
+                  </div>
+                  <div className="ml-3 flex items-center gap-2.5 shrink-0">
+                    <span className="text-xs font-mono font-medium text-amber-600 dark:text-amber-400">
+                      {m.date}
+                    </span>
+                    <StatusBadge status={m.status} />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </motion.div>
       </div>
     </motion.div>
+  );
+}
+
+function StatBlock({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-hairline bg-surface-elevated py-3">
+      <div className="font-mono text-2xl font-bold text-foreground">
+        {value}
+      </div>
+      <div className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+    </div>
   );
 }

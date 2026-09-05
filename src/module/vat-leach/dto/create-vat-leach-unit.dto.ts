@@ -50,7 +50,10 @@ export class CreateVatLeachUnitDto {
   @IsPositive()
   capacityTonnes?: number;
 
-  @ApiPropertyOptional({ enum: VatLeachStatus, default: VatLeachStatus.AVAILABLE })
+  @ApiPropertyOptional({
+    enum: VatLeachStatus,
+    default: VatLeachStatus.AVAILABLE,
+  })
   @IsOptional()
   @IsEnum(VatLeachStatus)
   status?: VatLeachStatus;

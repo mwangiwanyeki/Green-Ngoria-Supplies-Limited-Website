@@ -56,6 +56,7 @@ import {
   type InventoryItem,
   type StockMovementType,
 } from '@/lib/api/hooks/use-inventory';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -64,6 +65,8 @@ export function AdminInventory() {
 
   // List state
   const [search, setSearch] = React.useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [filter, setFilter] = React.useState<'all' | 'low' | 'out'>('all');
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(15);
@@ -75,7 +78,7 @@ export function AdminInventory() {
   const [viewItem, setViewItem] = React.useState<InventoryItem | null>(null);
   const [archiveTarget, setArchiveTarget] = React.useState<InventoryItem | null>(null);
 
-  const query = useInventoryItems({ search, filter, page, limit: perPage });
+  const query = useInventoryItems({ search: debouncedSearch, filter, page, limit: perPage });
   const { data: stats } = useInventoryStats();
   const archiveMutation = useArchiveInventoryItem();
 

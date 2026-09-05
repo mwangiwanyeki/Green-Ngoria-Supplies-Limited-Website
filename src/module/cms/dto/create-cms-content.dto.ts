@@ -114,7 +114,9 @@ export class CreateCmsContentDto {
   @IsString({ each: true })
   tags?: string[];
 
-  @ApiPropertyOptional({ description: 'Pages only — storage key of hero image' })
+  @ApiPropertyOptional({
+    description: 'Pages only — storage key of hero image',
+  })
   @IsOptional()
   @IsString()
   featuredImageKey?: string;

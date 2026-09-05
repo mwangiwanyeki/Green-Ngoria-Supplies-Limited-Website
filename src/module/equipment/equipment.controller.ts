@@ -89,6 +89,72 @@ export class EquipmentController {
     return paginatedResponse(result.items, result.meta);
   }
 
+  // ─── Spare parts ───────────────────────────────────────────────────────────
+  // NOTE: these static `spares` routes MUST be declared before the `:id`
+  // param routes below. Express matches top-down, so `@Get(':id')` would
+  // otherwise swallow `GET /equipment/spares` and the UUID pipe would reject
+  // "spares" with a 400 (the cause of the /admin/spares page error).
+
+  @Post('spares')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PROCUREMENT_OFFICER')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Add a spare part' })
+  async createSpare(@Body() dto: CreateSparePartDto) {
+    return successResponse(
+      await this.service.createSparePart(dto),
+      'Spare part added',
+    );
+  }
+
+  @Get('spares')
+  @ApiOperation({ summary: 'List spare parts' })
+  @ApiQuery({ name: 'equipmentId', required: false })
+  async findAllSpares(
+    @Query() pagination: PaginationDto,
+    @Query('equipmentId') equipmentId: string,
+  ) {
+    const result = await this.service.findAllSpareParts(pagination, equipmentId);
+    return paginatedResponse(result.items, result.meta);
+  }
+
+  @Get('spares/:id')
+  @ApiOperation({ summary: 'Get spare part details' })
+  async findSpare(@Param('id', ParseUUIDPipe) id: string) {
+    return successResponse(await this.service.findSparePartById(id));
+  }
+
+  @Patch('spares/:id')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PROCUREMENT_OFFICER')
+  @ApiOperation({ summary: 'Update spare part' })
+  async updateSpare(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateSparePartDto,
+  ) {
+    return successResponse(
+      await this.service.updateSparePart(id, dto),
+      'Spare part updated',
+    );
+  }
+
+  @Post('spares/:id/stock-adjust')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'PROCUREMENT_OFFICER')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Adjust spare part stock (positive = add, negative = remove)',
+  })
+  async adjustStock(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('adjustment') adjustment: number,
+    @Body('reason') reason: string,
+  ) {
+    return successResponse(
+      await this.service.adjustStock(id, adjustment, reason),
+      'Stock adjusted',
+    );
+  }
+
+  // ─── Equipment by id (param routes — keep AFTER all static routes) ──────────
+
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Get equipment details' })
@@ -134,68 +200,5 @@ export class EquipmentController {
   @ApiOperation({ summary: 'Archive equipment (soft delete)' })
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     return successResponse(await this.service.deleteEquipment(id));
-  }
-
-  // ─── Spare parts ───────────────────────────────────────────────────────────
-
-  @Post('spares')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'PROCUREMENT_OFFICER')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Add a spare part' })
-  async createSpare(@Body() dto: CreateSparePartDto) {
-    return successResponse(
-      await this.service.createSparePart(dto),
-      'Spare part added',
-    );
-  }
-
-  @Get('spares')
-  @ApiOperation({ summary: 'List spare parts' })
-  @ApiQuery({ name: 'equipmentId', required: false })
-  async findAllSpares(
-    @Query() pagination: PaginationDto,
-    @Query('equipmentId') equipmentId: string,
-  ) {
-    const result = await this.service.findAllSpareParts(
-      pagination,
-      equipmentId,
-    );
-    return paginatedResponse(result.items, result.meta);
-  }
-
-  @Get('spares/:id')
-  @ApiOperation({ summary: 'Get spare part details' })
-  async findSpare(@Param('id', ParseUUIDPipe) id: string) {
-    return successResponse(await this.service.findSparePartById(id));
-  }
-
-  @Patch('spares/:id')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'PROCUREMENT_OFFICER')
-  @ApiOperation({ summary: 'Update spare part' })
-  async updateSpare(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: CreateSparePartDto,
-  ) {
-    return successResponse(
-      await this.service.updateSparePart(id, dto),
-      'Spare part updated',
-    );
-  }
-
-  @Post('spares/:id/stock-adjust')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'PROCUREMENT_OFFICER')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Adjust spare part stock (positive = add, negative = remove)',
-  })
-  async adjustStock(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body('adjustment') adjustment: number,
-    @Body('reason') reason: string,
-  ) {
-    return successResponse(
-      await this.service.adjustStock(id, adjustment, reason),
-      'Stock adjusted',
-    );
   }
 }

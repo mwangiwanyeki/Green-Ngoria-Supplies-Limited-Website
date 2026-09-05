@@ -27,10 +27,13 @@ import {
   type Account, type AccountType, type TransactionType,
   type CreateAccountPayload, type ManualEntryPayload,
 } from '@/lib/api/hooks/use-accounts';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 
 export function AdminAccounts() {
   const branchId = useBranchStore((s) => s.activeBranchId) ?? '';
   const [search, setSearch] = React.useState('');
+
+  const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(15);
 
@@ -40,7 +43,7 @@ export function AdminAccounts() {
   const [viewAccount, setViewAccount] = React.useState<Account | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<Account | null>(null);
 
-  const query = useAccounts({ search, page, limit: perPage });
+  const query = useAccounts({ search: debouncedSearch, page, limit: perPage });
   const { data: summary } = useAccountsSummary();
   const deleteMutation = useDeleteAccount();
 

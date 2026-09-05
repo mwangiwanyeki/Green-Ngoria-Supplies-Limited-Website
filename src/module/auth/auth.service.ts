@@ -11,7 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
 import * as argon2 from 'argon2';
 import { authenticator } from 'otplib';
-import { SystemRole } from '@prisma/client';
+import { Prisma, SystemRole } from '@prisma/client';
 import { PrismaService } from '../../lib/database/prisma.service';
 import { MailService } from '../../lib/mail/mail.service';
 import { AuditService } from '../../lib/audit/audit.service';
@@ -21,6 +21,32 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtPayload } from './auth.types';
+
+/**
+ * Roles that see money movement, personnel records, mining sites, or
+ * engineering IP. Login succeeds without MFA for these, but the response
+ * carries `mfaEnrollmentRequired: true` so the client can steer the user to
+ * `/admin/profile#mfa` before they land on the dashboard. Kept in sync with
+ * `web/src/config/navigation.ts`'s role constants.
+ */
+const PRIVILEGED_ROLES = new Set<string>([
+  'SUPER_ADMIN',
+  'ADMIN',
+  'DIRECTOR',
+  'MANAGING_DIRECTOR',
+  'PROJECT_MANAGER',
+  'PRODUCTION_MANAGER',
+  'MINING_ENGINEER',
+  'PROCESS_ENGINEER',
+  'MECHANICAL_ENGINEER',
+  'ELECTRICAL_ENGINEER',
+  'SALES_MANAGER',
+  'FINANCE_OFFICER',
+  'HR_OFFICER',
+  'HSE_OFFICER',
+  'LEGAL_OFFICER',
+  'PROCUREMENT_OFFICER',
+]);
 
 @Injectable()
 export class AuthService {
@@ -54,17 +80,55 @@ export class AuthService {
 
     const emailVerificationToken = this.createEmailVerificationToken();
 
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email.toLowerCase(),
-        passwordHash,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        phone: dto.phone,
-        emailVerificationToken,
-        status: 'PENDING_VERIFICATION',
-      },
+    // Race guard: two parallel registrations for the same email both pass the
+    // findUnique above and one loses on the DB unique index (Prisma P2002).
+    // Map it back to the same friendly ConflictException the pre-check
+    // produces, so the client sees consistent behaviour either way.
+    let user;
+    try {
+      user = await this.prisma.user.create({
+        data: {
+          email: dto.email.toLowerCase(),
+          passwordHash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          phone: dto.phone,
+          emailVerificationToken,
+          status: 'PENDING_VERIFICATION',
+        },
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'An account with this email already exists',
+        );
+      }
+      throw err;
+    }
+
+    // Give the fresh account a real role so authorization checks work — the
+    // portal AuthBoundary gates on CLIENT_ADMIN / CLIENT_USER, so without a
+    // role assignment the user landed on /forbidden immediately after email
+    // verification. Public self-service registration is always a client user;
+    // admins and staff are provisioned separately by an existing admin.
+    const clientUserRole = await this.prisma.role.findUnique({
+      where: { name: 'CLIENT_USER' },
+      select: { id: true },
     });
+    if (clientUserRole) {
+      await this.prisma.userRole.create({
+        data: { userId: user.id, roleId: clientUserRole.id },
+      });
+    } else {
+      // Non-fatal: the account is still created, but log so we notice the
+      // seed drift rather than silently creating role-less accounts.
+      this.logger.warn(
+        'CLIENT_USER role missing — new registration has no role assigned',
+      );
+    }
 
     // Send verification email (fire-and-forget — never block registration)
     const verificationUrl = `${this.config.get('urls.frontend')}/auth/verify-email?token=${emailVerificationToken}`;
@@ -84,10 +148,11 @@ export class AuthService {
 
     this.logger.log(`New user registered: ${user.email}`);
 
+    // Never leak the fresh user id — it can be used as an enumeration handle
+    // before verification. Registration only needs to confirm submission.
     return {
       message:
         'Registration successful. Please check your email to verify your account.',
-      userId: user.id,
     };
   }
 
@@ -238,9 +303,7 @@ export class AuthService {
     // Extract roles and permissions
     // `Role.name` is TEXT (it also carries custom, non-system role names), but the
     // JWT payload models the built-in role set.
-    const roles = user.userRoles.map(
-      (ur) => ur.role.name,
-    ) as SystemRole[];
+    const roles = user.userRoles.map((ur) => ur.role.name) as SystemRole[];
     const permissions = [
       ...new Set(
         user.userRoles.flatMap((ur) =>
@@ -287,10 +350,19 @@ export class AuthService {
 
     this.logger.log(`User logged in: ${user.email}`);
 
+    // Enrollment nudge: roles that handle money, staff data, sites, or
+    // engineering IP must have MFA. If they don't yet, tell the client so the
+    // login flow can steer them to /admin/profile#mfa on landing. Login still
+    // succeeds — enforcement without a self-service enrollment path locks
+    // people out. Once they enrol, `mfaEnabled` gates the next login normally.
+    const mfaEnrollmentRequired =
+      !user.mfaEnabled && roles.some((r) => PRIVILEGED_ROLES.has(r));
+
     return {
       accessToken,
       refreshToken,
       expiresIn: this.config.get<string>('auth.jwtExpiresIn') ?? '15m',
+      mfaEnrollmentRequired,
       user: {
         id: user.id,
         email: user.email,
@@ -337,9 +409,7 @@ export class AuthService {
     const user = session.user;
     // `Role.name` is TEXT (it also carries custom, non-system role names), but the
     // JWT payload models the built-in role set.
-    const roles = user.userRoles.map(
-      (ur) => ur.role.name,
-    ) as SystemRole[];
+    const roles = user.userRoles.map((ur) => ur.role.name) as SystemRole[];
     const permissions = [
       ...new Set(
         user.userRoles.flatMap((ur) =>
@@ -413,15 +483,40 @@ export class AuthService {
       };
     }
 
-    const token = crypto.randomUUID();
+    // Per-account cooldown — the endpoint-level IP throttle stops a burst
+    // from one attacker; this stops mail-bombing a known victim from a
+    // rotating IP pool. If the most recent reset was issued less than 60s
+    // ago, silently return the same constant response — no new mail, no new
+    // token. `passwordResetExpiry` is set to `now + 1h`, so `now - (exp - 1h)`
+    // gives the age of the last request.
+    if (user.passwordResetExpiry) {
+      const lastRequestAgeMs =
+        Date.now() - (user.passwordResetExpiry.getTime() - 60 * 60 * 1000);
+      if (lastRequestAgeMs >= 0 && lastRequestAgeMs < 60_000) {
+        return {
+          message:
+            'If that email is registered, you will receive a reset link shortly.',
+        };
+      }
+    }
+
+    // 256-bit token in the mail; only its SHA-256 hash is persisted, so a
+    // DB dump alone can't be exchanged for a reset. `randomBytes` gives real
+    // uniform entropy (crypto.randomUUID is v4 with fixed bits — ~122 bits
+    // and structured), and base64url keeps the URL safe.
+    const plainToken = crypto.randomBytes(32).toString('base64url');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(plainToken)
+      .digest('hex');
     const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { passwordResetToken: token, passwordResetExpiry: expiry },
+      data: { passwordResetToken: tokenHash, passwordResetExpiry: expiry },
     });
 
-    const resetUrl = `${this.config.get('urls.frontend')}/auth/reset-password?token=${token}`;
+    const resetUrl = `${this.config.get('urls.frontend')}/auth/reset-password?token=${plainToken}`;
 
     this.mailService
       .sendPasswordReset(user.email, {
@@ -444,14 +539,28 @@ export class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string, ipAddress?: string) {
+    // Look up by the token's SHA-256 (see forgotPassword). Reject unusable
+    // states with the same message so a caller can't distinguish "no token"
+    // from "expired" from "wrong token".
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const user = await this.prisma.user.findUnique({
-      where: { passwordResetToken: token },
+      where: { passwordResetToken: tokenHash },
     });
 
     if (
       !user ||
       !user.passwordResetExpiry ||
       user.passwordResetExpiry < new Date()
+    ) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // A suspended or deleted account isn't allowed back in via a reset link;
+    // the reset flow must not become a back door to reactivate.
+    if (
+      user.deletedAt ||
+      user.status === 'SUSPENDED' ||
+      user.status === 'INACTIVE'
     ) {
       throw new BadRequestException('Invalid or expired reset token');
     }
@@ -723,9 +832,7 @@ export class AuthService {
 
   private fromBase64Url(value: string): string {
     const padLength = value.length % 4 === 0 ? 0 : 4 - (value.length % 4);
-    return (
-      value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(padLength)
-    );
+    return value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(padLength);
   }
 
   private hashRefreshToken(token: string): string {
@@ -790,10 +897,17 @@ export class AuthService {
       return false;
     }
 
-    authenticator.options = { window: 1 };
+    // Use `clone()` (NOT `create()`) to get a per-call authenticator with a
+    // ±1 step tolerance window. `create()` REPLACES all options and drops
+    // otplib's default key codecs / digest, throwing "Expecting
+    // options.keyDecoder to be a function" — which made every verify fail and
+    // silently broke MFA enrolment and the login challenge entirely.
+    // `clone()` merges the given options onto the fully-configured instance.
+    const scoped = authenticator.clone({ window: 1 });
     try {
-      return authenticator.verify({ token: code, secret });
-    } catch {
+      return scoped.verify({ token: code, secret });
+    } catch (error) {
+      this.logger.error('MFA verify() threw', error);
       return false;
     }
   }

@@ -3255,3 +3255,37 @@ model Visitor {
   @@index([branchId, status, deletedAt, checkInAt])
   @@map("visitors")
 }
+
+/// First-party, cookieless website traffic analytics. One row per page view;
+/// rows are grouped into sessions by `sessionId` (a random id kept in the
+/// visitor's sessionStorage). No raw IP is stored — only geo derived from
+/// Vercel edge headers. Consistent with the site's "no third-party trackers"
+/// privacy posture.
+model WebPageView {
+  id         String @id @default(uuid())
+  sessionId  String
+
+  path       String
+  referrer   String?
+  // Time the visitor spent on this page, milliseconds (sent on navigation
+  // away / tab hide). Null while the page is still open.
+  durationMs Int?
+
+  // Derived geo (Vercel x-vercel-ip-* headers). Never the raw IP.
+  country    String?
+  city       String?
+  region     String?
+
+  // Parsed from the User-Agent.
+  deviceType String? // desktop | mobile | tablet | bot
+  browser    String?
+  os         String?
+
+  createdAt  DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([path])
+  @@index([country])
+  @@map("web_page_views")
+}

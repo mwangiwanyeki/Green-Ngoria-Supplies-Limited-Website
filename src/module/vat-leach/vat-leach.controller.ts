@@ -11,7 +11,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { VatLeachService } from './vat-leach.service';
 import { CreateVatLeachUnitDto } from './dto/create-vat-leach-unit.dto';
 import { UpdateVatLeachUnitDto } from './dto/update-vat-leach-unit.dto';
@@ -153,7 +158,9 @@ export class VatLeachController {
     @Query('branchId', ParseUUIDPipe) branchId: string,
     @CurrentUser() actor: AuthUser,
   ) {
-    return successResponse(await this.service.getStats(orgId, branchId, actor.id));
+    return successResponse(
+      await this.service.getStats(orgId, branchId, actor.id),
+    );
   }
 
   @Get('reminders')

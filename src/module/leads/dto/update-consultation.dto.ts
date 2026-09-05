@@ -9,7 +9,9 @@ export class UpdateConsultationDto {
   @IsDate()
   scheduledAt?: Date;
 
-  @ApiPropertyOptional({ enum: ['INITIAL', 'TECHNICAL', 'FOLLOW_UP', 'SITE_VISIT'] })
+  @ApiPropertyOptional({
+    enum: ['INITIAL', 'TECHNICAL', 'FOLLOW_UP', 'SITE_VISIT'],
+  })
   @IsOptional()
   @IsString()
   type?: string;

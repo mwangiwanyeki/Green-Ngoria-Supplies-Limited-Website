@@ -359,10 +359,12 @@ function RoleDialog({
 
 function RowActions({
   role,
+  isSuperAdmin,
   onEdit,
   onDelete,
 }: {
   role: RoleView;
+  isSuperAdmin: boolean;
   onEdit: (role: RoleView) => void;
   onDelete: (role: RoleView) => void;
 }) {
@@ -374,6 +376,18 @@ function RowActions({
         title="Built-in system roles cannot be modified"
       >
         <Lock className="h-3 w-3" /> Locked
+      </span>
+    );
+  }
+
+  // Non-super-admin users have read-only access to custom roles
+  if (!isSuperAdmin) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
+        title="Only Super Administrators can edit or delete roles"
+      >
+        <Lock className="h-3 w-3" /> Read-only
       </span>
     );
   }
@@ -417,6 +431,7 @@ function RowActions({
 export function AdminRolesList() {
   const { data: me } = useMe();
   const orgId = me?.organizationId ?? '';
+  const isSuperAdmin = me?.roles?.includes('SUPER_ADMIN') ?? false;
 
   const { data: roles, isLoading, isError, refetch } = useRoles(orgId);
   const deleteRole = useDeleteRole(orgId);
@@ -429,17 +444,19 @@ export function AdminRolesList() {
   const systemCount = items.filter((r) => r.isSystem).length;
 
   const openCreate = () => {
+    if (!isSuperAdmin) return;
     setEditing(null);
     setDialogOpen(true);
   };
 
   const openEdit = (role: RoleView) => {
+    if (!isSuperAdmin) return;
     setEditing(role);
     setDialogOpen(true);
   };
 
   const confirmDelete = () => {
-    if (!pendingDelete) return;
+    if (!isSuperAdmin || !pendingDelete) return;
     deleteRole.mutate(pendingDelete.id, {
       onSuccess: () => {
         toast.success(`Role "${pendingDelete.displayName}" deleted`);
@@ -530,13 +547,14 @@ export function AdminRolesList() {
         cell: ({ row }) => (
           <RowActions
             role={row.original}
+            isSuperAdmin={isSuperAdmin}
             onEdit={openEdit}
             onDelete={setPendingDelete}
           />
         ),
       },
     ],
-    [],
+    [isSuperAdmin],
   );
 
   if (isLoading) return <PageSkeleton />;
@@ -553,14 +571,16 @@ export function AdminRolesList() {
           </Badge>
         }
         actions={
-          <Button
-            size="sm"
-            variant="brand"
-            leftIcon={<Plus className="h-4 w-4" />}
-            onClick={openCreate}
-          >
-            New role
-          </Button>
+          isSuperAdmin ? (
+            <Button
+              size="sm"
+              variant="brand"
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={openCreate}
+            >
+              New role
+            </Button>
+          ) : undefined
         }
       />
 
@@ -570,13 +590,15 @@ export function AdminRolesList() {
           title="No roles defined"
           description="Built-in system roles are seeded with the database. Create a custom role to grant a tailored permission set."
           action={
-            <Button
-              variant="brand"
-              leftIcon={<Plus className="h-4 w-4" />}
-              onClick={openCreate}
-            >
-              New role
-            </Button>
+            isSuperAdmin ? (
+              <Button
+                variant="brand"
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={openCreate}
+              >
+                New role
+              </Button>
+            ) : undefined
           }
         />
       ) : (
@@ -588,7 +610,7 @@ export function AdminRolesList() {
         />
       )}
 
-      {dialogOpen && (
+      {dialogOpen && isSuperAdmin && (
         <RoleDialog
           // Remount on target change so the form state seeds from the right role.
           key={editing?.id ?? 'new'}
@@ -600,7 +622,7 @@ export function AdminRolesList() {
       )}
 
       <ConfirmDialog
-        open={!!pendingDelete}
+        open={!!pendingDelete && isSuperAdmin}
         onOpenChange={(open) => {
           if (!open) setPendingDelete(null);
         }}

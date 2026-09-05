@@ -10,6 +10,7 @@ import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { Suspense, useState } from 'react';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { OtpInput } from '@/components/ui/otp-input';
 import { useLogin } from '@/lib/api/hooks/use-auth';
 import { getApiErrorMessage } from '@/lib/api/api-error';
 
@@ -52,10 +53,13 @@ function LoginForm() {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+  const mfaCode = watch('mfaCode') ?? '';
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -69,19 +73,36 @@ function LoginForm() {
       }
       toast.success('Welcome back');
       const isStaff = res.user.roles.some((r) => STAFF_ROLES.has(r));
-      // Honour a same-area redirect; otherwise route by role.
-      const target =
-        redirectParam && redirectParam.startsWith('/portal')
-          ? redirectParam
-          : isStaff
-            ? '/admin'
-            : '/portal';
+      // Route strictly by role; only honour `redirect` when it stays in the
+      // same surface the role belongs to. This prevents a staff user from
+      // being pushed into the client portal (or vice-versa) by a crafted
+      // `?redirect=…` parameter, and drops any external URL.
+      const isSafeSameOrigin =
+        !!redirectParam &&
+        redirectParam.startsWith('/') &&
+        !redirectParam.startsWith('//');
+      const target = isStaff
+        ? isSafeSameOrigin && redirectParam!.startsWith('/admin')
+          ? redirectParam!
+          : '/admin'
+        : isSafeSameOrigin && redirectParam!.startsWith('/portal')
+          ? redirectParam!
+          : '/portal';
       router.push(target);
     } catch (err: unknown) {
       const msg = getApiErrorMessage(err, 'Login failed');
       // A rejected MFA code keeps the field open and surfaces the error.
-      if (msg.toLowerCase().includes('mfa')) {
+      // Detect via the server's stable substring first; fall back to a
+      // localisation-safe substring only as a last resort.
+      const status = (err as { status?: number } | null)?.status;
+      if (
+        needsMfa ||
+        (status === 401 &&
+          (msg.toLowerCase().includes('mfa') ||
+            msg.toLowerCase().includes('two-factor')))
+      ) {
         setNeedsMfa(true);
+        setValue('mfaCode', '', { shouldValidate: false });
       }
       toast.error(msg);
     }
@@ -152,15 +173,25 @@ function LoginForm() {
         </div>
 
         {needsMfa && (
-          <div className="space-y-1.5">
-            <Label htmlFor="mfaCode">MFA Code</Label>
-            <Input
-              id="mfaCode"
-              maxLength={6}
-              placeholder="6-digit code from your authenticator"
-              {...register('mfaCode')}
-              error={errors.mfaCode?.message}
+          <div className="space-y-2">
+            <Label>Authentication code</Label>
+            <OtpInput
+              value={mfaCode}
+              onChange={(v) =>
+                setValue('mfaCode', v, { shouldValidate: false })
+              }
+              onComplete={() => {
+                if (!isSubmitting && !login.isPending) {
+                  void handleSubmit(onSubmit)();
+                }
+              }}
+              disabled={isSubmitting || login.isPending}
+              autoFocus
+              aria-label="Authentication code"
             />
+            <p className="text-xs text-muted-foreground">
+              Enter the current 6-digit code — it submits automatically.
+            </p>
           </div>
         )}
 
@@ -183,15 +214,6 @@ function LoginForm() {
             className="font-medium text-primary hover:underline"
           >
             Request access
-          </Link>
-        </p>
-        <p className="border-t border-border pt-3">
-          Staff member?{' '}
-          <Link
-            href="/auth/admin"
-            className="font-medium text-primary hover:underline"
-          >
-            Go to the admin sign-in
           </Link>
         </p>
       </div>

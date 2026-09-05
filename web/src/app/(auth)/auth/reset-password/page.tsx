@@ -11,6 +11,7 @@ import { Suspense, useState } from 'react';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useResetPassword } from '@/lib/api/hooks/use-auth';
+import { getApiErrorMessage } from '@/lib/api/api-error';
 
 const schema = z
   .object({
@@ -50,7 +51,7 @@ function ResetPasswordForm() {
       toast.success('Password reset successfully');
       router.push('/auth/login');
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Reset failed');
+      toast.error(getApiErrorMessage(err, 'Reset failed'));
     }
   };
 

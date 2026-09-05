@@ -2,6 +2,7 @@
   "name": "Green-Ngoria-Website",
   "version": "0.0.1",
   "description": "",
+  "packageManager": "pnpm@9.15.4",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -21,6 +22,7 @@
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@arcjet/node": "^1.11.0",
     "@nestjs/axios": "4.0.1",
     "@nestjs/bullmq": "11.0.5",
     "@nestjs/cache-manager": "3.1.3",

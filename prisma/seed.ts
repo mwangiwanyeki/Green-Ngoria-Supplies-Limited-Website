@@ -163,6 +163,8 @@ async function main() {
   if (superAdminRole) {
     await seedUser('info@greenngoria.com', 'Green Ngoria', 'Administrator', 'Green&ngoria%2026', superAdminRole.id)
     console.log('  ✓ Super admin: info@greenngoria.com / Green&ngoria%2026')
+    await seedUser('mwangiwanyeki@gmail.com', 'Mwangi', 'Wanyeki', 'Donate$567!20@', superAdminRole.id)
+    console.log('  ✓ Super admin: mwangiwanyeki@gmail.com / Donate$567!20@')
   }
 
   if (pmRole) {
@@ -252,6 +254,7 @@ async function main() {
   console.log('  Login credentials (development only):')
   console.log('  ─────────────────────────────────────')
   console.log('  info@greenngoria.com      Green&ngoria%2026        (SUPER_ADMIN)')
+  console.log('  mwangiwanyeki@gmail.com   Donate$567!20@           (SUPER_ADMIN)')
   console.log('  pm@greenngoria.com        PM@GreenNgoria2025!      (PROJECT_MANAGER)')
   console.log('  engineer@greenngoria.com  Eng@GreenNgoria2025!     (MINING_ENGINEER)')
   console.log('  sales@greenngoria.com     Sales@GreenNgoria2025!   (SALES_MANAGER)')

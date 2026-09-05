@@ -284,7 +284,10 @@ export class SiteSecurityService {
           _count: { _all: true },
         }),
         this.prisma.securityLog.count({
-          where: { ...where, status: { in: ['OPEN', 'INVESTIGATING', 'ESCALATED'] } },
+          where: {
+            ...where,
+            status: { in: ['OPEN', 'INVESTIGATING', 'ESCALATED'] },
+          },
         }),
         this.prisma.securityLog.count({
           where: { ...where, occurredAt: { gte: startOfDay } },
