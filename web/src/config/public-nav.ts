@@ -139,36 +139,52 @@ export const publicSiteNav: PublicNavItem[] = [
   {
     label: 'Engineering',
     href: '/mining-plant-engineering',
-    children: [
+    columns: [
       {
-        label: 'Plant engineering',
-        href: '/mining-plant-engineering',
-        description: 'Process, mechanical and electrical deliverables',
+        heading: 'Deliverables',
+        links: [
+          {
+            label: 'Plant engineering',
+            href: '/mining-plant-engineering',
+            description: 'Process, mechanical and electrical deliverables',
+            icon: 'Cog',
+          },
+          {
+            label: 'Plant construction',
+            href: '/mining-plant-construction',
+            description: 'Construction, installation and site coordination',
+            icon: 'HardHat',
+          },
+          {
+            label: 'Plant optimization',
+            href: '/plant-optimization',
+            description: 'Improving an installed circuit',
+            icon: 'TrendingUp',
+          },
+        ],
       },
       {
-        label: 'Plant construction',
-        href: '/mining-plant-construction',
-        description: 'Construction, installation and site coordination',
-      },
-      {
-        label: 'Plant optimization',
-        href: '/plant-optimization',
-        description: 'Improving an installed circuit',
-      },
-      {
-        label: 'Technical assessment',
-        href: '/technical-assessment',
-        description: 'Structured review of an existing plant',
-      },
-      {
-        label: 'Equipment',
-        href: '/equipment',
-        description: 'Equipment categories and enquiry route',
-      },
-      {
-        label: 'Spare parts',
-        href: '/spares',
-        description: 'Spares support for installed plant',
+        heading: 'Diagnostics & supply',
+        links: [
+          {
+            label: 'Technical assessment',
+            href: '/technical-assessment',
+            description: 'Structured review of an existing plant',
+            icon: 'ClipboardCheck',
+          },
+          {
+            label: 'Equipment catalogue',
+            href: '/equipment',
+            description: 'Equipment categories and enquiry route',
+            icon: 'Package',
+          },
+          {
+            label: 'Spare parts',
+            href: '/spares',
+            description: 'Spares support for installed plant',
+            icon: 'Wrench',
+          },
+        ],
       },
     ],
     feature: {
@@ -184,36 +200,52 @@ export const publicSiteNav: PublicNavItem[] = [
   {
     label: 'Company',
     href: '/about',
-    children: [
+    columns: [
       {
-        label: 'About Green Ngoria',
-        href: '/about',
-        description: 'Background, vision, mission and values',
+        heading: 'About us',
+        links: [
+          {
+            label: 'About Green Ngoria',
+            href: '/about',
+            description: 'Background, vision, mission and values',
+            icon: 'Landmark',
+          },
+          {
+            label: 'Leadership',
+            href: '/leadership',
+            description: 'The people directing the company',
+            icon: 'Users',
+          },
+          {
+            label: 'Certifications & compliance',
+            href: '/certifications',
+            description: 'ISO, OHSAS, registration and permits',
+            icon: 'BadgeCheck',
+          },
+        ],
       },
       {
-        label: 'Leadership',
-        href: '/leadership',
-        description: 'The people directing the company',
-      },
-      {
-        label: 'Certifications & compliance',
-        href: '/certifications',
-        description: 'ISO, OHSAS, registration and permits',
-      },
-      {
-        label: 'Completed projects',
-        href: '/projects',
-        description: 'Delivered work across East and Central Africa',
-      },
-      {
-        label: 'Gallery',
-        href: '/gallery',
-        description: 'Photographs from our mines, plants and project sites',
-      },
-      {
-        label: 'Insights',
-        href: '/insights',
-        description: 'Technical notes from the divisions',
+        heading: 'Work & voice',
+        links: [
+          {
+            label: 'Completed projects',
+            href: '/projects',
+            description: 'Delivered work across East and Central Africa',
+            icon: 'Factory',
+          },
+          {
+            label: 'Gallery',
+            href: '/gallery',
+            description: 'Photographs from our mines, plants and project sites',
+            icon: 'Camera',
+          },
+          {
+            label: 'Insights',
+            href: '/insights',
+            description: 'Technical notes from the divisions',
+            icon: 'BookOpen',
+          },
+        ],
       },
     ],
     feature: {

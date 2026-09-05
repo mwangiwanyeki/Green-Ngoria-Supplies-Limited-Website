@@ -54,8 +54,17 @@ function MegaPanel({
   onNavigate: () => void;
 }) {
   const totalLinks = item.columns!.reduce((n, c) => n + c.links.length, 0);
+  // Grid columns adapt to the number of link columns so a 2-column menu
+  // (Engineering, Company) reads as generously as a 4-column one (Services)
+  // without the rail floating to the far right.
+  const gridClass =
+    {
+      2: 'lg:grid-cols-[repeat(2,minmax(0,1fr))_22rem]',
+      3: 'lg:grid-cols-[repeat(3,minmax(0,1fr))_20rem]',
+      4: 'lg:grid-cols-[repeat(4,minmax(0,1fr))_20rem]',
+    }[item.columns!.length] ?? 'lg:grid-cols-[repeat(4,minmax(0,1fr))_20rem]';
   return (
-    <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[repeat(4,minmax(0,1fr))_20rem]">
+    <div className={cn('grid gap-x-10 gap-y-8', gridClass)}>
       {item.columns!.map((column, ci) => (
         <div key={column.heading} className="min-w-0">
           <div className="flex items-baseline gap-2 border-b border-hairline pb-3">
