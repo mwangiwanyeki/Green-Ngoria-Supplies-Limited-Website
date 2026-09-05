@@ -287,16 +287,16 @@ export function CertificationsStrip() {
 export function VisionPanel() {
   const reduced = useReducedMotion() ?? false;
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-ink px-6 py-14 text-white sm:px-14 sm:py-20">
-      <div className="absolute inset-0 -z-10 opacity-30">
+    <div className="surface-ink relative isolate overflow-hidden rounded-3xl px-6 py-14 text-white sm:px-14 sm:py-20">
+      <div className="absolute inset-0 -z-10">
         <Image
           src="/images/gallery/dji-0318.webp"
           alt=""
           fill
           sizes="100vw"
-          className="object-cover"
+          className="object-cover opacity-40"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-black/55" />
       </div>
       <motion.blockquote
         initial={reduced ? false : { opacity: 0, y: 20 }}
